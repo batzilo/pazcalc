@@ -3,8 +3,6 @@
 %{
   open Printf
   open Lexing
-
-  let var_table = Hashtbl.create 16
 %}
 
 /* Ocamlyacc Declarations */
@@ -15,31 +13,34 @@
 %token T_NEXT T_PROC T_PROGRAM T_REAL
 %token T_return T_STEP T_switch T_TO T_true T_while
 %token T_WRITE T_WRITELN T_WRITESP T_WRITESPLN
-
 %token <string> T_id
 %token <int> T_int_const
 %token <float> T_float_const
 %token <char> T_char_const
 %token <string> T_string_literal
-
 %token T_amp T_sem_col T_dot T_lparen T_rparen T_col
 %token T_comma T_lbrack T_rbrack T_lbrace T_rbrace
-
-/* pinakas 2 */
 %token T_plus T_minus T_lg_not T_not
 %token T_mul T_div T_mod T_MOD
 %token T_gr T_ls T_lseq T_greq
 %token T_eq T_neq
 %token T_lg_and T_and
 %token T_lg_or T_or
-
 %token T_assign T_plus_assign T_minus_assign T_mul_assign T_div_assign T_mod_assign
 %token T_plus_plus 
 %token T_minus_minus
 
-%left T_plus T_minus
-%left T_mul T_div T_mod T_MOD
-%left NEG	/* negation -- unary minus */
+%left	T_lg_or T_or
+%left 	T_lg_and T_and
+%nonassoc T_eq T_neq
+%nonassoc T_gr T_ls T_greq T_lseq
+%left 	T_plus T_minus
+%left 	T_mul T_div T_mod T_MOD
+%left	T_lparen
+%nonassoc UNARY
+/* %nonassoc T_TO T_DOWNTO T_STEP T_sem_col T_rparen T_comma T_rbrack */
+%nonassoc ELSE
+%nonassoc T_else
 
 %start pazprog
 %type <unit> pazprog
@@ -123,7 +124,7 @@ program_header : T_PROGRAM T_id T_lparen T_rparen ; 	{ }
 
 program : 	program_header block ;			{ }
 
-paztype : 		T_int 		{ }
+paztype : 	T_int 		{ }
 		| T_bool	{ }
 		| T_char	{ }
 		| T_REAL;	{ }
@@ -139,8 +140,8 @@ expr : 		T_int_const				{ }
 		| T_lparen expr T_rparen		{ }
 		| l_value				{ }
 		| call					{ }
-		| unop expr				{ }
-		| expr binop expr			{ }
+		| unop expr	%prec UNARY		{ }
+		| binop_expr				{ }
 		;
 
 l_value :	T_id l_value2				{ }
@@ -150,28 +151,28 @@ l_value2 : 	/* empty */				{ }
 		| l_value2 T_lbrack expr T_rbrack	{ }
 		;
 
-unop :		T_plus					{ }
-		| T_minus				{ }
-		| T_lg_not				{ }
-		| T_not					{ }
+unop :		T_plus				{ }
+		| T_minus			{ }
+		| T_lg_not			{ }
+		| T_not				{ }
 		;
 
-binop : 	T_plus					{ }
-		| T_minus				{ }
-		| T_mul					{ }
-		| T_div					{ }
-		| T_mod					{ }
-		| T_MOD					{ }
-		| T_eq					{ }
-		| T_neq					{ }
-		| T_ls					{ }
-		| T_gr					{ }
-		| T_lseq				{ }
-		| T_greq				{ }
-		| T_lg_and				{ }
-		| T_and					{ }
-		| T_lg_or				{ }
-		| T_or					{ }
+binop_expr : 	expr T_plus expr			{ }
+		| expr T_minus expr			{ }
+		| expr T_mul expr			{ }
+		| expr T_div expr			{ }
+		| expr T_mod expr			{ }
+		| expr T_MOD expr			{ }
+		| expr T_eq expr			{ }
+		| expr T_neq expr			{ }
+		| expr T_ls expr			{ }
+		| expr T_gr expr			{ }
+		| expr T_lseq expr			{ }
+		| expr T_greq expr			{ }
+		| expr T_lg_and expr			{ }
+		| expr T_and expr			{ }
+		| expr T_lg_or expr			{ }
+		| expr T_or expr			{ }
 		;
 
 call : 		T_id T_lparen call2 T_rparen 		{ }
@@ -202,7 +203,7 @@ stmt :		T_sem_col						{ }
 		| l_value T_plus_plus T_sem_col				{ }
 		| l_value T_minus_minus T_sem_col			{ }
 		| call T_sem_col					{ }
-		| T_if T_lparen expr T_rparen stmt			{ }
+		| T_if T_lparen expr T_rparen stmt	%prec ELSE	{ }
 		| T_if T_lparen expr T_rparen stmt T_else stmt		{ }
 		| T_while T_lparen expr T_rparen stmt			{ }
 		| T_FOR T_lparen T_id T_comma range T_rparen stmt	{ }

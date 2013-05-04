@@ -15,12 +15,12 @@ $(T).ml : $(T).mli
 	ocamlc -c $(T).mli
 
 $(T).mli : $(T).mly
-	ocamlyacc $(T).mly
+	ocamlyacc -v $(T).mly
 
 .PHONY : clean distclean
 
 clean :
-	$(RM) *.cmo *.cmi lexer.ml $(T).mli $(T).ml
+	$(RM) *.cmo *.cmi lexer.ml $(T).mli $(T).ml *.output
 
 distclean : clean
 	$(RM) $(T)
