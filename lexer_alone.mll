@@ -8,7 +8,6 @@
 
 (* header section *)
 {
-  open Parser
   open Printf
   open Lexing
 
@@ -16,6 +15,25 @@
     let tbl = Hashtbl.create size in
       List.iter (fun (key, data) -> Hashtbl.add tbl key data) init;
       tbl
+
+  type token =
+    | T_and | T_bool | T_break | T_case | T_char | T_const
+    | T_continue | T_default | T_do | T_DOWNTO | T_else | T_false
+    | T_FOR | T_FORM | T_FUNC | T_if | T_int | T_MOD 
+    | T_NEXT | T_not | T_or | T_PROC | T_PROGRAM | T_REAL
+    | T_return | T_STEP | T_switch | T_TO | T_true | T_while
+    | T_WRITE | T_WRITELN | T_WRITESP | T_WRITESPLN
+   
+    | T_id of string | T_int_const of int | T_float_const of float
+    | T_char_const of char | T_string_const of string
+   
+    | T_eq | T_gr | T_ls | T_neq | T_greq | T_lseq | T_plus | T_minus 
+    | T_mul | T_div | T_mod | T_lg_not | T_lg_and | T_lg_or | T_plus_plus 
+    | T_minus_minus | T_assign | T_plus_assign | T_minus_assign | T_mul_assign 
+    | T_div_assign | T_mod_assign
+
+    | T_amp | T_sem_col | T_dot | T_lparen | T_rparen | T_col
+    | T_comma | T_lbrack | T_rbrack | T_lbrace | T_rbrace
 
   let keyword_table =
     create_hashtable 64 [
@@ -80,8 +98,8 @@
      }
   (* string constants *)
     | '"'((common # '\n') | escape)*'"' as sc
-     { printf "string literal: %s\n" sc;
-       T_string_literal sc
+     { printf "string constant: %s\n" sc;
+       T_string_const sc
      }
   (* operators  *)
     | "==" as op { printf "operator: %s\n" op; T_eq }
@@ -136,7 +154,6 @@
      { printf "Lexical error in line %d: Unrecognized character: %c \n" lexbuf.lex_curr_p.pos_lnum chr;
        pazcal lexbuf
      }
-
   and comment = parse
   (* go back to "pazcal" rule *)
     | "*/" { pazcal lexbuf }
@@ -148,7 +165,6 @@
     | _ { comment lexbuf }
 
 (* trailer section *)
-(*
 {
   let rec parse lexbuf = 
     let token = pazcal lexbuf in
@@ -167,4 +183,3 @@
     
   let _ = Printexc.print main ()
 }
-*)
