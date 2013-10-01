@@ -1,5 +1,9 @@
-(* file : mail.ml *)
-(* Assumes the parser file is "parser.mly" and the lexer file is "lexer.mll" *)
+(*
+** file : mail.ml
+*)
+
+open Lexer
+open Parser
 
 let main () =
   try

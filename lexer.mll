@@ -8,9 +8,9 @@
 
 (* header section *)
 {
-  open Parser
   open Printf
   open Lexing
+  open Parser
 
   let create_hashtable size init =
     let tbl = Hashtbl.create size in
