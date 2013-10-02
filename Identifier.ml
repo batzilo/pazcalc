@@ -1,4 +1,4 @@
-type id = string Hashcons.hash_consed
+﻿type id = string Hashcons.hash_consed
 
 module Hid = Hashcons.Make (
   struct

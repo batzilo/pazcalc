@@ -1,4 +1,4 @@
-type 'a hash_consed = {
+﻿type 'a hash_consed = {
   node : 'a;
   tag  : int
 }

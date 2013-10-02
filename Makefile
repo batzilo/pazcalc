@@ -1,4 +1,4 @@
-.PHONY: clean distclean pack count
+﻿.PHONY: clean distclean pack count
 
 # OS type: Linux/Win DJGPP
 ifdef OS

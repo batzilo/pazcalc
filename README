@@ -1,4 +1,4 @@
-To make the symbol table demo program:
+﻿To make the symbol table demo program:
 
    make depend-symbtest
    make symbtest                or symbtest.exe (if in Windows)

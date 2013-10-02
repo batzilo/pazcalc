@@ -1,4 +1,4 @@
-(* Hash consed identifiers *)
+﻿(* Hash consed identifiers *)
 
 type id
 

@@ -1,4 +1,4 @@
-type typ = TYPE_none        (* no type (should not be used)       *)
+﻿type typ = TYPE_none        (* no type (should not be used)       *)
          | TYPE_int         (* int                                *)
          | TYPE_byte        (* byte                               *)
          | TYPE_array of    (* array                              *)
