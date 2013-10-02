@@ -1,49 +1,99 @@
-#
-# UPDATE: can use ocamlbuild instead of make
-#
+.PHONY: clean distclean pack count
 
-# Makefile for Pazcal Compiler
+# OS type: Linux/Win DJGPP
+ifdef OS
+   EXE=.exe
+else
+   EXE=
+endif
 
-# GNU Make notation:
-# $(T) stands for whatever variable T is
-# $@ stands for that rule's target
-# $^ stands for that rule's all prerequisites
+EXEFILE=gracec$(EXE)
+MLFILES=Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml \
+  Lexer.ml Parser.ml Symbtest.ml
+MLIFILES=Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli \
+  Parser.mli Lexer.mli
+CMOFILES=$(patsubst %.ml,%.cmo,$(MLFILES))
+CMIFILES=$(patsubst %.ml,%.cmi,$(MLFILES))
+CMXFILES=$(patsubst %.ml,%.cmx,$(MLFILES))
+OBJFILES=$(patsubst %.ml,%.o,$(MLFILES))
+PARSERFILES=Parser.ml Parser.mli Parser.output Lexer.ml
+SRCFILES=Makefile extend.ml Lexer.mll Parser.mly \
+  $(filter-out Parser.% Lexer.%,$(MLFILES)) \
+  $(filter-out Parser.%,$(MLIFILES))
 
-# Define the final Target
-T=compiler
+CAMLP5_FLAGS=-pp "camlp5o ./extend.cmo"
+OCAMLC_FLAGS=-g
+OCAMLOPT_FLAGS=
+OCAMLC=ocamlc $(OCAMLC_FLAGS)
+OCAMLOPT=ocamlopt $(OCAMLOPT_FLAGS)
+OCAMLDEP=ocamldep
+INCLUDES=
 
-# What to build
-all : $(T)
+default: symbtest$(EXE)
 
-# Build the whole compiler by linking all object code files
-$(T) : lexer.cmo parser.cmo main.cmo
-	ocamlc -o $@ $^
+symbtest$(EXE): $(filter-out Lexer.cmo Parser.cmo,$(CMOFILES))
+	$(OCAMLC) -o $@ $^
 
-# Compile every source code file with extension .ml to object code
-%.cmo : %.ml
-	ocamlc -c $^
+all: $(EXEFILE)
 
-# Build the lexical analyzer source code (lexer.ml)
-# from lexer.mll: a description file with regular expressions
-lexer.ml : lexer.mll parser.cmo
-	ocamllex lexer.mll
+extend.cmo: extend.ml
+	$(OCAMLC) -pp "camlp5o pa_extend.cmo q_MLast.cmo" -I +camlp5 -c $<
 
-# Build the parser source code (parser.ml and parser.mli)
-# from parser.mly: a grammar description file
-# -v : verbose
-parser.ml : parser.mly
-	ocamlyacc -v parser.mly
-# remove parser.mli for now, it'll be created again when parser.ml is compiled
-	rm parser.mli
+%.cmo: %.ml %.mli extend.cmo
+	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
 
+%.cmx: %.ml extend.cmo
+	$(OCAMLOPT) $(CAMLP5_FLAGS) -c $<
 
-# PHONY targets
-.PHONY : clean distclean
+%.cmi: %.mli extend.cmo
+	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
 
-# remove all object code files
-clean :
-	$(RM) *.cmo *.cmi lexer.ml parser.mli parser.ml *.output
+%.cmo %.cmi: %.ml extend.cmo
+	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
 
-# remove all object code files along with the final executable
-distclean : clean
-	$(RM) $(T)
+.PHONY: all clean count depend
+
+$(EXEFILE): Parser.mli Lexer.ml $(CMOFILES)
+	$(OCAMLC) -o $@ $(CMOFILES)
+
+Parser.ml Parser.mli: Parser.mly
+	ocamlyacc -v Parser.mly
+
+Lexer.ml: Lexer.mll
+	ocamllex Lexer.mll
+
+-include .depend
+
+depend: $(MLFILES) $(MLIFILES) extend.cmo
+	$(OCAMLDEP) $(CAMLP5_FLAGS) $(INCLUDES) \
+          $(filter-out extend.cmo,$^) > .depend
+
+depend-symbtest: Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml \
+                 Symbtest.ml Hashcons.mli Identifier.mli Error.mli Types.mli \
+                 Symbol.mli extend.cmo
+	$(OCAMLDEP) $(CAMLP5_FLAGS) $(INCLUDES) \
+          $(filter-out extend.cmo,$^) > .depend
+
+clean:
+	$(RM) $(CMXFILES) $(CMOFILES) $(CMIFILES) $(OBJFILES) $(EXEFILES) \
+           extend.cmi extend.cmo \
+           $(patsubst %,%.cm?,$(EXEFILES)) $(PARSERFILES) pplib.cma *~
+
+distclean: clean
+	$(RM) $(EXEFILE) symbtest$(EXE) .depend
+
+pack: clean
+	tar cvfz gracec.tar.gz $(SRCFILES)
+
+bonus.zip: distclean
+	zip bonus.zip README Makefile extend.ml \
+	    Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli \
+	    Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml Symbtest.ml
+
+bonus.tgz: distclean
+	tar cvfz bonus.tgz README Makefile extend.ml \
+	    Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli \
+	    Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml Symbtest.ml
+
+count:
+	wc -l $(SRCFILES)
