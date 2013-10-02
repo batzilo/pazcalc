@@ -65,8 +65,9 @@ pazprog : /* empty */ { }
         | declaration_list { }
 		;
 
-declaration_list : declaration_list declaration { } 
-                  ;
+declaration_list : declaration_list declaration { }
+                 | declaration { }
+                 ;
 
 declaration : const_def { }
             | var_def { }
