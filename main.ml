@@ -16,7 +16,9 @@ let main () =
           with Parsing.Parse_error -> 
             printf "\n\tSyntax error!\n\n";
             exit 0
-      done
-    with End_of_file -> exit 0
+        done
+  with End_of_file ->
+      printf "\nFinished.\n\n";
+      exit 0
 
 let _ = Printexc.print main ()
