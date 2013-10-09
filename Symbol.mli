@@ -3,9 +3,9 @@
 type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE
 
 type param_status =
-  | PARDEF_COMPLETE                             (* Πλήρης ορισμός     *)
-  | PARDEF_DEFINE                               (* Εν μέσω ορισμού    *)
-  | PARDEF_CHECK                                (* Εν μέσω ελέγχου    *)
+  | PARDEF_COMPLETE                           (* Πλήρης ορισμός     *)
+  | PARDEF_DEFINE                             (* Εν μέσω ορισμού    *)
+  | PARDEF_CHECK                              (* Εν μέσω ελέγχου    *)
 
 type scope = {
   sco_parent : scope option;
@@ -53,22 +53,51 @@ and entry = {
 
 type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 
+val start_positive_offset : int           (* Αρχικό θετικό offset στο Ε.Δ.   *)
+val start_negative_offset : int           (* Αρχικό αρνητικό offset στο Ε.Δ. *)
+
 val currentScope : scope ref              (* Τρέχουσα εμβέλεια         *)
 val quadNext : int ref                    (* Αριθμός επόμενης τετράδας *)
 val tempNumber : int ref                  (* Αρίθμηση των temporaries  *)
 
+(* Initialize the Symbol Table *)
 val initSymbolTable  : int -> unit
-val openScope        : unit -> unit
-val closeScope       : unit -> unit
-val newVariable      : Identifier.id -> Types.typ -> bool -> entry
-val newFunction      : Identifier.id -> bool -> entry
-val newParameter     : Identifier.id -> Types.typ -> pass_mode ->
-                                        entry -> bool -> entry
-val newTemporary     : Types.typ -> entry
 
-val forwardFunction   : entry -> unit
-val endFunctionHeader : entry -> Types.typ -> unit
+(* Open a new scope, set the scope parent,
+ * incr nesting level, empty list of entries *)
+val openScope        : unit -> unit
+
+(* Close the curr scope, remove from HashTable
+ * all scope entries, find scope father and
+ * set as current scope *)
+val closeScope       : unit -> unit
+
+(* Check if name is in HashTable
+ * return entry if found, else raise Not_found/Exit *)
 val lookupEntry       : Identifier.id -> lookup_type -> bool -> entry
 
-val start_positive_offset : int   (* Αρχικό θετικό offset στο Ε.Δ.   *)
-val start_negative_offset : int   (* Αρχικό αρνητικό offset στο Ε.Δ. *)
+(* Add a new variable, with type typ and name id,
+ * decr the neg offset, create info struct and
+ * call NewEntry *)
+val newVariable      : Identifier.id -> Types.typ -> bool -> entry
+
+(* Add a new function 
+ * return an ENTRY_function entry registered in Hashtable
+ * whether it's been for a new or a forwarded function *)
+val newFunction      : Identifier.id -> bool -> entry
+
+(* Add a new function parameter 
+ * Should work fine with PARDEF_{DEFINE | CHECK} *)
+val newParameter     : Identifier.id -> Types.typ -> pass_mode ->
+                                        entry -> bool -> entry
+
+(* add a new temporary variable
+ * make a new name, decr the negative offset
+ * create new temporary_info and register a new Entry *)
+val newTemporary     : Types.typ -> entry
+
+(* declare a forwarded function *)
+val forwardFunction   : entry -> unit
+
+(* finish function checking *)
+val endFunctionHeader : entry -> Types.typ -> unit

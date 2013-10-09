@@ -1,11 +1,14 @@
-﻿type 'a hash_consed = {
+﻿(* Ocaml polymorphic record type definition *)
+type 'a hash_consed = {
   node : 'a;
   tag  : int
 }
 
+(* functions on the previous type *)
 let hash_value x = x.node
 let hash_tag x = x.tag
 
+(* Comp is a named module type (=signature) *)
 module type Comp = 
   sig
     type t
@@ -13,12 +16,17 @@ module type Comp =
     val hash  : t -> int
   end
 
+(* S is a named module type (=signature) *)
 module type S =
   sig
     type t
     val  f : unit -> (t -> t hash_consed)
   end
 
+(* Functor definition
+ * with one argument : X that is a Comp module
+ * returns a module that is an S module
+ *)
 module Make (X : Comp) : (S with type t = X.t) = 
   struct
     type t = X.t
