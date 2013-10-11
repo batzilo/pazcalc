@@ -10,6 +10,7 @@
   open Lexing
   open Printf
   (* open Symbol *)
+  (* open Identifier *)
 
   (* Called by the parser function on error *)
   let parse_error s = 

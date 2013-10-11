@@ -16,13 +16,7 @@ let rec sizeOfType t =
    | TYPE_array (et, sz) -> sz * sizeOfType et
    | _                   -> 0
 
-let equalReal r1 r2 =
-  (* TODO : Real comparison ? *)
-  printf "Unsupported yet\n";
-  false
-
 let rec equalType t1 t2 =
    match t1, t2 with
    | TYPE_array (et1, sz1), TYPE_array (et2, sz2) -> equalType et1 et2
-   | TYPE_REAL r1, TYPE_REAL r2                   -> equalReal r1 r2
    | _                                            -> t1 = t2

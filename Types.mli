@@ -14,5 +14,4 @@ type typ = TYPE_none        (* no type (should not be used)       *)
          *)
 
 val sizeOfType : typ -> int
-val equalReal : typ -> typ -> bool
 val equalType : typ -> typ -> bool
