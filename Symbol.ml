@@ -78,6 +78,7 @@ type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 let start_positive_offset = 8
 let start_negative_offset = 0
 
+(* global scope *)
 let the_outer_scope = {
   sco_parent = None;
   sco_nesting = 0;
@@ -85,6 +86,7 @@ let the_outer_scope = {
   sco_negofs = start_negative_offset
 }
 
+(* make ENTRY_none entry, used for errors *)
 let no_entry id = {
   entry_id = id;
   entry_scope = the_outer_scope;
@@ -137,18 +139,24 @@ let newEntry id inf err =
     if err then begin
       try
         let e = H.find !tab id in
+        (* if there is a same id in the current scope, error *)
         if e.entry_scope.sco_nesting = !currentScope.sco_nesting then
            raise (Failure_NewEntry e)
       with Not_found ->
+        (* it's ok *)
         ()
     end;
+    (* make the new entry *)
     let e = {
       entry_id = id;
       entry_scope = !currentScope;
       entry_info = inf
     } in
+    (* add it to HashTable *)
     H.add !tab id e;
+    (* add it to current scope entry list *)
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
+    (* return it *)
     e
   with Failure_NewEntry e ->
     error "duplicate identifier %a" pretty_id id;
