@@ -1,12 +1,15 @@
-﻿(* Symbol table *)
+(* Symbol table functions *)
 
+(* parameter pass mode *)
 type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE
 
+(* parameter status *)
 type param_status =
   | PARDEF_COMPLETE                           (* Πλήρης ορισμός     *)
   | PARDEF_DEFINE                             (* Εν μέσω ορισμού    *)
   | PARDEF_CHECK                              (* Εν μέσω ελέγχου    *)
 
+(* scope datatype *)
 type scope = {
   sco_parent : scope option;
   sco_nesting : int;
@@ -39,12 +42,14 @@ and temporary_info = {                        (** Προσωρινή μεταβ�
   temporary_offset : int                      (* Offset στο Ε.Δ.       *)
 }
 
+(* HashTable entry information datatype *)
 and entry_info = ENTRY_none
                | ENTRY_variable of variable_info
                | ENTRY_function of function_info
                | ENTRY_parameter of parameter_info
                | ENTRY_temporary of temporary_info
 
+(* HashTable entry datatype *)
 and entry = {
   entry_id    : Identifier.id;
   entry_scope : scope;

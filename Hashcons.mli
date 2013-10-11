@@ -1,4 +1,4 @@
-﻿(* Polymorphic hash consing,
+(* Polymorphic hash consing,
    you don't need to understand what this is all about... *)
 
 (* type made abstract *)

@@ -1,4 +1,4 @@
-﻿(* Ocaml polymorphic record type definition *)
+(* Ocaml polymorphic record type definition *)
 type 'a hash_consed = {
   node : 'a;
   tag  : int

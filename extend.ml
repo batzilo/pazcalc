@@ -1,4 +1,4 @@
-﻿open Pcaml
+open Pcaml
 open Lexing
 
 EXTEND

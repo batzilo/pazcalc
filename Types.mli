@@ -1,4 +1,4 @@
-﻿(* Pazcal Data Types *)
+(* Pazcal Data Types *)
 
 type typ = TYPE_none        (* no type (should not be used)       *)
          | TYPE_int         (* int                                *)

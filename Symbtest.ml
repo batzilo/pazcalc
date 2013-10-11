@@ -1,4 +1,4 @@
-﻿open Format
+open Format
 
 open Identifier
 open Types

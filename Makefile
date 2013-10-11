@@ -19,6 +19,10 @@ all : $(T)
 $(T) : lexer.cmo parser.cmo main.cmo
 	ocamlc -o $@ $^
 
+# compile ecery interface source code file with extension .mli
+#%.cmi : %.mli
+#	ocamlc -c $^
+
 # Compile every source code file with extension .ml to object code
 %.cmo : %.ml
 	ocamlc -c $^

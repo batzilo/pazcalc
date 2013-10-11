@@ -1,4 +1,4 @@
-﻿(* id is 'a hash_consed *)
+(* id is 'a hash_consed *)
 type id = string Hashcons.hash_consed
 
 (* Functor application

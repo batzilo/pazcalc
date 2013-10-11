@@ -1,4 +1,4 @@
-﻿type typ = TYPE_none
+type typ = TYPE_none
          | TYPE_int
          | TYPE_bool
          | TYPE_char

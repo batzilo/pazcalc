@@ -1,4 +1,4 @@
-﻿.PHONY: clean distclean pack count
+.PHONY: clean distclean pack count
 
 # OS type: Linux/Win DJGPP
 ifdef OS
@@ -7,7 +7,7 @@ else
    EXE=
 endif
 
-EXEFILE=gracec$(EXE)
+EXEFILE=pazcalc$(EXE)
 MLFILES=Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml \
   Lexer.ml Parser.ml Symbtest.ml
 MLIFILES=Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli \

@@ -9,6 +9,7 @@
   open Printf
   open Lexing
   open Printf
+  (* open Symbol *)
 
   (* Called by the parser function on error *)
   let parse_error s = 
@@ -73,8 +74,10 @@
 %%
 
 pazprog : /* empty */ { }
-        | declaration_list { }
+        | dummy_non_terminal declaration_list { }
 		;
+
+dummy_non_terminal : /* empty, used only for semantic actions */ { (* initSymbolTable 256 *) }
 
 declaration_list : declaration { }
                  | declaration_list declaration { }
