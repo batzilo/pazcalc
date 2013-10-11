@@ -43,7 +43,7 @@
 %token T_plus_plus 
 %token T_minus_minus
 
-%nonassoc ELSE
+%nonassoc NOELSE      /* pseudo-token. it gives T_ELSE higher precedence */
 %nonassoc T_else
 
 %left T_lg_or T_or
@@ -269,7 +269,7 @@ stmt : T_sem_col { }
      | l_value T_plus_plus T_sem_col { }
      | l_value T_minus_minus T_sem_col { }
      | call T_sem_col { }
-     | T_if T_lparen expr T_rparen stmt	%prec ELSE { }
+     | T_if T_lparen expr T_rparen stmt	%prec NOELSE { }
      | T_if T_lparen expr T_rparen stmt T_else stmt { }
      | T_while T_lparen expr T_rparen stmt { }
      | T_FOR T_lparen T_id T_comma range T_rparen stmt { }
