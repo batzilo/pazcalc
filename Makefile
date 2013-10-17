@@ -16,7 +16,7 @@ T=compiler
 all : $(T)
 
 # Build the whole compiler by linking all object code files
-$(T) : lexer.cmo parser.cmo main.cmo
+$(T) : lexer.cmo parser.cmo
 	ocamlc -o $@ $^
 
 # compile ecery interface source code file with extension .mli

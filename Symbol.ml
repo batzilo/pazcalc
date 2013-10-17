@@ -61,11 +61,24 @@ and temporary_info = {
   temporary_offset : int
 }
 
+(*
+and c_val = int of int
+
+
+and constant_info = {
+  constant_type : Types.typ;
+  constant_value : 
+}
+*)
+
 and entry_info = ENTRY_none
                | ENTRY_variable of variable_info
                | ENTRY_function of function_info
                | ENTRY_parameter of parameter_info
                | ENTRY_temporary of temporary_info
+               (*
+               | ENTRY_constant of constant_info
+               *)
 
 and entry = {
   entry_id    : Identifier.id;
