@@ -1,0 +1,57 @@
+#
+# UPDATE: can use ocamlbuild instead of make
+#
+
+# Makefile for Pazcal Compiler
+
+# GNU Make notation:
+# $(T) stands for whatever variable T is
+# $@ stands for that rule's target
+# $^ stands for that rule's all prerequisites
+
+# Define the final Target
+T=pazcalc
+
+# What to build
+all : $(T)
+
+# Build the whole compiler by linking all object code files
+$(T) : parser.cmo lexer.cmo Symbol.cmo Identifier.cmo Error.cmo Types.cmo
+	ocamlc -o $@ $^
+
+parser.cmo : Symbol.cmi Identifier.cmi Error.cmi Types.cmi parser.mly
+	ocamlyacc -v parser.mly
+	ocamlc -c parser.ml
+
+lexer.cmo : parser.cmi lexer.mll
+	ocamllex lexer.mll
+	ocamlc -c lexer.ml
+
+symbol.cmo : Identifier.cmi Error.cmi Types.cmi Symbol.ml
+	ocamlc -c Symbol.ml
+
+identifier.cmo : Hashcons.cmi Identifier.ml
+	ocamlc -c Identifier.ml
+
+types.cmo : Types.ml
+	ocamlc -c Types.ml
+
+error.cmo : Error.ml
+	ocamlc -c Error.ml
+
+hashcons.cmo : Hashcons.ml
+	ocamlc -c Hashcons.ml
+
+%.cmi : %.mli
+	ocamlc $^
+
+# PHONY targets
+.PHONY : clean distclean
+
+# remove all object code files
+clean :
+	$(RM) *.cmo *.cmi lexer.ml parser.mli parser.ml *.output
+
+# remove all object code files along with the final executable
+distclean : clean
+	$(RM) $(T)

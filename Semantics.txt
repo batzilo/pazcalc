@@ -1,0 +1,34 @@
+Possible Semantic Errors that need to be checked at Compile-Time
+
+- Array Index must be an integer
+- Name used before declaration
+
+- When declaring a Constant:
+  - Constant Name should not be taken
+  - Const-value should be of the same type as paztype used in declaration
+  - Const-value should be evaluatable at compile-time
+  - What if it's too long? e.g. const int N = 65536;
+
+- When declaring a Variable:
+  - Variable Identifier should not be taken
+  - Array sizes should be of type int (or int-const)
+  - If variable type is basic {int,char,bool,real}, initialization is possible
+    - Initialization type and variable type should match
+    - Global variable initial values should be constants
+      - Global variables with no initialization, are {0, false, '\0' and 0.0}
+        respectively for basic types and zeros for arrays
+    - Rest variable initial values could be any expression
+
+- When delcaring a routine, the body could be omitted. Later the routine must
+  be defined using the shame routine header.
+- FUNC declaration header should match definition header
+- FUNC return type must be a basic type
+- FUNC name should not be taken
+- FUNC typ. parameters name should not be taken (by a prev param)
+- FUNC typ. parameter of type Array should not be passed by reference using '&'
+- FUNC typ. parameters of type Array could only omitt first dimension
+
+- lvalues are variables or routine parameters
+- lvalue type is the same as variable/parameter type
+
+

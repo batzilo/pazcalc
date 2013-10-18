@@ -10,4 +10,4 @@ To make your compiler:
    3. Finally:
 
    make depend
-   make
+   make all
