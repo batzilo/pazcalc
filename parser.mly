@@ -32,11 +32,11 @@
     typ : Types.typ;
     mutable q_next : int list;
     mutable q_true : int list;
-    mutable q_false : int list;
+    mutable q_false : int list
     }
 
   let sq_err = {
-        place = q_none;
+        place = Q_none;
         typ = TYPE_none;
         q_next = [];
         q_true = [];
@@ -149,7 +149,7 @@ pazprog : /* empty */ { }
         | dummy_non_terminal declaration_list { }
 		;
 
-dummy_non_terminal : /* empty, used only for semantic actions */ { (* initSymbolTable 256 *) }
+dummy_non_terminal : /* empty, used only for semantic actions */ { initSymbolTable 256 }
 
 declaration_list : declaration { }
                  | declaration_list declaration { }
@@ -314,15 +314,19 @@ expr : T_int_const {
      | call { $1 }
      | T_plus expr %prec UNARY { 
             if $2.typ != TYPE_int then
+                begin
                 print_type_error "+" $2 TYPE_int (rhs_start_pos 2);
                 sq_err
+                end
             else
                 $2
         }
      | T_minus expr %prec UNARY {
             if $2.typ != TYPE_int then
+                begin
                 print_type_error "+" $2 TYPE_int (rhs_start_pos 2);
                 sq_err
+                end
             else
                 (* stub *)
                 let sq = {
@@ -335,8 +339,10 @@ expr : T_int_const {
         }
      | T_lg_not expr %prec UNARY {
             if $2.typ != TYPE_bool then
+                begin
                 print_type_error "+" $2 TYPE_bool (rhs_start_pos 2);
                 sq_err
+                end
             else
                 (* stub *)
                 let sq = {
@@ -349,8 +355,10 @@ expr : T_int_const {
         }
      | T_not expr %prec UNARY {
             if $2.typ != TYPE_bool then
+                begin
                 print_type_error "+" $2 TYPE_bool (rhs_start_pos 2);
                 sq_err
+                end
             else
                 (* stub *)
                 let sq = {
@@ -363,12 +371,14 @@ expr : T_int_const {
         }
      | expr T_plus expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error "+" $1 $3 TYPE_int (get_binop_pos ());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 + x2
-                    | _ -> newTemporary TYPE_int
+                    | (q_int as x1, q_int as x2) -> x1 + x2
+                    | (_,_) -> newTemporary TYPE_int
                 in
                 let sq = {
                     place = pl;
@@ -380,11 +390,13 @@ expr : T_int_const {
         }
      | expr T_minus expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error "-" $1 $3 TYPE_int (get_binop_pos ());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 - x2
+                    | (q_int as x1, q_int as x2) -> x1 - x2
                     | _ -> newTemporary TYPE_int
                 in
                 let sq = {
@@ -397,11 +409,13 @@ expr : T_int_const {
         }
      | expr T_mul expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error "*" $1 $3 TYPE_int (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 * x2
+                    | (q_int as x1, q_int as x2) -> x1 * x2
                     | _ -> newTemporary TYPE_int
                 in
                 let sq = {
@@ -414,8 +428,10 @@ expr : T_int_const {
         }
      | expr T_div expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error "/" $1 $3 TYPE_int (get_binop_pos());
                 sq_err
+                end
             (*
             else if $3.place == 0 then
                 print_div_zero_error;
@@ -423,7 +439,7 @@ expr : T_int_const {
             *)
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 / x2
+                    | (q_int as x1, q_int as x2) -> x1 / x2
                     | _ -> newTemporary TYPE_int
                 in
                 let sq = {
@@ -436,8 +452,10 @@ expr : T_int_const {
         }
      | expr T_mod expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error "%" $1 $3 TYPE_int (get_binop_pos());
                 sq_err
+                end
             (*
             else if $3.place == 0 then
                 print_div_zero_error;
@@ -445,7 +463,7 @@ expr : T_int_const {
             *)
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 % x2
+                    | (q_int as x1, q_int as x2) -> x1 % x2
                     | _ -> newTemporary TYPE_int
                 in
                 let sq = {
@@ -458,8 +476,10 @@ expr : T_int_const {
         }
      | expr T_MOD expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error "%" $1 $3 TYPE_int (get_binop_pos());
                 sq_err
+                end
             (*
             else if $3.place == 0 then
                 print_div_zero_error;
@@ -467,7 +487,7 @@ expr : T_int_const {
             *)
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 % x2
+                    | (q_int as x1, q_int as x2) -> x1 % x2
                     | _ -> newTemporary TYPE_int
                 in
                 let sq = {
@@ -480,11 +500,13 @@ expr : T_int_const {
         }
      | expr T_eq expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error "=" $1 $3 $1.typ (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 = x2
+                    | (q_int as x1, q_int as x2) -> x1 = x2
                     | _ -> newTemporary TYPE_bool
                 in
                 let sq = {
@@ -497,11 +519,13 @@ expr : T_int_const {
         }
      | expr T_neq expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error "!=" $1 $3 $1.typ (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 != x2
+                    | (q_int as x1, q_int as x2) -> x1 != x2
                     | _ -> newTemporary TYPE_bool
                 in
                 let sq = {
@@ -514,11 +538,13 @@ expr : T_int_const {
         }
      | expr T_ls expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error "<" $1 $3 $1.typ (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 < x2
+                    | (q_int as x1, q_int as x2) -> x1 < x2
                     | _ -> newTemporary TYPE_bool
                 in
                 let sq = {
@@ -531,11 +557,13 @@ expr : T_int_const {
         }
      | expr T_gr expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error ">" $1 $3 $1.typ (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 > x2
+                    | (q_int as x1, q_int as x2) -> x1 > x2
                     | _ -> newTemporary TYPE_bool
                 in
                 let sq = {
@@ -548,11 +576,13 @@ expr : T_int_const {
         }
      | expr T_lseq expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error "<=" $1 $3 $1.typ (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 <= x2
+                    | (q_int as x1, q_int as x2) -> x1 <= x2
                     | _ -> newTemporary TYPE_bool
                 in
                 let sq = {
@@ -565,11 +595,13 @@ expr : T_int_const {
         }
      | expr T_greq expr {
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
+                begin
                 print_type_error ">=" $1 $3 $1.typ (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_int x1, q_int x2) -> x1 >= x2
+                    | (q_int as x1, q_int as x2) -> x1 >= x2
                     | _ -> newTemporary TYPE_bool
                 in
                 let sq = {
@@ -582,11 +614,13 @@ expr : T_int_const {
         }
      | expr T_lg_and expr {
             if $1.typ != TYPE_bool || $3.typ != TYPE_bool then
+                begin
                 print_type_error "&&" $1 $3 $1.typ (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_bool x1, q_bool x2) -> x1 && x2
+                    | (q_bool as x1, q_bool as x2) -> x1 && x2
                     | _ -> newTemporary TYPE_bool
                 in
                 let sq = {
@@ -599,11 +633,13 @@ expr : T_int_const {
         }
      | expr T_and expr {
             if $1.typ != TYPE_bool || $3.typ != TYPE_bool then
+                begin
                 print_type_error "&&" $1 $3 $1.typ (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_bool x1, q_bool x2) -> x1 && x2
+                    | (q_bool as x1, q_bool as x2) -> x1 && x2
                     | _ -> newTemporary TYPE_bool
                 in
                 let sq = {
@@ -616,11 +652,13 @@ expr : T_int_const {
         }
      | expr T_lg_or expr {
             if $1.typ != TYPE_bool || $3.typ != TYPE_bool then
+                begin
                 print_type_error "||" $1 $3 $1.typ (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_bool x1, q_bool x2) -> x1 || x2
+                    | (q_bool as x1, q_bool as x2) -> x1 || x2
                     | _ -> newTemporary TYPE_bool
                 in
                 let sq = {
@@ -633,11 +671,13 @@ expr : T_int_const {
         }
      | expr T_or expr {
             if $1.typ != TYPE_bool || $3.typ != TYPE_bool then
+                begin
                 print_type_error "||" $1 $3 $1.typ (get_binop_pos());
                 sq_err
+                end
             else
                 let pl = match ($1.place, $3.place) with
-                    | (q_bool x1, q_bool x2) -> x1 || x2
+                    | (q_bool as x1, q_bool as x2) -> x1 || x2
                     | _ -> newTemporary TYPE_bool
                 in
                 let sq = {

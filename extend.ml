@@ -1,3 +1,8 @@
+(* 
+ * Extending the syntax of OCaml
+ * http://caml.inria.fr/pub/docs/tutorial-camlp4/tutorial007.html
+ *)
+
 open Pcaml
 open Lexing
 
