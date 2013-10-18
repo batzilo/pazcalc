@@ -16,30 +16,34 @@ T=compiler
 all : $(T)
 
 # Build the whole compiler by linking all object code files
-$(T) : lexer.cmo parser.cmo
+$(T) : parser.cmo lexer.cmo Symbol.cmo Identifier.cmo Error.cmo Types.cmo
 	ocamlc -o $@ $^
 
-# compile ecery interface source code file with extension .mli
-#%.cmi : %.mli
-#	ocamlc -c $^
-
-# Compile every source code file with extension .ml to object code
-%.cmo : %.ml
-	ocamlc -c $^
-
-# Build the lexical analyzer source code (lexer.ml)
-# from lexer.mll: a description file with regular expressions
-lexer.ml : lexer.mll parser.cmo
-	ocamllex lexer.mll
-
-# Build the parser source code (parser.ml and parser.mli)
-# from parser.mly: a grammar description file
-# -v : verbose
-parser.ml : parser.mly
+parser.cmo : Symbol.cmi Identifier.cmi Error.cmi Types.cmi parser.mly
 	ocamlyacc -v parser.mly
-# remove parser.mli for now, it'll be created again when parser.ml is compiled
-	rm parser.mli
+	ocamlc -c parser.ml
 
+lexer.cmo : parser.cmi lexer.mll
+	ocamllex lexer.mll
+	ocamlc -c lexer.ml
+
+symbol.cmo : Identifier.cmi Error.cmi Types.cmi Symbol.ml
+	ocamlc -c Symbol.ml
+
+identifier.cmo : Hashcons.cmi Identifier.ml
+	ocamlc -c Identifier.ml
+
+types.cmo : Types.ml
+	ocamlc -c Types.ml
+
+error.cmo : Error.ml
+	ocamlc -c Error.ml
+
+hashcons.cmo : Hashcons.ml
+	ocamlc -c Hashcons.ml
+
+%.cmi : %.mli
+	ocamlc $^
 
 # PHONY targets
 .PHONY : clean distclean
