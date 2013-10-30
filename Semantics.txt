@@ -19,16 +19,71 @@ Possible Semantic Errors that need to be checked at Compile-Time
         respectively for basic types and zeros for arrays
     - Rest variable initial values could be any expression
 
-- When delcaring a routine, the body could be omitted. Later the routine must
-  be defined using the shame routine header.
-- FUNC declaration header should match definition header
-- FUNC return type must be a basic type
-- FUNC name should not be taken
-- FUNC typ. parameters name should not be taken (by a prev param)
-- FUNC typ. parameter of type Array should not be passed by reference using '&'
-- FUNC typ. parameters of type Array could only omitt first dimension
+- Routines
+    - When delcaring a routine, the body could be omitted. Later the routine must
+        be defined using the shame routine header.
+    - FUNC declaration header should match definition header
+    - FUNC return type must be a basic type
+    - FUNC name should not be taken
+    - FUNC typ. parameters name should not be taken (by a prev param)
+    - FUNC typ. parameter of type Array should not be passed by reference using '&'
+    - FUNC typ. parameters of type Array could only omitt first dimension
 
-- lvalues are variables or routine parameters
-- lvalue type is the same as variable/parameter type
+- Expressions
+    - every pazxal expression has a unique type
+    - expression evaluation should be of that type
+    - expressions could be lvalues or rvalues
 
+- lvalues
+    - assignment lhs
+    - lvalues are variables or routine parameters
+    - lvalue type is the same as variable/parameter type
+    - l[e] is an lvalue of type t ( l is an array with elements of type t)
+        e must be an int expression
+        e must not exceed array limits
+    - lvalue of a basic type can be used as expression
 
+- rvalues
+    - assignment rhs
+    - could be inside parenthesis
+    - constants:
+        - int constants w/o sign
+        - bool constants { true, false }
+        - real constants w/o sign
+        - char constants
+        - string literals of type array(char, length+1)
+            - null terminated
+            - immutable
+    - operators
+        - { +, - } with one operand (prefix) : int or REAL -> int or REAL
+        - { !, NOT } with one operand (prefix) : bool -> bool
+        - { +, -, *, /, %, MOD } with two operands (infix) : int or REAL
+            - if { +, -, *, / } then (int, int) -> int or (_, _)-> REAL
+            - if ( %, MOD } then (int,int) -> int
+        - { ==, !=, <, >, <=, >= } with two operands (infix) : int or REAL -> bool
+        - { &&, and, ||, or } with two operands (infix) : bool -> bool
+    - function calls
+        - if f is a function that returns type t, then f(e1, e2, ...) is an rvalue of type t
+        - parameter matching (size, type, pass)
+        - typical param t by-value must be compatible with actual param t'
+        - typical param t by-ref, then actual param must be an lvalue of type t' with
+            - if t is basic or full array, then it must be t = t'
+            - if t is half array, then either t = t' or t be of full aray and t' half array of same elements
+
+- Statements
+    - assignment l = e
+        - l is an lvalue of type t
+        - e is an expression of type t'
+        - t must be compatible with t'
+            - basic types are compatible with themselves
+            - t' = int, t = real
+            - t' = char, t = int
+            - t' = int, t = char
+    - complex assignment l #= e
+        - l is an lvalue of type int or REAL
+        - e is an expession or type int or REAL
+        - same as l = l # e, but lvalue is evaluated only once
+    - inc/decr
+        - same as i=i+1 / i=i-1
+    - procedure call
+    -

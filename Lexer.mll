@@ -1,7 +1,7 @@
 (*
- * Pazcal Lexical Analyzer - lexer.mll
+ * Pazcal Lexical Analyzer - Lexer.mll
  *
- * compile with : $ ocamllex lexer.mll
+ * compile with : $ ocamllex Lexer.mll
  *
  *)
 

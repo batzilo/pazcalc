@@ -1,3 +1,5 @@
+# Makefile
+
 .PHONY: clean distclean pack count
 
 # OS type: Linux/Win DJGPP

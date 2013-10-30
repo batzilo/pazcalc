@@ -1,7 +1,10 @@
 /*
- * Pazcal Parser - parser.mly
+(*
+ * Pazcal Parser - Parser.mly
  *
- * compile with : $ ocamlyacc parser.mly
+ * compile with : $ ocamlyacc Parser.mly
+ *
+ *)
  */
 
 %{
@@ -19,13 +22,20 @@
     printf "\n\t%s\n\n" s;
     flush stdout
 
-  type quad_op_t = Q_none
-                 | Q_int of int
-                 | Q_char of char
-                 | Q_string of string
-                 | Q_real of float
-                 | Q_entry of Symbol.entry
-                 (* TODO: Quad_valof *)
+  (* Quad operand datatype *)
+  type quad_op_t = Q_none                   (* Error Handling *)
+                 | Q_int of int             (* Direct Integers *)
+                 | Q_char of char           (* Direct Characters *)
+                 | Q_string of string       (* Direct String Literals *)
+                 | Q_real of float          (* Direct Reals *)
+                 | Q_entry of Symbol.entry  (* Symbol Table entry i.e. name, temp *)
+                 | Q_funct_res              (* Function result: $$ *)
+                 | Q_deref                  (* Dereference: [x] *)
+                 | Q_addr                   (* Address: {x} *)
+                 | Q_label                  (* label *)
+                 | Q_pass_mode              (* Pass mode: V, R, RET *)
+                 | Q_empty                  (* Empty : - *)
+                 | Q_backpatch              (* Backpatch : * *)
     
   and sem_quad_t = {
     place : quad_op_t;
