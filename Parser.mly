@@ -22,22 +22,37 @@
     printf "\n\t%s\n\n" s;
     flush stdout
 
+  type quad_pass_mode = V | R | RET
+
   (* Quad operand datatype *)
-  type quad_op_t = Q_none                   (* Error Handling *)
-                 | Q_int of int             (* Direct Integers *)
-                 | Q_char of char           (* Direct Characters *)
-                 | Q_string of string       (* Direct String Literals *)
-                 | Q_real of float          (* Direct Reals *)
-                 | Q_entry of Symbol.entry  (* Symbol Table entry i.e. name, temp *)
-                 | Q_funct_res              (* Function result: $$ *)
-                 | Q_deref                  (* Dereference: [x] *)
-                 | Q_addr                   (* Address: {x} *)
-                 | Q_label                  (* label *)
-                 | Q_pass_mode              (* Pass mode: V, R, RET *)
-                 | Q_empty                  (* Empty : - *)
-                 | Q_backpatch              (* Backpatch : * *)
-    
-  and sem_quad_t = {
+  type quad_op_t = Q_None                           (* Error Handling *)
+                 | Q_int of int                     (* Direct Integers *)
+                 | Q_char of char                   (* Direct Characters *)
+                 | Q_string of string               (* Direct String Literals *)
+                 | Q_real of float                  (* Direct Reals *)
+                 | Q_entry of Symbol.entry          (* Symbol Table entry i.e. name, temp *)
+                 | Q_funct_res                      (* Function result: $$ *)
+                 | Q_deref                          (* Dereference: [x] *)
+                 | Q_addr                           (* Address: {x} *)
+                 | Q_label                          (* label *)
+                 | Q_pass_mode of quad_pass_mode    (* Pass mode: V, R, RET *)
+                 | Q_empty of char                  (* Empty : - *)
+                 | Q_backpatch of char              (* Backpatch : * *)
+
+  (* Semantic Value of expr *)
+  type semv_expr = {
+    place : quad_op_t;
+    typ : Types.typ
+  }
+
+  (* Used for errors *)
+  let sv_err = {
+    place = Q_None;
+    typ = TYPE_none; (* Maybe too much, since place can tell *)
+  }
+
+  (*
+  type sem_quad_t = {
     place : quad_op_t;
     typ : Types.typ;
     mutable q_next : int list;
@@ -52,50 +67,180 @@
         q_true = [];
         q_false = [];
     }
+  *)
 
-    (* Simple Function to get Expression Position *)
-    let get_binop_pos () =
-        (rhs_start_pos 1, rhs_start_pos 3)
+  (*
 
-    (* print an error message *)
-    let print_type_error op_name t1 t2 exp_t sp ep =
-        error
-        "Type Mismatch: Operator (%s) and operand don't agree\n\
-        \tOperator Domain:\t%s * %s\n\
-        \tOperand:\t\t%s * %s\n\
-        \tIn expression starting at line %d position %d, ending\
-        at line %d position %d."
-        (op_name)
-        (string_of_typ exp_t) (string_of_typ exp_t)
-        (string_of_typ t1) (string_of_typ t2)
-        (sp.pos_lnum) (sp.pos_cnum - sp.pos_bol)
-        (ep.pos_lnum) (ep.pos_cnum - ep.pos_bol)
+  (* Simple Function to get Expression Position *)
+  let get_binop_pos () =
+    (rhs_start_pos 1, rhs_start_pos 3)
 
-    (* print an error message *)
-    let print_unary_type_error op_name t pos =
-        error 
-        "Type Mismatch: Unary Operator (%s) and operand don't agree\n\
-        \tOperator Domain:\t int\
-        \tOperand Domain: \t %s\
-        \tIn expression at line %d, position %d."
-        (op_name)
-        (string_of_typ t)
-        (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
+  (* print an error message *)
+  let print_type_error op_name t1 t2 exp_t sp ep =
+    error
+    "Type Mismatch: Operator (%s) and operand don't agree\n\
+    \tOperator Domain:\t%s * %s\n\
+    \tOperand:\t\t%s * %s\n\
+    \tIn expression starting at line %d position %d, ending\
+    at line %d position %d."
+    (op_name)
+    (string_of_typ exp_t) (string_of_typ exp_t)
+    (string_of_typ t1) (string_of_typ t2)
+    (sp.pos_lnum) (sp.pos_cnum - sp.pos_bol)
+    (ep.pos_lnum) (ep.pos_cnum - ep.pos_bol)
 
-    (* convert Type to string *)
-    let rec string_of_typ typ =
-        match typ with
-        |TYPE_none -> "<undefined>"
-        |TYPE_int -> "int"
-        |TYPE_bool -> "bool"
-        |TYPE_char -> "char"
-        |TYPE_REAL -> "REAL"
-        |TYPE_array(et,sz) when sz > 0 -> String.concat "" [(string_of_typ et);("[");(string_of_int sz);("]")]
-        |TYPE_array(et,sz) -> String.concat "" [(string_of_typ et);("[]")]
-     
-    (*
-    let print_div_zero_error =
-    *)
+  (* print an error message *)
+  let print_unary_type_error op_name t pos =
+    error 
+    "Type Mismatch: Unary Operator (%s) and operand don't agree\n\
+    \tOperator Domain:\t int\
+    \tOperand Domain: \t %s\
+    \tIn expression at line %d, position %d."
+    (op_name)
+    (string_of_typ t)
+    (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
+
+  (* convert Type to string *)
+  let rec string_of_typ typ =
+    match typ with
+    |TYPE_none -> "<undefined>"
+    |TYPE_int -> "int"
+    |TYPE_bool -> "bool"
+    |TYPE_char -> "char"
+    |TYPE_REAL -> "REAL"
+    |TYPE_array(et,sz) when sz > 0 -> String.concat "" [(string_of_typ et);("[");(string_of_int sz);("]")]
+    |TYPE_array(et,sz) -> String.concat "" [(string_of_typ et);("[]")]
+
+  *)
+
+  (*
+  let print_div_zero_error =
+  *)
+
+  (* semantically check operands and find return type *)
+  let what_bin_type a op b =
+    match op with
+    | "+"
+    | "-"
+    | "*"
+    | "/" ->
+      begin
+      match (a.typ, b.typ) with
+      | (TYPE_int, TYPE_int)
+      | (TYPE_int, TYPE_char)
+      | (TYPE_char, TYPE_int)
+      | (TYPE_char, TYPE_char) ->
+        TYPE_int
+      | (TYPE_int, TYPE_REAL)
+      | (TYPE_char, TYPE_REAL)
+      | (TYPE_REAL, TYPE_int)
+      | (TYPE_REAL, TYPE_char)
+      | (TYPE_REAL, TYPE_REAL) ->
+        TYPE_REAL
+      | (_,_) ->
+        TYPE_none
+      end
+    | "%" ->
+      begin
+      match (a.typ, b.typ) with
+      | (TYPE_int, TYPE_int)
+      | (TYPE_int, TYPE_char)
+      | (TYPE_char, TYPE_int)
+      | (TYPE_char, TYPE_char) ->
+        TYPE_int
+      | (_,_) ->
+        TYPE_none
+      end
+    | "=="
+    | "!="
+    | "<"
+    | ">"
+    | "<="
+    | ">=" ->
+      begin
+      match (a.typ, b.typ) with
+      | (TYPE_int, TYPE_int)
+      | (TYPE_int, TYPE_char)
+      | (TYPE_char, TYPE_int)
+      | (TYPE_char, TYPE_char)
+      | (TYPE_int, TYPE_REAL)
+      | (TYPE_char, TYPE_REAL)
+      | (TYPE_REAL, TYPE_int)
+      | (TYPE_REAL, TYPE_char)
+      | (TYPE_REAL, TYPE_REAL) ->
+        TYPE_bool
+      | (_,_) ->
+        TYPE_none
+      end
+    | "&&"
+    | "||" ->
+      begin
+      match (a.typ, b.typ) with
+      | (TYPE_bool, TYPE_bool) ->
+        TYPE_bool
+      | (_,_) ->
+        TYPE_none
+      end
+    | _ ->
+      TYPE_none
+
+  (* semantically check operand and find return type *)
+  let what_un_type op a =
+    match op with
+    | "+"
+    | "-" ->
+      begin
+      match a with
+      | TYPE_int -> TYPE_int
+      | TYPE_char -> TYPE_char
+      | TYPE_REAL -> TYPE_REAL
+      | _ -> TYPE_none
+      end
+    | "!" ->
+      begin
+      match a with
+      | TYPE_bool -> TYPE_bool
+      | _ -> TYPE_none
+      end
+    | _ ->
+      TYPE_none
+
+
+  (* Semantic-Quad actions for binary operators *)
+  let sq_binop a op b =
+    (* TODO: generate actual quads *)
+    let typ = what_bin_type a op b in
+    match typ with
+    | TYPE_none ->
+      begin
+        error "Binary Operator %s Error." (op)
+        sv_err
+      end
+    | _ ->
+      (* make new temporary for result *)
+      let e = newTemporary typ in
+      let sv = {
+        place = e.entry_id;
+        typ = e.entry_info.temporary_type;
+      } in sv
+
+  (* Semantic-Quad actions for unary operators *)
+  let sq_unop op a =
+    (* TODO: generate actual quads *)
+    let typ = what_un_type op a in
+    match typ with
+    | TYPE_none ->
+      begin
+        error "Unary Operator %s Error." (op)
+        sv_err
+      end
+    | _ ->
+      (* make new temporary for result *)
+      let e = newTemporary typ in
+      let sv = {
+        place = e.entry_id;
+        typ = e.entry_info.temporary_type;
+      } in sv
 %}
 
 
@@ -137,7 +282,8 @@
 
 %start pazprog
 %type <unit> pazprog
-%type <sem_quad_t> expr
+/* %type <sem_quad_t> expr */
+%type <semv_expr> expr
 /* %type <paztype> Types.typ */
 
 
@@ -171,12 +317,48 @@ declaration : const_def { }
             | program { }
             ;
 
-const_def :	T_const paztype T_id T_assign const_expr T_sem_col { }
-          | T_const paztype T_id T_assign const_expr const_def2 T_sem_col { }
+/*(* batzilo 30/10 *)*/
+const_def :	T_const paztype T_id T_assign const_expr T_sem_col {
+                (* 
+                 * Handle assignment. TODO:
+                 * - check if T_id name is taken
+                 * - check if const_expr type matches paztype
+                 * 
+                 *
+                 * If OK, register a new Constant *)
+                try
+                  lookupEntry (id_make $3) LOOKUP_CURRENT_SCOPE true
+                with Exit ->
+                  if equalType $2 $5.typ then
+                    begin
+                    newConstant $3 $2 $5
+                    ()
+                    end
+                  else
+                    ()
+                }
+          | T_const paztype T_id T_assign const_expr const_def2 T_sem_col {
+                (* For every tuple in list, register a new Constant *)
+                let
+                  reg a (b,c) = ignore( newConstant a b c )
+                in
+                  begin
+                  (* register the first *)
+                  ignore( newConstant $3 $2 $5 )
+                  (* register the rest *)
+                  List.iter (reg $2) $6
+                  end
+                }
           ;
 
-const_def2 : T_comma T_id T_assign const_expr { }
-           | const_def2 T_comma T_id T_assign const_expr { }
+const_def2 : T_comma T_id T_assign const_expr {
+                (* Return a tuple (name, value) *)
+                ($2, $4)
+                }
+           | const_def2 T_comma T_id T_assign const_expr {
+                (* Return a list of tuples *)
+                $1 :: ($3, $5)
+                }
            ;
 
 var_def : paztype var_init T_sem_col { (*
@@ -200,19 +382,19 @@ var_def : paztype var_init T_sem_col { (*
         | paztype var_init var_def2 T_sem_col { }
 		;
 
-var_def2 : T_comma var_init { }
-         | var_def2 T_comma var_init { }
+var_def2 : T_comma var_init { (* $2 *) }
+         | var_def2 T_comma var_init { (* $1 :: $3 *) }
          ;
 
-var_init : simple_var_init { $1 }
-         | matrix_var_init { $1 }
+var_init : simple_var_init { (* $1 *) }
+         | matrix_var_init { (* $1 *) }
          ;
 
-simple_var_init : T_id { ($1, sq_err, []) }
-                | T_id T_assign expr { ($1, $3, []) }
+simple_var_init : T_id { (* ($1, [], ) *) }
+                | T_id T_assign expr { (* ($1, $3, []) *) }
                 ;
 
-matrix_var_init : T_id T_lbrack const_expr T_rbrack { ($1, sq_err, $3) }
+matrix_var_init : T_id T_lbrack const_expr T_rbrack { (* ($1, sq_err, $3) *) }
                 | T_id T_lbrack const_expr T_rbrack matrix_var_init2 { }
                 ;
 
@@ -263,9 +445,11 @@ const_expr : expr { }
 
 /*
 (* edited 17/10 - added semantic checks *)
+(* edited 30/10 - more semantic-quad actions *)
 (* TODO: separate binop and unop ? *)
 */
 expr : T_int_const {
+            (*
             let sq = {
                 place = $1;
                 typ = TYPE_int;
@@ -273,8 +457,14 @@ expr : T_int_const {
                 q_true = [];
                 q_false = [];
             } in sq
+            *)
+            let sv = {
+              place = $1;
+              typ = TYPE_int;
+            } in sv
         }
      | T_float_const {
+            (*
             let sq = {
                 place = $1;
                 typ = TYPE_REAL;
@@ -282,8 +472,14 @@ expr : T_int_const {
                 q_true = [];
                 q_false = [];
             } in sq
+            *)
+            let sv = {
+              place = $1;
+              typ = TYPE_REAL;
+            } in sv
         }
      | T_char_const {
+            (*
             let sq = {
                 place = $1;
                 typ = TYPE_char;
@@ -291,8 +487,14 @@ expr : T_int_const {
                 q_true = [];
                 q_false = [];
             } in sq
+            *)
+            let sv = {
+              place = $1;
+              typ = TYPE_char;
+            } in sv
         }
      | T_string_literal {
+            (*
             let sq = {
                 place = $1;
                 typ = TYPE_array(TYPE_char, String.length $1);
@@ -300,8 +502,14 @@ expr : T_int_const {
                 q_true = [];
                 q_false = [];
             } in sq
+            *)
+            let sv = {
+              place = $1;
+              typ = TYPE_array(TYPE_char, String.length $1);
+            } in sv
         }
      | T_true {
+            (*
             let sq = {
                 place = "true";
                 typ = TYPE_bool;
@@ -309,8 +517,14 @@ expr : T_int_const {
                 q_true = [];
                 q_false = [];
             } in sq
+            *)
+            let sv = {
+              place = true;
+              typ = TYPE_bool;
+            } in sv
         }
      | T_false {
+            (*
             let sq = {
                 place = "false";
                 typ = TYPE_bool;
@@ -318,11 +532,17 @@ expr : T_int_const {
                 q_true = [];
                 q_false = [];
             } in sq
+            *)
+            let sv = {
+              place = false;
+              typ = TYPE_bool;
+            } in sv
         }
      | T_lparen expr T_rparen { $2 }
      | l_value { $1 }
-     | call { $1 }
-     | T_plus expr %prec UNARY { 
+     | call { sverr }
+     | T_plus expr %prec UNARY {
+            (*
             if $2.typ != TYPE_int then
                 begin
                 print_type_error "+" $2 TYPE_int (rhs_start_pos 2);
@@ -330,8 +550,11 @@ expr : T_int_const {
                 end
             else
                 $2
+            *)
+            sq_unop "+" $2
         }
      | T_minus expr %prec UNARY {
+            (*
             if $2.typ != TYPE_int then
                 begin
                 print_type_error "+" $2 TYPE_int (rhs_start_pos 2);
@@ -346,8 +569,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_unop "-" $2
         }
      | T_lg_not expr %prec UNARY {
+            (*
             if $2.typ != TYPE_bool then
                 begin
                 print_type_error "+" $2 TYPE_bool (rhs_start_pos 2);
@@ -362,8 +588,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_unop "!" $2
         }
      | T_not expr %prec UNARY {
+            (*
             if $2.typ != TYPE_bool then
                 begin
                 print_type_error "+" $2 TYPE_bool (rhs_start_pos 2);
@@ -378,8 +607,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_unop "!" $2
         }
      | expr T_plus expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error "+" $1 $3 TYPE_int (get_binop_pos ());
@@ -397,8 +629,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "+" $3
         }
      | expr T_minus expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error "-" $1 $3 TYPE_int (get_binop_pos ());
@@ -416,8 +651,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "-" $3
         }
      | expr T_mul expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error "*" $1 $3 TYPE_int (get_binop_pos());
@@ -435,8 +673,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "*" $3
         }
      | expr T_div expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error "/" $1 $3 TYPE_int (get_binop_pos());
@@ -459,8 +700,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "/" $3
         }
      | expr T_mod expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error "%" $1 $3 TYPE_int (get_binop_pos());
@@ -483,8 +727,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "%" $3
         }
      | expr T_MOD expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error "%" $1 $3 TYPE_int (get_binop_pos());
@@ -507,8 +754,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "%" $3
         }
      | expr T_eq expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error "=" $1 $3 $1.typ (get_binop_pos());
@@ -526,8 +776,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "==" $3
         }
      | expr T_neq expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error "!=" $1 $3 $1.typ (get_binop_pos());
@@ -545,8 +798,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "!=" $3
         }
      | expr T_ls expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error "<" $1 $3 $1.typ (get_binop_pos());
@@ -564,8 +820,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "<" $3
         }
      | expr T_gr expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error ">" $1 $3 $1.typ (get_binop_pos());
@@ -583,8 +842,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 ">" $3
         }
      | expr T_lseq expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error "<=" $1 $3 $1.typ (get_binop_pos());
@@ -602,8 +864,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "<=" $3
         }
      | expr T_greq expr {
+            (*
             if $1.typ != TYPE_int || $3.typ != TYPE_int then
                 begin
                 print_type_error ">=" $1 $3 $1.typ (get_binop_pos());
@@ -621,8 +886,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 ">=" $3
         }
      | expr T_lg_and expr {
+            (*
             if $1.typ != TYPE_bool || $3.typ != TYPE_bool then
                 begin
                 print_type_error "&&" $1 $3 $1.typ (get_binop_pos());
@@ -640,8 +908,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "&&" $3
         }
      | expr T_and expr {
+            (*
             if $1.typ != TYPE_bool || $3.typ != TYPE_bool then
                 begin
                 print_type_error "&&" $1 $3 $1.typ (get_binop_pos());
@@ -659,8 +930,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "&&" $3
         }
      | expr T_lg_or expr {
+            (*
             if $1.typ != TYPE_bool || $3.typ != TYPE_bool then
                 begin
                 print_type_error "||" $1 $3 $1.typ (get_binop_pos());
@@ -678,8 +952,11 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "||" $3
         }
      | expr T_or expr {
+            (*
             if $1.typ != TYPE_bool || $3.typ != TYPE_bool then
                 begin
                 print_type_error "||" $1 $3 $1.typ (get_binop_pos());
@@ -697,15 +974,55 @@ expr : T_int_const {
                     q_true = [];
                     q_false = [];
                 } in sq
+            *)
+            sq_binop $1 "||" $3
         }
      ;
 
-l_value : T_id { }
-        | T_id l_value2 { }
+/*(* batzilo 30/10 *)*/
+l_value : T_id {
+            (* Lookup the Symbol Table *)
+            let e = lookupEntry (id_make $1) LOOKUP_CURRENT_SCOPE true in
+            (* check if entry is variable or parameter *)
+            match e.entry_info with
+              | ENTRY_variable ->
+                    (* return semantic value *)
+                    let sv = {
+                      place = e.entry_id;
+                      typ = e.entry_info.variable_type;
+                    } in sv
+              | ENTRY_parameter ->
+                    (* return semantic value *)
+                    let sv = {
+                      place = e.entry_id;
+                      typ = e.entry_info.parameter_type;
+                    } in sv
+              | _ -> internal "lvalue. Oh shit!\n"
+            }
+        | T_id l_value2 {
+            (* TODO : array lvalue place should be a temporary after generating array,a,i,$1 *)
+            (* Lookup the Symbol Table *)
+            let e = lookupEntry (id_make $1) LOOKUP_CURRENT_SCOPE true in
+            (* check if entry is variable or parameter *)
+            match e.entry_info with
+              | ENTRY_variable ->
+                    (* return semantic value *)
+                    let sv = {
+                      place = e.entry_id; (* TEMPORARY is ok just for semantic checking *)
+                      typ = e.entry_info.variable_type;
+                    } in sv
+              | ENTRY_parameter ->
+                    (* return semantic value *)
+                    let sv = {
+                      place = e.entry_id; (* TEMPORARY is ok just for semantic checking *)
+                      typ = e.entry_info.parameter_type;
+                    } in sv
+              | _ -> internal "lvalue. Oh shit!\n"
+            }
 		;
 
-l_value2 : T_lbrack expr T_rbrack { }
-         | l_value2 T_lbrack expr T_rbrack { }
+l_value2 : T_lbrack expr T_rbrack { $2 }
+         | l_value2 T_lbrack expr T_rbrack { $1 :: $3 }
          ;
 
 

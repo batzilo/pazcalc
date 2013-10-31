@@ -1,0 +1,64 @@
+Quads Intermediate Language
+---------------------------
+
+Quad    ::= n : op, x, y, z
+
+n       ::= quad label
+op      ::= operator
+x, y, z ::= operands
+
+
+operands ::= const : c -> { int, REAL, bool, char, string, nil }
+           | name : n -> { Symbol Table entry }
+           | temporary : $n -> { Symbol Table entry }
+           | function result : $$ 
+           | dereference : [x] { x is a pointer }
+           | address : {x} { x is an object }
+           | label
+           | pass mode { V, R, RET }
+           | empty : -
+           | backpatching : *
+
+operators ::= unit, I, -, -     { block I start }
+            | endu, I, -, -     { block I end }
+            | op, x, y, z       { arithmetic operations, z := x op y (op => +,-,*,/,%) }
+            | :=, x, -, z       { assignment z := x }
+            | array, x, y, z    { array indexing, z := address of x[y] }
+            | op, x, y, z       { comparison, if (x op y) then goto quad z (op => =,<>,>,<,>=,<=) }
+            | ifb, x, -, z      { *not_used* }
+            | jump, -, -, z     { non-conditional jump to quad z }
+            | label, I, -, -    { define a label }
+            | jumpl, -, -, I    { jump to a label }
+            | call, -, -, I     { call block I }
+            | par, x, m, -      { pass parameter x with mode m. return value should be passed as last par with mode RET }
+            | ret, -, -, -      { return from routine }
+
+
+Grammar Symbol Attributes
+
+place : the place where lies the result of an expression
+        (e.g. a temporary $5, or a const 5, or a name x)
+        place must be a valid quad operand
+
+type : an expression type
+
+next : list of quads that need to be backpatched with the label of the next stmt's first quad
+
+true/false : list of quads that need to be backpathced when a condition evaluates to true/false
+
+
+Helper Functions
+
+NEXTQUAD()
+
+GENQUAD(op,x,y,z)
+
+NEWTEMP(t)
+
+EMPTYLIST()
+
+MAKELIST(x)
+
+MERGE(l1,...,ln)
+
+BACKPATCH(l,z)

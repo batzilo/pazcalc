@@ -28,6 +28,13 @@ type param_status =
   | PARDEF_DEFINE
   | PARDEF_CHECK
 
+(* Value of a Constant *)
+type const_val = CONST_Int of int
+               | CONST_Bool of bool
+               | CONST_REAL of float
+               | CONST_Char of char
+               | CONST_String of string
+
 (* type definition for scopes *)
 type scope = {
   sco_parent : scope option;    (* parent scope is optional *)
@@ -61,24 +68,18 @@ and temporary_info = {
   temporary_offset : int
 }
 
-(*
-and c_val = int of int
-
-
+(* Constant Info *)
 and constant_info = {
   constant_type : Types.typ;
-  constant_value : 
+  constant_value : const_val;
 }
-*)
 
 and entry_info = ENTRY_none
                | ENTRY_variable of variable_info
                | ENTRY_function of function_info
                | ENTRY_parameter of parameter_info
                | ENTRY_temporary of temporary_info
-               (*
                | ENTRY_constant of constant_info
-               *)
 
 and entry = {
   entry_id    : Identifier.id;
@@ -145,8 +146,8 @@ let closeScope () =
 
 exception Failure_NewEntry of entry
 
-(* Adds a newEntry in the HashTable.
- * and returns it. inf is entry_info *)
+(* Adds a newEntry in the Symbol Table and returns it.
+ * inf is entry_info, err should be true *)
 let newEntry id inf err =
   try
     if err then begin
@@ -211,6 +212,16 @@ let newVariable id typ err =
     variable_offset = !currentScope.sco_negofs
   } in
   newEntry id (ENTRY_variable inf) err
+
+(* Add a new constant,
+ * with type typ and name id and value v
+ * call NewEntry *)
+let newConstant id typ v err =
+  let inf = {
+    constant_type = typ;
+    constant_value = v;
+  } in
+  newEntry id (ENTRY_constant inf) err
 
 (* Add a new function 
  * return an ENTRY_function entry registered in Hashtable

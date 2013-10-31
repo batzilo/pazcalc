@@ -13,12 +13,12 @@ module Hid = Hashcons.Make (
   end
 )
 
-(* register a new id *)
+(* convert a string to id *)
 let id_make = Hashcons.register_hcons Hid.f ()
 
-(* get the name's hash? *)
+(* convert an id to a string *)
 let id_name = Hashcons.hash_value
 
-(* pretty print the id *)
+(* print an id *)
 let pretty_id ppf id =
   Format.fprintf ppf "%s" (id_name id)

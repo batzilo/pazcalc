@@ -1,4 +1,10 @@
-(* Symbol table functions *)
+(* Symbol table functions
+ *
+ * Symbol table stores pairs of the form ( id, entry )
+ * Use Identifier.id_make to convert a string to an id
+ *
+ *)
+
 
 (* parameter pass mode *)
 type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE
@@ -8,6 +14,13 @@ type param_status =
   | PARDEF_COMPLETE                           (* Πλήρης ορισμός     *)
   | PARDEF_DEFINE                             (* Εν μέσω ορισμού    *)
   | PARDEF_CHECK                              (* Εν μέσω ελέγχου    *)
+
+(* Value of a Constant *)
+type const_val = CONST_Int of int
+               | CONST_Bool of bool
+               | CONST_REAL of float
+               | CONST_Char of char
+               | CONST_String of string
 
 (* scope datatype *)
 type scope = {
@@ -42,14 +55,21 @@ and temporary_info = {                        (** Προσωρινή μεταβ�
   temporary_offset : int                      (* Offset στο Ε.Δ.       *)
 }
 
-(* HashTable entry information datatype *)
+(* Constant Info *)
+and constant_info = {
+  constant_type : Types.typ;
+  constant_value : const_val;
+}
+
+(* SymbolTable entry information datatype *)
 and entry_info = ENTRY_none
                | ENTRY_variable of variable_info
                | ENTRY_function of function_info
                | ENTRY_parameter of parameter_info
                | ENTRY_temporary of temporary_info
+               | ENTRY_constant of constant_info
 
-(* HashTable entry datatype *)
+(* SymbolTable entry type *)
 and entry = {
   entry_id    : Identifier.id;
   entry_scope : scope;
@@ -79,12 +99,17 @@ val closeScope       : unit -> unit
 
 (* Check if name is in HashTable
  * return entry if found, else raise Not_found/Exit *)
-val lookupEntry       : Identifier.id -> lookup_type -> bool -> entry
+val lookupEntry      : Identifier.id -> lookup_type -> bool -> entry
 
 (* Add a new variable, with type typ and name id,
  * decr the neg offset, create info struct and
  * call NewEntry *)
 val newVariable      : Identifier.id -> Types.typ -> bool -> entry
+
+(* Add a new constant,
+ * with type typ and name id and value v
+ * call NewEntry *)
+val newConstant      : Identifier.id -> Types.typ -> const_val -> bool -> entry
 
 (* Add a new function 
  * return an ENTRY_function entry registered in Hashtable

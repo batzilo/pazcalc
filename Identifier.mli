@@ -3,11 +3,11 @@
 (* type made abstract *)
 type id
 
-(* register a new id *)
+(* convert a string to id *)
 val id_make  : string -> id
 
-(* get the name's hash? *)
+(* convert an id to a string *)
 val id_name  : id -> string
 
-(* pretty print the id *)
+(* print an id *)
 val pretty_id : Format.formatter -> id -> unit

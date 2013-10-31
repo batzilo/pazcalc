@@ -55,10 +55,10 @@ Possible Semantic Errors that need to be checked at Compile-Time
             - null terminated
             - immutable
     - operators
-        - { +, - } with one operand (prefix) : int or REAL -> int or REAL
+        - { +, - } with one operand (prefix) : int or REAL or char -> int or REAL or char
         - { !, NOT } with one operand (prefix) : bool -> bool
-        - { +, -, *, /, %, MOD } with two operands (infix) : int or REAL
-            - if { +, -, *, / } then (int, int) -> int or (_, _)-> REAL
+        - { +, -, *, /, %, MOD } with two operands (infix) : int or REAL or char
+            - if { +, -, *, / } then (int, int) -> int or (char, char) -> int or (_, _)-> REAL
             - if ( %, MOD } then (int,int) -> int
         - { ==, !=, <, >, <=, >= } with two operands (infix) : int or REAL -> bool
         - { &&, and, ||, or } with two operands (infix) : bool -> bool
