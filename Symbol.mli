@@ -16,12 +16,12 @@ type param_status =
   | PARDEF_CHECK                              (* Εν μέσω ελέγχου    *)
 
 (* Value of a Constant *)
-type const_val = CONST_None
-               | CONST_Int of int
-               | CONST_Bool of bool
+type const_val = CONST_none
+               | CONST_int of int
+               | CONST_bool of bool
                | CONST_REAL of float
-               | CONST_Char of char
-               | CONST_String of string
+               | CONST_char of char
+               | CONST_string of string
 
 (* scope datatype *)
 type scope = {
@@ -99,16 +99,18 @@ val openScope        : unit -> unit
 val closeScope       : unit -> unit
 
 (* Check if name is in HashTable
- * return entry if found, else raise Not_found/Exit *)
+ * return entry if found, else raise Not_found/Exit
+ * err = true is used when checking a valid occurrence
+ * err = false is used when declaring a new entry *)
 val lookupEntry      : Identifier.id -> lookup_type -> bool -> entry
 
-(* Add a new variable, with type typ and name id,
+(* Add a new variable, with type typ and name id (after id_make),
  * decr the neg offset, create info struct and
  * call NewEntry *)
 val newVariable      : Identifier.id -> Types.typ -> bool -> entry
 
 (* Add a new constant,
- * with type typ and name id and value v
+ * with name id (after id_make) and type typ and value v
  * call NewEntry *)
 val newConstant      : Identifier.id -> Types.typ -> const_val -> bool -> entry
 

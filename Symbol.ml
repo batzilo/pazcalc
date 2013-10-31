@@ -29,12 +29,12 @@ type param_status =
   | PARDEF_CHECK
 
 (* Value of a Constant *)
-type const_val = CONST_None
-               | CONST_Int of int
-               | CONST_Bool of bool
+type const_val = CONST_none
+               | CONST_int of int
+               | CONST_bool of bool
                | CONST_REAL of float
-               | CONST_Char of char
-               | CONST_String of string
+               | CONST_char of char
+               | CONST_string of string
 
 (* type definition for scopes *)
 type scope = {
@@ -112,7 +112,7 @@ let currentScope = ref the_outer_scope
 let quadNext = ref 1
 let tempNumber = ref 1
 
-(* H is our special HashTable *)
+(* H is our special HashTable => SymbolTable *)
 let tab = ref (H.create 0)
 
 (* Initialize the Symbol Table *)
@@ -148,7 +148,7 @@ let closeScope () =
 exception Failure_NewEntry of entry
 
 (* Adds a newEntry in the Symbol Table and returns it.
- * inf is entry_info, err should be true *)
+ * inf is entry_info *)
 let newEntry id inf err =
   try
     if err then begin
@@ -179,8 +179,8 @@ let newEntry id inf err =
 
 (* Check if name is in HashTable
  * return entry if found, else raise Not_found/Exit
- * err = true means entry occurence
- * err = false means entry declaration *)
+ * err = true is used when checking a valid occurrence
+ * err = false is used when declaring a new entry *)
 let lookupEntry id how err =
   let scc = !currentScope in
   let lookup () =
@@ -206,7 +206,7 @@ let lookupEntry id how err =
   else
     lookup ()
 
-(* Add a new variable, with type typ and name id,
+(* Add a new variable, with type typ and name id (after id_make),
  * decr the neg offset, create info struct and
  * call NewEntry *)
 let newVariable id typ err =
@@ -218,7 +218,7 @@ let newVariable id typ err =
   newEntry id (ENTRY_variable inf) err
 
 (* Add a new constant,
- * with name id and type typ and value v
+ * with name id (after id_make) and type typ and value v
  * call NewEntry *)
 let newConstant id typ v err =
   let inf = {

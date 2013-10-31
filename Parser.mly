@@ -22,8 +22,6 @@
     printf "\n\t%s\n\n" s;
     flush stdout
 
-  type quad_pass_mode = V | R | RET
-
   (* Quad operand datatype *)
   type quad_op_t = Q_None                           (* Error Handling *)
                  | Q_int of int                     (* Direct Integers *)
@@ -39,6 +37,8 @@
                  | Q_pass_mode of quad_pass_mode    (* Pass mode: V, R, RET *)
                  | Q_empty                          (* Empty : - *)
                  | Q_backpatch                      (* Backpatch : * *)
+
+  and quad_pass_mode = V | R | RET
 
   (* Semantic Value of expr *)
   type semv_expr = {
@@ -110,11 +110,6 @@
     (op_name)
     (string_of_typ t)
     (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
-
-
-  (*
-  let print_div_zero_error =
-  *)
 
   (* semantically check operands and find return type *)
   let what_bin_type a op b =
@@ -204,15 +199,15 @@
     | _ ->
       TYPE_none
 
-
   (* Semantic-Quad actions for binary operators *)
   let sq_binop a op b =
     (* TODO: generate actual quads *)
+    (* TODO: division by zero check *)
     let typ = what_bin_type a op b in
     match typ with
     | TYPE_none ->
       begin
-        error "Binary Operator %s Error." (op);
+        error "Binary Operator %s Error" op;
         sv_err
       end
     | _ ->
@@ -230,7 +225,7 @@
     match typ with
     | TYPE_none ->
       begin
-        error "Unary Operator %s Error." (op);
+        error "Unary Operator %s Error" op;
         sv_err
       end
     | _ ->
@@ -241,13 +236,13 @@
         typ = typ
       } in sv
 
-  (* Semantic-Quad for constant definiton *)
+  (* Semantic-Quad actions for constant definiton *)
   let sq_cdef n t v =
     try
       let e = lookupEntry (id_make n) LOOKUP_CURRENT_SCOPE false in
         begin
         (* if found, name already taken *)
-        error "Const name '%s' already taken" (n);
+        error "Const name %s already taken" n;
         ignore(e);
         ()
         end
@@ -257,18 +252,18 @@
         (* if match, find the const value *)
         (* constant value must be known at compile-time *)
         let cval = function
-          | Q_int (a) -> CONST_Int a
-          | Q_char (a) -> CONST_Char a
-          | Q_string (a) -> CONST_String a
+          | Q_int (a) -> CONST_int a
+          | Q_char (a) -> CONST_char a
+          | Q_string (a) -> CONST_string a
           | Q_real (a) -> CONST_REAL a
-          | _ -> CONST_None
+          | _ -> CONST_none
         in
           let cv = cval v.place in
           match cv with
-          | CONST_None ->
+          | CONST_none ->
             begin
             (* not really a const *)
-            error "'%s' is not really a const!" (n);
+            error "%s is not really a const!" n;
             ()
             end
           | _ ->
@@ -284,22 +279,22 @@
         ()
         end
 
-  (* semantic-quad actions for lvalue *)
-  (* TODO : Add params so that array lvalue place should be a temporary after generating array,a,i,$1 *)
-  sq_lvalue a =
+  (* Semantic-Quad actions for lvalue *)
+  (* TODO : Add params because array lvalue place should be a temporary after generating array,a,i,$1 *)
+  let sq_lvalue a =
     (* Lookup the Symbol Table *)
     let e = lookupEntry (id_make a) LOOKUP_CURRENT_SCOPE true in
     (* check if entry is variable or parameter *)
     let etyp = function
-      | ENTRY_variable (e) -> e.entry_info.variable_type
-      | ENTRY_parameter (e) -> e.entry_info.parameter_type
+      | ENTRY_variable (a) -> a.variable_type
+      | ENTRY_parameter (a) -> a.parameter_type
       | _ -> TYPE_none
     in
       let lt = etyp e.entry_info in
       match lt with
       | TYPE_none ->
         begin
-        error "lvalue %s not an variable or an parameter" (a);
+        error "lvalue %s not an variable or an parameter" a;
         sv_err
         end
       | _ ->
@@ -1043,8 +1038,8 @@ l_value : T_id {
             }
 		;
 
-l_value2 : T_lbrack expr T_rbrack { $2 }
-         | l_value2 T_lbrack expr T_rbrack { $1 :: $3 }
+l_value2 : T_lbrack expr T_rbrack { $2::[] }
+         | l_value2 T_lbrack expr T_rbrack { $3 :: $1 }
          ;
 
 
