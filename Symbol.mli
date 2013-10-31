@@ -16,7 +16,8 @@ type param_status =
   | PARDEF_CHECK                              (* Εν μέσω ελέγχου    *)
 
 (* Value of a Constant *)
-type const_val = CONST_Int of int
+type const_val = CONST_None
+               | CONST_Int of int
                | CONST_Bool of bool
                | CONST_REAL of float
                | CONST_Char of char

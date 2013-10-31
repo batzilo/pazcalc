@@ -30,14 +30,15 @@
                  | Q_char of char                   (* Direct Characters *)
                  | Q_string of string               (* Direct String Literals *)
                  | Q_real of float                  (* Direct Reals *)
+                 | Q_bool of bool
                  | Q_entry of Symbol.entry          (* Symbol Table entry i.e. name, temp *)
                  | Q_funct_res                      (* Function result: $$ *)
                  | Q_deref                          (* Dereference: [x] *)
                  | Q_addr                           (* Address: {x} *)
                  | Q_label                          (* label *)
                  | Q_pass_mode of quad_pass_mode    (* Pass mode: V, R, RET *)
-                 | Q_empty of char                  (* Empty : - *)
-                 | Q_backpatch of char              (* Backpatch : * *)
+                 | Q_empty                          (* Empty : - *)
+                 | Q_backpatch                      (* Backpatch : * *)
 
   (* Semantic Value of expr *)
   type semv_expr = {
@@ -69,11 +70,21 @@
     }
   *)
 
-  (*
 
   (* Simple Function to get Expression Position *)
   let get_binop_pos () =
     (rhs_start_pos 1, rhs_start_pos 3)
+
+  (* convert Type to string *)
+  let rec string_of_typ typ =
+    match typ with
+    |TYPE_none -> "<undefined>"
+    |TYPE_int -> "int"
+    |TYPE_bool -> "bool"
+    |TYPE_char -> "char"
+    |TYPE_REAL -> "REAL"
+    |TYPE_array(et,sz) when sz > 0 -> String.concat "" [(string_of_typ et);("[");(string_of_int sz);("]")]
+    |TYPE_array(et,sz) -> String.concat "" [(string_of_typ et);("[]")]
 
   (* print an error message *)
   let print_type_error op_name t1 t2 exp_t sp ep =
@@ -100,18 +111,6 @@
     (string_of_typ t)
     (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
 
-  (* convert Type to string *)
-  let rec string_of_typ typ =
-    match typ with
-    |TYPE_none -> "<undefined>"
-    |TYPE_int -> "int"
-    |TYPE_bool -> "bool"
-    |TYPE_char -> "char"
-    |TYPE_REAL -> "REAL"
-    |TYPE_array(et,sz) when sz > 0 -> String.concat "" [(string_of_typ et);("[");(string_of_int sz);("]")]
-    |TYPE_array(et,sz) -> String.concat "" [(string_of_typ et);("[]")]
-
-  *)
 
   (*
   let print_div_zero_error =
@@ -190,7 +189,7 @@
     | "+"
     | "-" ->
       begin
-      match a with
+      match a.typ with
       | TYPE_int -> TYPE_int
       | TYPE_char -> TYPE_char
       | TYPE_REAL -> TYPE_REAL
@@ -198,7 +197,7 @@
       end
     | "!" ->
       begin
-      match a with
+      match a.typ with
       | TYPE_bool -> TYPE_bool
       | _ -> TYPE_none
       end
@@ -213,15 +212,15 @@
     match typ with
     | TYPE_none ->
       begin
-        error "Binary Operator %s Error." (op)
+        error "Binary Operator %s Error." (op);
         sv_err
       end
     | _ ->
       (* make new temporary for result *)
       let e = newTemporary typ in
       let sv = {
-        place = e.entry_id;
-        typ = e.entry_info.temporary_type;
+        place = (Q_entry e);
+        typ = typ
       } in sv
 
   (* Semantic-Quad actions for unary operators *)
@@ -231,16 +230,86 @@
     match typ with
     | TYPE_none ->
       begin
-        error "Unary Operator %s Error." (op)
+        error "Unary Operator %s Error." (op);
         sv_err
       end
     | _ ->
       (* make new temporary for result *)
       let e = newTemporary typ in
       let sv = {
-        place = e.entry_id;
-        typ = e.entry_info.temporary_type;
+        place = (Q_entry e);
+        typ = typ
       } in sv
+
+  (* Semantic-Quad for constant definiton *)
+  let sq_cdef n t v =
+    try
+      let e = lookupEntry (id_make n) LOOKUP_CURRENT_SCOPE false in
+        begin
+        (* if found, name already taken *)
+        error "Const name '%s' already taken" (n);
+        ignore(e);
+        ()
+        end
+    with Not_found ->
+      (* if not found, check types *)
+      if equalType t v.typ then
+        (* if match, find the const value *)
+        (* constant value must be known at compile-time *)
+        let cval = function
+          | Q_int (a) -> CONST_Int a
+          | Q_char (a) -> CONST_Char a
+          | Q_string (a) -> CONST_String a
+          | Q_real (a) -> CONST_REAL a
+          | _ -> CONST_None
+        in
+          let cv = cval v.place in
+          match cv with
+          | CONST_None ->
+            begin
+            (* not really a const *)
+            error "'%s' is not really a const!" (n);
+            ()
+            end
+          | _ ->
+            begin
+            (* register the new Constant *)
+            ignore (newConstant (id_make n) t cv false);
+            ()
+            end
+      else
+        begin
+        (* const def type mismatch *)
+        error "type mismatch";
+        ()
+        end
+
+  (* semantic-quad actions for lvalue *)
+  (* TODO : Add params so that array lvalue place should be a temporary after generating array,a,i,$1 *)
+  sq_lvalue a =
+    (* Lookup the Symbol Table *)
+    let e = lookupEntry (id_make a) LOOKUP_CURRENT_SCOPE true in
+    (* check if entry is variable or parameter *)
+    let etyp = function
+      | ENTRY_variable (e) -> e.entry_info.variable_type
+      | ENTRY_parameter (e) -> e.entry_info.parameter_type
+      | _ -> TYPE_none
+    in
+      let lt = etyp e.entry_info in
+      match lt with
+      | TYPE_none ->
+        begin
+        error "lvalue %s not an variable or an parameter" (a);
+        sv_err
+        end
+      | _ ->
+        begin
+        let sv = {
+          place = (Q_entry e);
+          typ = lt;
+        } in sv
+        end
+
 %}
 
 
@@ -319,45 +388,30 @@ declaration : const_def { }
 
 /*(* batzilo 30/10 *)*/
 const_def :	T_const paztype T_id T_assign const_expr T_sem_col {
-                (* 
-                 * Handle assignment. TODO:
-                 * - check if T_id name is taken
-                 * - check if const_expr type matches paztype
-                 * 
-                 *
-                 * If OK, register a new Constant *)
-                try
-                  lookupEntry (id_make $3) LOOKUP_CURRENT_SCOPE true
-                with Exit ->
-                  if equalType $2 $5.typ then
-                    begin
-                    newConstant $3 $2 $5
-                    ()
-                    end
-                  else
-                    ()
+                (* semantic-quad actions for constant definition. name, type, value *)
+                sq_cdef $3 $2 $5
                 }
           | T_const paztype T_id T_assign const_expr const_def2 T_sem_col {
                 (* For every tuple in list, register a new Constant *)
                 let
-                  reg a (b,c) = ignore( newConstant a b c )
+                  reg_all a (b,c) = sq_cdef b a c 
                 in
                   begin
                   (* register the first *)
-                  ignore( newConstant $3 $2 $5 )
+                  sq_cdef $3 $2 $5;
                   (* register the rest *)
-                  List.iter (reg $2) $6
+                  List.iter (reg_all $2) $6
                   end
                 }
           ;
 
 const_def2 : T_comma T_id T_assign const_expr {
                 (* Return a tuple (name, value) *)
-                ($2, $4)
+                ($2, $4)::[]
                 }
            | const_def2 T_comma T_id T_assign const_expr {
                 (* Return a list of tuples *)
-                $1 :: ($3, $5)
+                ($3, $5) :: $1
                 }
            ;
 
@@ -440,7 +494,7 @@ paztype : T_int { TYPE_int }
         | T_REAL { TYPE_REAL }
         ;
 
-const_expr : expr { }
+const_expr : expr { $1 }
            ;
 
 /*
@@ -459,7 +513,7 @@ expr : T_int_const {
             } in sq
             *)
             let sv = {
-              place = $1;
+              place = (Q_int $1);
               typ = TYPE_int;
             } in sv
         }
@@ -474,7 +528,7 @@ expr : T_int_const {
             } in sq
             *)
             let sv = {
-              place = $1;
+              place = (Q_real $1);
               typ = TYPE_REAL;
             } in sv
         }
@@ -489,7 +543,7 @@ expr : T_int_const {
             } in sq
             *)
             let sv = {
-              place = $1;
+              place = (Q_char $1);
               typ = TYPE_char;
             } in sv
         }
@@ -504,7 +558,7 @@ expr : T_int_const {
             } in sq
             *)
             let sv = {
-              place = $1;
+              place = (Q_string $1);
               typ = TYPE_array(TYPE_char, String.length $1);
             } in sv
         }
@@ -519,7 +573,7 @@ expr : T_int_const {
             } in sq
             *)
             let sv = {
-              place = true;
+              place = (Q_bool true);
               typ = TYPE_bool;
             } in sv
         }
@@ -534,13 +588,13 @@ expr : T_int_const {
             } in sq
             *)
             let sv = {
-              place = false;
+              place = (Q_bool false);
               typ = TYPE_bool;
             } in sv
         }
      | T_lparen expr T_rparen { $2 }
      | l_value { $1 }
-     | call { sverr }
+     | call { sv_err }
      | T_plus expr %prec UNARY {
             (*
             if $2.typ != TYPE_int then
@@ -684,7 +738,7 @@ expr : T_int_const {
                 sq_err
                 end
             (*
-            else if $3.place == 0 then
+            else if $3.place = 0 then
                 print_div_zero_error;
                 sq_err
             *)
@@ -711,7 +765,7 @@ expr : T_int_const {
                 sq_err
                 end
             (*
-            else if $3.place == 0 then
+            else if $3.place = 0 then
                 print_div_zero_error;
                 sq_err
             *)
@@ -738,7 +792,7 @@ expr : T_int_const {
                 sq_err
                 end
             (*
-            else if $3.place == 0 then
+            else if $3.place = 0 then
                 print_div_zero_error;
                 sq_err
             *)
@@ -981,43 +1035,11 @@ expr : T_int_const {
 
 /*(* batzilo 30/10 *)*/
 l_value : T_id {
-            (* Lookup the Symbol Table *)
-            let e = lookupEntry (id_make $1) LOOKUP_CURRENT_SCOPE true in
-            (* check if entry is variable or parameter *)
-            match e.entry_info with
-              | ENTRY_variable ->
-                    (* return semantic value *)
-                    let sv = {
-                      place = e.entry_id;
-                      typ = e.entry_info.variable_type;
-                    } in sv
-              | ENTRY_parameter ->
-                    (* return semantic value *)
-                    let sv = {
-                      place = e.entry_id;
-                      typ = e.entry_info.parameter_type;
-                    } in sv
-              | _ -> internal "lvalue. Oh shit!\n"
+            sq_lvalue $1
             }
         | T_id l_value2 {
-            (* TODO : array lvalue place should be a temporary after generating array,a,i,$1 *)
-            (* Lookup the Symbol Table *)
-            let e = lookupEntry (id_make $1) LOOKUP_CURRENT_SCOPE true in
-            (* check if entry is variable or parameter *)
-            match e.entry_info with
-              | ENTRY_variable ->
-                    (* return semantic value *)
-                    let sv = {
-                      place = e.entry_id; (* TEMPORARY is ok just for semantic checking *)
-                      typ = e.entry_info.variable_type;
-                    } in sv
-              | ENTRY_parameter ->
-                    (* return semantic value *)
-                    let sv = {
-                      place = e.entry_id; (* TEMPORARY is ok just for semantic checking *)
-                      typ = e.entry_info.parameter_type;
-                    } in sv
-              | _ -> internal "lvalue. Oh shit!\n"
+            (* add params *)
+            sq_lvalue $1
             }
 		;
 

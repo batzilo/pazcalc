@@ -29,7 +29,8 @@ type param_status =
   | PARDEF_CHECK
 
 (* Value of a Constant *)
-type const_val = CONST_Int of int
+type const_val = CONST_None
+               | CONST_Int of int
                | CONST_Bool of bool
                | CONST_REAL of float
                | CONST_Char of char
@@ -177,7 +178,9 @@ let newEntry id inf err =
     e
 
 (* Check if name is in HashTable
- * return entry if found, else raise Not_found/Exit *)
+ * return entry if found, else raise Not_found/Exit
+ * err = true means entry occurence
+ * err = false means entry declaration *)
 let lookupEntry id how err =
   let scc = !currentScope in
   let lookup () =
@@ -185,6 +188,7 @@ let lookupEntry id how err =
     | LOOKUP_CURRENT_SCOPE ->
         let e = H.find !tab id in
         if e.entry_scope.sco_nesting = scc.sco_nesting then
+          (* if found in current scope, return it *)
           e
         else
           raise Not_found
@@ -214,7 +218,7 @@ let newVariable id typ err =
   newEntry id (ENTRY_variable inf) err
 
 (* Add a new constant,
- * with type typ and name id and value v
+ * with name id and type typ and value v
  * call NewEntry *)
 let newConstant id typ v err =
   let inf = {
