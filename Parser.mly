@@ -15,6 +15,7 @@
   open Error
   open Identifier
   open Symbol
+  open Symbtest
   open Types
 
   (* Called by the parser function on error *)
@@ -373,7 +374,7 @@
 %%
 
 pazprog : /* empty */ { }
-        | dummy_non_terminal declaration_list { }
+        | dummy_non_terminal declaration_list { printSymbolTable() }
 		;
 
 dummy_non_terminal : /* empty, used only for semantic actions */ { initSymbolTable 256 }
