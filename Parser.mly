@@ -284,17 +284,18 @@
   let sq_lvalue a =
     (* Lookup the Symbol Table *)
     let e = lookupEntry (id_make a) LOOKUP_CURRENT_SCOPE true in
-    (* check if entry is variable or parameter *)
+    (* check if entry is variable or parameter or constant *)
     let etyp = function
       | ENTRY_variable (a) -> a.variable_type
       | ENTRY_parameter (a) -> a.parameter_type
+      | ENTRY_constant (a) -> a.constant_type
       | _ -> TYPE_none
     in
       let lt = etyp e.entry_info in
       match lt with
       | TYPE_none ->
         begin
-        error "lvalue %s not an variable or an parameter" a;
+        error "lvalue %s not an variable or an parameter or a constant" a;
         sv_err
         end
       | _ ->
@@ -416,7 +417,8 @@ const_def2 : T_comma T_id T_assign const_expr {
                 }
            ;
 
-var_def : paztype var_init T_sem_col { (*
+var_def : paztype var_init T_sem_col {
+                (*
                 let (id, sq, dims) = $2 in
                     (*
                     begin
@@ -433,7 +435,8 @@ var_def : paztype var_init T_sem_col { (*
                     (*
                     end
                     *)
-          *)  }
+                *)
+                }
         | paztype var_init var_def2 T_sem_col { }
 		;
 
@@ -449,12 +452,12 @@ simple_var_init : T_id { (* ($1, [], ) *) }
                 | T_id T_assign expr { (* ($1, $3, []) *) }
                 ;
 
-matrix_var_init : T_id T_lbrack const_expr T_rbrack { (* ($1, sq_err, $3) *) }
-                | T_id T_lbrack const_expr T_rbrack matrix_var_init2 { }
+matrix_var_init : T_id T_lbrack const_expr T_rbrack { (* ($1, sq_err, $3) *) (* one dim *) }
+                | T_id T_lbrack const_expr T_rbrack matrix_var_init2 { (* many dim *) }
                 ;
 
-matrix_var_init2 : T_lbrack const_expr T_rbrack { }
-                 | matrix_var_init2 T_lbrack const_expr T_rbrack {  }
+matrix_var_init2 : T_lbrack const_expr T_rbrack { (* $2::[] *) }
+                 | matrix_var_init2 T_lbrack const_expr T_rbrack { (* $1 @ $3 *) }
                  ;
 
 routine_header : T_PROC T_id T_lparen T_rparen { }

@@ -36,7 +36,7 @@ Possible Semantic Errors that need to be checked at Compile-Time
 
 - lvalues
     - assignment lhs
-    - lvalues are variables or routine parameters
+    - lvalues are variables or routine parameters OR CONSTANTS
     - lvalue type is the same as variable/parameter type
     - l[e] is an lvalue of type t ( l is an array with elements of type t)
         e must be an int expression

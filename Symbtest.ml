@@ -70,7 +70,10 @@ let printSymbolTable () =
               fprintf ppf "[%d]" inf.parameter_offset
         | ENTRY_temporary inf ->
             if show_offsets then
-              fprintf ppf "[%d]" inf.temporary_offset in
+              fprintf ppf "[%d]" inf.temporary_offset
+        | ENTRY_constant inf ->
+            fprintf ppf "CONSTANT <not-ready>"
+        in
       let rec entries ppf es =
         match es with
           | [e] ->
@@ -94,6 +97,8 @@ let printSymbolTable () =
       walk ppf scp in
   printf "%a----------------------------------------\n"
     scope !currentScope
+
+(*
 
 (* Κύριο πρόγραμμα επίδειξης του πίνακα συμβόλων *)
 
@@ -237,3 +242,5 @@ let main =
    closeScope ();
 
    printSymbolTable ()
+
+*)
