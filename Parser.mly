@@ -348,19 +348,25 @@
 %type <unit> pazprog
 /* %type <sem_quad_t> expr */
 %type <semv_expr> expr
-/* %type <paztype> Types.typ */
+%type <Types.typ> paztype
 
 
-/* Grammar follows */
+/*(* Grammar follows *)*/
 
-/* Since we're generating an LALR(1) parser,
- * left-recursive grammar rules are good! */
+/*
+(*
+ * Because we're generating an LALR(1) parser,
+ * left-recursive grammar rules are good!
+ *)
+ */
 
-/* TODO:
- *
+/*
+(*
+ * TODO:
  * Do not put any identation for semantic brackets before we know it runs smoothly
  * Location Tracking
  *
+ *)
  */
 
 %%

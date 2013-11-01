@@ -1,6 +1,6 @@
 (*
-** file : mail.ml
-*)
+ * file : Main.ml
+ *)
 
 open Lexer
 open Parser
