@@ -210,7 +210,8 @@
 
     (* eof *)
     | eof {
-      raise End_of_file
+      (* raise End_of_file *)
+      T_EOF
       }
 
     (* dangling comment ending *)

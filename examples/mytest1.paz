@@ -1,0 +1,6 @@
+// skatoules
+
+PROGRAM foo() {
+    const int a = 6;
+    int b = a * 7;
+}

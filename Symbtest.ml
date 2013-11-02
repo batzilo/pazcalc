@@ -44,6 +44,31 @@ let printSymbolTable () =
         | ENTRY_variable inf ->
             if show_offsets then
               fprintf ppf "[%d]" inf.variable_offset
+        | ENTRY_constant inf ->
+            let print_const = function
+              | CONST_none ->
+                    fprintf ppf " CONST %a = NONE"
+                    pretty_typ inf.constant_type
+              | CONST_int (a) ->
+                    fprintf ppf " CONST %a = %i"
+                    pretty_typ inf.constant_type
+                    a 
+              | CONST_bool (a) ->
+                    fprintf ppf " CONST %a = %s"
+                    pretty_typ inf.constant_type
+                    ( if (a) then "true" else "false")
+              | CONST_REAL (a) ->
+                    fprintf ppf " CONST %a = REAL"
+                    pretty_typ inf.constant_type
+              | CONST_char (a) ->
+                    fprintf ppf " CONST %a = %c"
+                    pretty_typ inf.constant_type
+                    a
+              | CONST_string (a) ->
+                    fprintf ppf " CONST %a = %s"
+                    pretty_typ inf.constant_type
+                    a
+            in print_const inf.constant_value
         | ENTRY_function inf ->
             let param ppf e =
               match e.entry_info with
@@ -70,10 +95,7 @@ let printSymbolTable () =
               fprintf ppf "[%d]" inf.parameter_offset
         | ENTRY_temporary inf ->
             if show_offsets then
-              fprintf ppf "[%d]" inf.temporary_offset
-        | ENTRY_constant inf ->
-            fprintf ppf "CONSTANT <not-ready>"
-        in
+              fprintf ppf "[%d]" inf.temporary_offset in
       let rec entries ppf es =
         match es with
           | [e] ->

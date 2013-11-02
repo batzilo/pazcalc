@@ -307,6 +307,17 @@
         } in sv
         end
 
+  (* first steps *)
+  let prologue () =
+    printf "Start!\n";
+    initSymbolTable 256;
+    openScope ()
+
+  (* last steps *)
+  let epilogue () =
+    printf "End!\n";
+    printSymbolTable ()
+
 %}
 
 
@@ -334,6 +345,7 @@
 %token T_assign T_plus_assign T_minus_assign T_mul_assign T_div_assign T_mod_assign
 %token T_plus_plus 
 %token T_minus_minus
+%token T_EOF
 
 %nonassoc NOELSE      /* pseudo-token. it gives T_ELSE higher precedence */
 %nonassoc T_else
@@ -374,10 +386,10 @@
 %%
 
 pazprog : /* empty */ { }
-        | dummy_non_terminal declaration_list { printSymbolTable() }
+        | dummy_non_terminal declaration_list T_EOF { epilogue ()  }
 		;
 
-dummy_non_terminal : /* empty, used only for semantic actions */ { initSymbolTable 256 }
+dummy_non_terminal : /* empty, used only for semantic actions */ { prologue () }
 
 declaration_list : declaration { }
                  | declaration_list declaration { }
