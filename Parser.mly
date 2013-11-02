@@ -282,6 +282,7 @@
 
   (* Semantic-Quad actions for lvalue *)
   (* TODO : Add params because array lvalue place should be a temporary after generating array,a,i,$1 *)
+  (* TODO : Use LOOKUP_ALL_SCOPES when looking for constants *)
   let sq_lvalue a =
     (* Lookup the Symbol Table *)
     let e = lookupEntry (id_make a) LOOKUP_CURRENT_SCOPE true in
@@ -308,7 +309,7 @@
         end
 
   (* Semantic-Quads action for variable definition *)
-  let sq_vardef t l =
+  let sq_vardef t foo =
     let reg (a,b,c) =
       try
         let e = lookupEntry (id_make a) LOOKUP_CURRENT_SCOPE false in
@@ -319,19 +320,28 @@
           ()
           end
       with Not_found ->
-        (* if not found, check types *)
-        if equalType t c.typ then
-          (* if match, register the new Variable *)
+        (* if not found *)
+        match c.place with
+        | Q_None ->
+          begin
+          (* no initialization *)
           let e = newVariable (id_make a) t true
           in ignore(e)
-        else
-          begin
-          (* var def type mismatch *)
-          error "variable definition type mismatch";
-          ()
           end
+        | _ ->
+          (* check types *)
+          if equalType t c.typ then
+            (* if match, register the new Variable *)
+            let e = newVariable (id_make a) t true
+            in ignore(e)
+          else
+            begin
+            (* var def type mismatch *)
+            error "variable definition type mismatch";
+            ()
+            end
     in
-      reg l
+      reg foo
 
 
   (* first steps *)
@@ -403,9 +413,8 @@
 
 /*
 (*
- * TODO:
- * Do not put any identation for semantic brackets before we know it runs smoothly
- * Location Tracking
+ * TODO: Do not put any identation for semantic brackets before we know it runs smoothly
+ * TODO: Location Tracking
  *
  *)
  */
@@ -457,6 +466,7 @@ const_def2 : T_comma T_id T_assign const_expr {
                 }
            ;
 
+/*(* batzilo 2/11 *)*/
 var_def : paztype var_init T_sem_col {
                 (*
                 let (id, sq, dims) = $2 in
@@ -464,7 +474,7 @@ var_def : paztype var_init T_sem_col {
                     begin
                     *)
                     ignore(newVariable (id_make id) $1 true)
-                    (* TODO: initialization code
+                    (* initialization code?
                     match sq with
                         | sq_err -> ignore(newVariable (id_make id) $1 true)
                         | _ -> 
