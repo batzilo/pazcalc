@@ -148,7 +148,9 @@ let closeScope () =
 exception Failure_NewEntry of entry
 
 (* Adds a newEntry in the Symbol Table and returns it.
- * inf is entry_info *)
+ * inf is entry_info
+ * err = true means search first
+ *)
 let newEntry id inf err =
   try
     if err then begin

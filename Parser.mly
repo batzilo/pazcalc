@@ -242,8 +242,8 @@
     try
       let e = lookupEntry (id_make n) LOOKUP_CURRENT_SCOPE false in
         begin
-        (* if found, name already taken *)
-        error "Const name %s already taken" n;
+        (* if found, name is already taken *)
+        error "Const name %s is already taken" n;
         ignore(e);
         ()
         end
@@ -276,7 +276,7 @@
       else
         begin
         (* const def type mismatch *)
-        error "type mismatch";
+        error "constant definition type mismatch";
         ()
         end
 
@@ -306,6 +306,33 @@
           typ = lt;
         } in sv
         end
+
+  (* Semantic-Quads action for variable definition *)
+  let sq_vardef t l =
+    let reg (a,b,c) =
+      try
+        let e = lookupEntry (id_make a) LOOKUP_CURRENT_SCOPE false in
+          begin
+          (* if found, name is already taken *)
+          error "Var name %s is already taken" a;
+          ignore(e);
+          ()
+          end
+      with Not_found ->
+        (* if not found, check types *)
+        if equalType t c.typ then
+          (* if match, register the new Variable *)
+          let e = newVariable (id_make a) t true
+          in ignore(e)
+        else
+          begin
+          (* var def type mismatch *)
+          error "variable definition type mismatch";
+          ()
+          end
+    in
+      reg l
+
 
   (* first steps *)
   let prologue () =
@@ -449,28 +476,32 @@ var_def : paztype var_init T_sem_col {
                     end
                     *)
                 *)
+                sq_vardef $1 $2
                 }
-        | paztype var_init var_def2 T_sem_col { }
+        | paztype var_init var_def2 T_sem_col {
+                sq_vardef $1 $2;
+                List.iter (sq_vardef $1) $3
+                }
 		;
 
-var_def2 : T_comma var_init { (* $2 *) }
-         | var_def2 T_comma var_init { (* $1 :: $3 *) }
+var_def2 : T_comma var_init { $2::[] }
+         | var_def2 T_comma var_init { $1 @ $3::[] }
          ;
 
-var_init : simple_var_init { (* $1 *) }
-         | matrix_var_init { (* $1 *) }
+var_init : simple_var_init { $1 }
+         | matrix_var_init { $1 }
          ;
 
-simple_var_init : T_id { (* ($1, [], ) *) }
-                | T_id T_assign expr { (* ($1, $3, []) *) }
+simple_var_init : T_id { ($1, [], sv_err) }
+                | T_id T_assign expr { ($1, [], $3) }
                 ;
 
-matrix_var_init : T_id T_lbrack const_expr T_rbrack { (* ($1, sq_err, $3) *) (* one dim *) }
-                | T_id T_lbrack const_expr T_rbrack matrix_var_init2 { (* many dim *) }
+matrix_var_init : T_id T_lbrack const_expr T_rbrack { ($1, $3::[], sv_err) }
+                | T_id T_lbrack const_expr T_rbrack matrix_var_init2 { ($1, $3::$5, sv_err) }
                 ;
 
-matrix_var_init2 : T_lbrack const_expr T_rbrack { (* $2::[] *) }
-                 | matrix_var_init2 T_lbrack const_expr T_rbrack { (* $1 @ $3 *) }
+matrix_var_init2 : T_lbrack const_expr T_rbrack { $2::[] }
+                 | matrix_var_init2 T_lbrack const_expr T_rbrack { $1 @ $3::[] }
                  ;
 
 routine_header : T_PROC T_id T_lparen T_rparen { }
