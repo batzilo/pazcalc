@@ -23,12 +23,13 @@ module H = Hashtbl.Make (
 (* type definition for parameter passing *)
 type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE
 
+(* type definition for parameter status *)
 type param_status =
-  | PARDEF_COMPLETE
-  | PARDEF_DEFINE
-  | PARDEF_CHECK
+  | PARDEF_COMPLETE         (* Πλήρης ορισμός  *) (* after endFunctionHeader *)
+  | PARDEF_DEFINE           (* Εν μέσω ορισμού *) (* initial *)
+  | PARDEF_CHECK            (* Εν μέσω ελέγχου *) (* when redeclared after forwarded *)
 
-(* Value of a Constant *)
+(* the value of a Constant stored in the Symbol Table *)
 type const_val = CONST_none
                | CONST_int of int
                | CONST_bool of bool
@@ -38,35 +39,35 @@ type const_val = CONST_none
 
 (* type definition for scopes *)
 type scope = {
-  sco_parent : scope option;    (* parent scope is optional *)
-  sco_nesting : int;            (* nesting level *)
-  mutable sco_entries : entry list;
-  mutable sco_negofs : int
+  sco_parent : scope option;            (* parent scope is optional *)
+  sco_nesting : int;                    (* nesting level *)
+  mutable sco_entries : entry list;     (* list of entries in this scope *)
+  mutable sco_negofs : int              (* negative offset in this scope *)
 }
 
-and variable_info = {
-  variable_type   : Types.typ;
-  variable_offset : int
+and variable_info = {                         (******* Μεταβλητή *******)
+  variable_type   : Types.typ;                (* Τύπος                 *)
+  variable_offset : int                       (* Offset στο Ε.Δ.       *)
 }
 
-and function_info = {
-  mutable function_isForward : bool;
-  mutable function_paramlist : entry list;
-  mutable function_redeflist : entry list;
-  mutable function_result    : Types.typ;
-  mutable function_pstatus   : param_status;
-  mutable function_initquad  : int
+and function_info = {                         (******* Συνάρτηση *******)
+  mutable function_isForward : bool;          (* Δήλωση forward        *)
+  mutable function_paramlist : entry list;    (* Λίστα παραμέτρων      *)
+  mutable function_redeflist : entry list;    (* Λίστα παραμέτρων (2η) *)
+  mutable function_result    : Types.typ;     (* Τύπος αποτελέσματος   *)
+  mutable function_pstatus   : param_status;  (* Κατάσταση παραμέτρων  *)
+  mutable function_initquad  : int            (* Αρχική τετράδα        *)
 }
 
-and parameter_info = {
-  parameter_type           : Types.typ;
-  mutable parameter_offset : int;
-  parameter_mode           : pass_mode
+and parameter_info = {                        (****** Παράμετρος *******)
+  parameter_type           : Types.typ;       (* Τύπος                 *)
+  mutable parameter_offset : int;             (* Offset στο Ε.Δ.       *)
+  parameter_mode           : pass_mode        (* Τρόπος περάσματος     *)
 }
 
-and temporary_info = {
-  temporary_type   : Types.typ;
-  temporary_offset : int
+and temporary_info = {                        (** Προσωρινή μεταβλητή **)
+  temporary_type   : Types.typ;               (* Τύπος                 *)
+  temporary_offset : int                      (* Offset στο Ε.Δ.       *)
 }
 
 (* Constant Info *)
@@ -75,6 +76,7 @@ and constant_info = {
   constant_value : const_val;
 }
 
+(* SymbolTable entry information datatype *)
 and entry_info = ENTRY_none
                | ENTRY_variable of variable_info
                | ENTRY_function of function_info
@@ -82,6 +84,7 @@ and entry_info = ENTRY_none
                | ENTRY_temporary of temporary_info
                | ENTRY_constant of constant_info
 
+(* Symbol Table entry *)
 and entry = {
   entry_id    : Identifier.id;
   entry_scope : scope;
@@ -90,8 +93,9 @@ and entry = {
 
 type lookup_type = LOOKUP_CURRENT_SCOPE | LOOKUP_ALL_SCOPES
 
-let start_positive_offset = 8
-let start_negative_offset = 0
+let start_positive_offset = 8   (* Αρχικό θετικό offset στο Ε.Δ.   *)
+
+let start_negative_offset = 0   (* Αρχικό αρνητικό offset στο Ε.Δ. *)
 
 (* global scope *)
 let the_outer_scope = {
@@ -101,16 +105,18 @@ let the_outer_scope = {
   sco_negofs = start_negative_offset
 }
 
-(* make ENTRY_none entry, used for errors *)
+(* an ENTRY_none entry, used for errors *)
 let no_entry id = {
   entry_id = id;
   entry_scope = the_outer_scope;
   entry_info = ENTRY_none
 }
 
-let currentScope = ref the_outer_scope
-let quadNext = ref 1
-let tempNumber = ref 1
+let currentScope = ref the_outer_scope  (* Τρέχουσα εμβέλεια *)
+
+let quadNext = ref 1                    (* Αριθμός επόμενης τετράδας *)
+
+let tempNumber = ref 1                  (* Αρίθμηση των temporaries  *)
 
 (* H is our special HashTable => SymbolTable *)
 let tab = ref (H.create 0)
@@ -120,8 +126,8 @@ let initSymbolTable size =
    tab := H.create size;
    currentScope := the_outer_scope
 
-(* Open a new scope, set the scope parent,
- * incr nesting level, empty list of entries *)
+(* Add a new scope with an empty list of entries and
+ * increased nesting level and set it as current scope *)
 let openScope () =
   let sco = {
     sco_parent = Some !currentScope;
@@ -131,13 +137,12 @@ let openScope () =
   } in
   currentScope := sco
 
-(* Close the curr scope, remove from HashTable
- * all scope entries, find scope father and
- * set as current scope *)
+(* Close the current scope, remove from HashTable
+ * all scope entries, and set scope father as current scope *)
 let closeScope () =
   let sco = !currentScope in
   let manyentry e = H.remove !tab e.entry_id in
-  (* apply manyentry to all sco_entries *)
+  (* apply manyentry to every item in sco_entries list *)
   List.iter manyentry sco.sco_entries;
   match sco.sco_parent with
   | Some scp ->
@@ -145,54 +150,62 @@ let closeScope () =
   | None ->
       internal "cannot close the outer scope!"
 
+(* declare a new exception *)
 exception Failure_NewEntry of entry
 
-(* Adds a newEntry in the Symbol Table and returns it.
- * inf is entry_info
- * err = true means search first
+(* Add a new entry in the Symbol Table and return it.
+ * id is after id_make, inf is entry_info
+ * err = true means search the ST for that entry
+ * err = false means do nothing
  *)
 let newEntry id inf err =
   try
     if err then begin
+      (* search the ST *)
       try
         let e = H.find !tab id in
-        (* if there is a same id in the current scope, error *)
+        (* if a same entry exists in the current scope, error *)
         if e.entry_scope.sco_nesting = !currentScope.sco_nesting then
-           raise (Failure_NewEntry e)
+          (* raise an exception caught 20 lines later *)
+          raise (Failure_NewEntry e)
       with Not_found ->
-        (* it's ok *)
+        (* do nothing *)
         ()
     end;
+    (* IF not searched OR searched but not found THEN : *)
     (* make the new entry *)
     let e = {
       entry_id = id;
       entry_scope = !currentScope;
       entry_info = inf
     } in
-    (* add it to HashTable *)
+    (* add the new entry to the ST *)
     H.add !tab id e;
-    (* add it to current scope entry list *)
+    (* add the new entry to the current scope entry list *)
     !currentScope.sco_entries <- e :: !currentScope.sco_entries;
-    (* return it *)
+    (* return the new entry *)
     e
   with Failure_NewEntry e ->
+    (* report an error, since that entry already exists *)
     error "duplicate identifier %a" pretty_id id;
+    (* return that entry *)
     e
 
-(* Check if name is in HashTable
+(* Check if entry exists in Symbol Table
  * return entry if found, else raise Not_found/Exit
- * err = true is used when checking a valid occurrence
- * err = false is used when declaring a new entry *)
+ * err = true handles not_found with an error message
+ * err = false does nothing (used for function forward definitions) *)
 let lookupEntry id how err =
-  let scc = !currentScope in
+  let csc = !currentScope in
   let lookup () =
     match how with
     | LOOKUP_CURRENT_SCOPE ->
         let e = H.find !tab id in
-        if e.entry_scope.sco_nesting = scc.sco_nesting then
+        if e.entry_scope.sco_nesting = csc.sco_nesting then
           (* if found in current scope, return it *)
           e
         else
+          (* manually raise Not_found *)
           raise Not_found
     | LOOKUP_ALL_SCOPES ->
         H.find !tab id in
@@ -200,17 +213,18 @@ let lookupEntry id how err =
     try
       lookup ()
     with Not_found ->
-      error "unknown identifier %a (first occurrence)"
-        pretty_id id;
+      (* report an error because entry is not in Symbol table *)
+      error "unknown identifier %a (first occurrence)" pretty_id id;
       (* put it in, so we don't see more errors *)
       H.add !tab id (no_entry id);
       raise Exit
   else
     lookup ()
 
-(* Add a new variable, with type typ and name id (after id_make),
- * decr the neg offset, create info struct and
- * call NewEntry *)
+(* Add a new variable to the Symbol Table
+ * name is id (after id_make), type is typ 
+ * err = true means search the ST for possible duplicate
+ * call newEntry *)
 let newVariable id typ err =
   !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
   let inf = {
@@ -219,9 +233,10 @@ let newVariable id typ err =
   } in
   newEntry id (ENTRY_variable inf) err
 
-(* Add a new constant,
- * with name id (after id_make) and type typ and value v
- * call NewEntry *)
+(* Add a new constant to the Symbol Table
+ * name is id (after id_make), type is typ and value is v
+ * err = true means search the ST for possible duplicate
+ * call newEntry *)
 let newConstant id typ v err =
   let inf = {
     constant_type = typ;
@@ -229,27 +244,44 @@ let newConstant id typ v err =
   } in
   newEntry id (ENTRY_constant inf) err
 
-(* Add a new function 
- * return an ENTRY_function entry registered in Hashtable
- * whether it's been for a new or a forwarded function *)
+(* Make a new temporary variable
+ * call newEntry *)
+let newTemporary typ =
+  let id = id_make ("$" ^ string_of_int !tempNumber) in
+  !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
+  let inf = {
+    temporary_type = typ;
+    temporary_offset = !currentScope.sco_negofs
+  } in
+  incr tempNumber;
+  newEntry id (ENTRY_temporary inf) false
+
+(* Add a new function to the Symbol Table
+ * err should be true
+ * if function not exists in ST then call newEntry
+ * else if function was forwarded, start parameter checking *)
 let newFunction id err =
   try
-    (* if another entry with same id is in current scope *)
+    (* search the current scope for another entry with the same name *)
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in
     match e.entry_info with
-    (* and that entry is a forward function definiton *)
+    (* if found and is a forward function definiton
+     * it means we're about to see the function body *)
     | ENTRY_function inf when inf.function_isForward ->
-        (* edit THAT entry *)
+        (* function is no more forwarded *)
         inf.function_isForward <- false;
+        (* parameters will now be checked *)
         inf.function_pstatus <- PARDEF_CHECK;
+        (* copy all parameter entries to redeflist *)
         inf.function_redeflist <- inf.function_paramlist;
-        (* return THAT entry *)
+        (* return the function entry *)
         e
     | _ ->
+        (* if found but is not a forwarded function, error *)
         if err then
           error "duplicate identifier: %a" pretty_id id;
           raise Exit
-  (* else if id not found in current scope *)
+  (* if not found in current scope *)
   with Not_found ->
     let inf = {
       function_isForward = false;
@@ -259,38 +291,44 @@ let newFunction id err =
       function_pstatus = PARDEF_DEFINE;
       function_initquad = 0
     } in
-    (* register a new entry *)
+    (* register a new function entry in the Symbol Table *)
     newEntry id (ENTRY_function inf) false
 
-(* Add a new function parameter 
- * Should work fine with PARDEF_{DEFINE | CHECK} *)
+(* Add a new function parameter
+ * err should be true
+ * if function par status is PARDEF_DEFINE, add par to ST
+ * if function par status is PARDEF_CHECK, check for compatibility
+ * with forward definition and add par to ST
+ * call newEntry *)
 let newParameter id typ mode f err =
   match f.entry_info with
   (* f.entry_info must be ENTRY_function *)
   | ENTRY_function inf -> begin
-      (* match function parameter status with... *)
+      (* match function parameter status with ... *)
       match inf.function_pstatus with
-      (* while definition *)
+      (* while defining a function *)
       | PARDEF_DEFINE ->
           (* new parameter_info *)
           let inf_p = {
             parameter_type = typ;
-            parameter_offset = 0;
+            parameter_offset = 0; (* fixed later *)
             parameter_mode = mode
           } in
           (* register a new entry for the parameter *)
           let e = newEntry id (ENTRY_parameter inf_p) err in
-          (* append the entry to the functions entry list *)
+          (* append the entry to the functions parameter entry list *)
           inf.function_paramlist <- e :: inf.function_paramlist;
+          (* return the entry *)
           e
-      (* while checking *)
+      (* while checking the function parameters *)
       | PARDEF_CHECK -> begin
+          (* check that par id is "same" as in function forward definition *)
           match inf.function_redeflist with
           | p :: ps -> begin
-              (* "pop" the first parameter *)
+              (* ps is the list of rest par entries *)
               inf.function_redeflist <- ps;
+              (* p is the first parameter, to be matched with par id *)
               match p.entry_info with
-              (* match it with parameter_info *)
               | ENTRY_parameter inf ->
                   (* type matching *)
                   if not (equalType inf.parameter_type typ) then
@@ -320,7 +358,7 @@ let newParameter id typ mode f err =
                      of function %a" pretty_id f.entry_id;
               raise Exit
         end
-      (* while full definition *)
+      (* after full definition *)
       | PARDEF_COMPLETE ->
           internal "Cannot add a parameter to an already defined function";
           raise Exit
@@ -330,20 +368,7 @@ let newParameter id typ mode f err =
       internal "Cannot add a parameter to a non-function";
       raise Exit
 
-(* add a new temporary variable
- * make a new name, decr the negative offset
- * create new temporary_info and register a new Entry *)
-let newTemporary typ =
-  let id = id_make ("$" ^ string_of_int !tempNumber) in
-  !currentScope.sco_negofs <- !currentScope.sco_negofs - sizeOfType typ;
-  let inf = {
-    temporary_type = typ;
-    temporary_offset = !currentScope.sco_negofs
-  } in
-  incr tempNumber;
-  newEntry id (ENTRY_temporary inf) false
-
-(* declare a forwarded function *)
+(* set a function to be forwarded *)
 let forwardFunction e =
   match e.entry_info with
   | ENTRY_function inf ->
@@ -351,7 +376,9 @@ let forwardFunction e =
   | _ ->
       internal "Cannot make a non-function forward"
 
-(* finish function checking *)
+(* finish function checking
+ * typ is function return type
+ * after function definition or after function check *)
 let endFunctionHeader e typ =
   match e.entry_info with
   (* e.entry_info must be ENTRY_function *)
@@ -361,11 +388,12 @@ let endFunctionHeader e typ =
         (* error *)
         | PARDEF_COMPLETE ->
             internal "Cannot end parameters in an already defined function"
-        (* while definition *)
+        (* after function definition, set return type and fix parameter offsets *)
         | PARDEF_DEFINE ->
             (* set the return type *)
             inf.function_result <- typ;
             let offset = ref start_positive_offset in
+            (* a function that sets the offset in every function parameter *)
             let fix_offset e =
               match e.entry_info with
               | ENTRY_parameter inf ->
@@ -381,9 +409,9 @@ let endFunctionHeader e typ =
             List.iter fix_offset inf.function_paramlist;
             (* reverse the parameter list *)
             inf.function_paramlist <- List.rev inf.function_paramlist
-        (* while checking *)
+        (* after function parameter checking *)
         | PARDEF_CHECK ->
-            (* check number of parameters *)
+            (* if there are parameters left *)
             if inf.function_redeflist <> [] then
               error "Fewer parameters than expected in redeclaration \
                      of function %a" pretty_id e.entry_id;
@@ -392,7 +420,7 @@ let endFunctionHeader e typ =
               error "Result type mismatch in redeclaration of function %a"
                     pretty_id e.entry_id;
       end;
-      (* set parameter status as complete *)
+      (* set function parameter status as complete *)
       inf.function_pstatus <- PARDEF_COMPLETE
   (* should never reach *)
   | _ ->

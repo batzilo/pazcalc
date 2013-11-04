@@ -6,16 +6,16 @@
  *)
 
 
-(* parameter pass mode *)
+(* type definition for parameter passing *)
 type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE
 
-(* parameter status *)
+(* type definition for parameter status *)
 type param_status =
-  | PARDEF_COMPLETE                           (* Πλήρης ορισμός     *)
-  | PARDEF_DEFINE                             (* Εν μέσω ορισμού    *)
-  | PARDEF_CHECK                              (* Εν μέσω ελέγχου    *)
+  | PARDEF_COMPLETE         (* Πλήρης ορισμός  *)
+  | PARDEF_DEFINE           (* Εν μέσω ορισμού *)
+  | PARDEF_CHECK            (* Εν μέσω ελέγχου *)
 
-(* Value of a Constant *)
+(* the value of a Constant stored in the Symbol Table *)
 type const_val = CONST_none
                | CONST_int of int
                | CONST_bool of bool
@@ -23,12 +23,12 @@ type const_val = CONST_none
                | CONST_char of char
                | CONST_string of string
 
-(* scope datatype *)
+(* type definition for scopes *)
 type scope = {
-  sco_parent : scope option;
-  sco_nesting : int;
-  mutable sco_entries : entry list;
-  mutable sco_negofs : int
+  sco_parent : scope option;            (* parent scope is optional *)
+  sco_nesting : int;                    (* nesting level *)
+  mutable sco_entries : entry list;     (* list of entries in this scope *)
+  mutable sco_negofs : int              (* negative offset in this scope *)
 }
 
 and variable_info = {                         (******* Μεταβλητή *******)
@@ -70,7 +70,7 @@ and entry_info = ENTRY_none
                | ENTRY_temporary of temporary_info
                | ENTRY_constant of constant_info
 
-(* SymbolTable entry type *)
+(* Symbol Table entry *)
 and entry = {
   entry_id    : Identifier.id;
   entry_scope : scope;
@@ -89,48 +89,55 @@ val tempNumber : int ref                  (* Αρίθμηση των temporaries
 (* Initialize the Symbol Table *)
 val initSymbolTable  : int -> unit
 
-(* Open a new scope, set the scope parent,
- * incr nesting level, empty list of entries *)
+(* Add a new scope with an empty list of entries and
+ * increased nesting level and set it as current scope *)
 val openScope        : unit -> unit
 
-(* Close the curr scope, remove from HashTable
- * all scope entries, find scope father and
- * set as current scope *)
+(* Close the current scope, remove from HashTable
+ * all scope entries, and set scope father as current scope *)
 val closeScope       : unit -> unit
 
-(* Check if name is in HashTable
+(* Check if entry exists in Symbol Table
  * return entry if found, else raise Not_found/Exit
- * err = true is used when checking a valid occurrence
- * err = false is used when declaring a new entry *)
+ * err = true handles not_found with an error message
+ * err = false does nothing (used for function forward definitions) *)
 val lookupEntry      : Identifier.id -> lookup_type -> bool -> entry
 
-(* Add a new variable, with type typ and name id (after id_make),
- * decr the neg offset, create info struct and
+(* Add a new variable to the Symbol Table
+ * name is id (after id_make), type is typ 
+ * err = true means search the ST for possible duplicate
  * call NewEntry *)
 val newVariable      : Identifier.id -> Types.typ -> bool -> entry
 
 (* Add a new constant,
- * with name id (after id_make) and type typ and value v
+ * name is id (after id_make), type is typ and value is v
+ * err = true means search the ST for possible duplicate
  * call NewEntry *)
 val newConstant      : Identifier.id -> Types.typ -> const_val -> bool -> entry
 
-(* Add a new function 
- * return an ENTRY_function entry registered in Hashtable
- * whether it's been for a new or a forwarded function *)
+(* Make a new temporary variable
+ * call newEntry *)
+val newTemporary     : Types.typ -> entry
+
+(* Add a new function to the Symbol Table
+ * err should be true
+ * if function not exists in ST then call newEntry
+ * else if function was forwarded, start parameter checking *)
 val newFunction      : Identifier.id -> bool -> entry
 
-(* Add a new function parameter 
- * Should work fine with PARDEF_{DEFINE | CHECK} *)
+(* Add a new function parameter
+ * err should be true
+ * if function par status is PARDEF_DEFINE, add par to ST
+ * if function par status is PARDEF_CHECK, check for compatibility
+ * with forward definition and add par to ST
+ * call newEntry *)
 val newParameter     : Identifier.id -> Types.typ -> pass_mode ->
                                         entry -> bool -> entry
 
-(* add a new temporary variable
- * make a new name, decr the negative offset
- * create new temporary_info and register a new Entry *)
-val newTemporary     : Types.typ -> entry
-
-(* declare a forwarded function *)
+(* set a function to be forwarded *)
 val forwardFunction   : entry -> unit
 
-(* finish function checking *)
+(* finish function checking
+ * typ is function return type
+ * after function definition or after function check *)
 val endFunctionHeader : entry -> Types.typ -> unit
