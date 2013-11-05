@@ -35,7 +35,7 @@ type const_val = CONST_none
                | CONST_bool of bool
                | CONST_REAL of float
                | CONST_char of char
-               | CONST_string of string
+               (* | CONST_string of string *)
 
 (* type definition for scopes *)
 type scope = {
@@ -73,7 +73,7 @@ and temporary_info = {                        (** Προσωρινή μεταβ�
 (* Constant Info *)
 and constant_info = {
   constant_type : Types.typ;
-  constant_value : const_val;
+  constant_value : const_val
 }
 
 (* SymbolTable entry information datatype *)

@@ -107,24 +107,24 @@
         (* check if it's a keyword *)
         let token = Hashtbl.find keyword_table word in
           (* if yes, print it and return it as token *)
-          printf "keyword: %s\n" word;
+          printf "[Lexer.ml]keyword: %s\n" word;
           token
       with Not_found ->
         (* if not, it's an identifier *)
-        printf "identifier: %s\n" word;
+        printf "[Lexer.ml]identifier: %s\n" word;
         T_id word
       }
 
     (* non-zero integer constants can not begin with '0' *)
     | '0'digit+ {
-      printf "Lexical error in line %d: Non-zero integer constants cannot begin with a '0'\n" lexbuf.lex_curr_p.pos_lnum;
+      printf "[Lexer.ml]Lexical error in line %d: Non-zero integer constants cannot begin with a '0'\n" lexbuf.lex_curr_p.pos_lnum;
       pazcal lexbuf
       } 
 
     (* integer constants - one or more decimal digits *)
     | digit+ as inum {
       let num = int_of_string inum in
-        printf "integer constant: %d\n" num;
+        printf "[Lexer.ml]integer constant: %d\n" num;
         T_int_const num
      }
 
@@ -133,7 +133,7 @@
        part with an 'e' or 'E', an optional sign and one or more decimal digits *)
     | (digit+)'.'(digit+)(['E''e']['+''-']? digit+)? as fnum {
       let num = float_of_string fnum in
-        printf "float constant: %f\n" num;
+        printf "[Lexer.ml]float constant: %f\n" num;
         T_float_const num
       }
 
@@ -146,52 +146,52 @@
     (* char constants except for '\n' *)
     (* TODO: why not common # '\n' ? *)
     | '''(common|escape)''' as cc {
-      printf "char constant: %s\n" cc;
+      printf "[Lexer.ml]char constant: %s\n" cc;
       T_char_const (lexeme_char lexbuf 1)
       }
 
     (* string constants - can't exceed one line of code *)
     | '"'((common # '\n') | escape)*'"' as sc {
-      printf "string literal: %s\n" sc;
+      printf "[Lexer.ml]string literal: %s\n" sc;
       T_string_literal sc
       }
 
     (* operators  *)
-    | "==" as op { printf "operator: %s\n" op; T_eq }
-    | '>'  as op { printf "operator: %c\n" op; T_gr } 
-    | '<'  as op { printf "operator: %c\n" op; T_ls }
-    | "!=" as op { printf "operator: %s\n" op; T_neq }
-    | ">=" as op { printf "operator: %s\n" op; T_greq }
-    | "<=" as op { printf "operator: %s\n" op; T_lseq }
-    | '+'  as op { printf "operator: %c\n" op; T_plus }
-    | '-'  as op { printf "operator: %c\n" op; T_minus }
-    | '*'  as op { printf "operator: %c\n" op; T_mul }
-    | '/'  as op { printf "operator: %c\n" op; T_div }
-    | '%'  as op { printf "operator: %c\n" op; T_mod }
-    | '!'  as op { printf "operator: %c\n" op; T_lg_not }
-    | "&&" as op { printf "operator: %s\n" op; T_lg_and }
-    | "||" as op { printf "operator: %s\n" op; T_lg_or }
-    | "++" as op { printf "operator: %s\n" op; T_plus_plus }
-    | "--" as op { printf "operator: %s\n" op; T_minus_minus }
-    | '='  as op { printf "operator: %c\n" op; T_assign }
-    | "+=" as op { printf "operator: %s\n" op; T_plus_assign }
-    | "-=" as op { printf "operator: %s\n" op; T_minus_assign }
-    | "*=" as op { printf "operator: %s\n" op; T_mul_assign }
-    | "/=" as op { printf "operator: %s\n" op; T_div_assign }
-    | "%=" as op { printf "operator: %s\n" op; T_mod_assign }
+    | "==" as op { printf "[Lexer.ml]operator: %s\n" op; T_eq }
+    | '>'  as op { printf "[Lexer.ml]operator: %c\n" op; T_gr } 
+    | '<'  as op { printf "[Lexer.ml]operator: %c\n" op; T_ls }
+    | "!=" as op { printf "[Lexer.ml]operator: %s\n" op; T_neq }
+    | ">=" as op { printf "[Lexer.ml]operator: %s\n" op; T_greq }
+    | "<=" as op { printf "[Lexer.ml]operator: %s\n" op; T_lseq }
+    | '+'  as op { printf "[Lexer.ml]operator: %c\n" op; T_plus }
+    | '-'  as op { printf "[Lexer.ml]operator: %c\n" op; T_minus }
+    | '*'  as op { printf "[Lexer.ml]operator: %c\n" op; T_mul }
+    | '/'  as op { printf "[Lexer.ml]operator: %c\n" op; T_div }
+    | '%'  as op { printf "[Lexer.ml]operator: %c\n" op; T_mod }
+    | '!'  as op { printf "[Lexer.ml]operator: %c\n" op; T_lg_not }
+    | "&&" as op { printf "[Lexer.ml]operator: %s\n" op; T_lg_and }
+    | "||" as op { printf "[Lexer.ml]operator: %s\n" op; T_lg_or }
+    | "++" as op { printf "[Lexer.ml]operator: %s\n" op; T_plus_plus }
+    | "--" as op { printf "[Lexer.ml]operator: %s\n" op; T_minus_minus }
+    | '='  as op { printf "[Lexer.ml]operator: %c\n" op; T_assign }
+    | "+=" as op { printf "[Lexer.ml]operator: %s\n" op; T_plus_assign }
+    | "-=" as op { printf "[Lexer.ml]operator: %s\n" op; T_minus_assign }
+    | "*=" as op { printf "[Lexer.ml]operator: %s\n" op; T_mul_assign }
+    | "/=" as op { printf "[Lexer.ml]operator: %s\n" op; T_div_assign }
+    | "%=" as op { printf "[Lexer.ml]operator: %s\n" op; T_mod_assign }
 
     (* separators *)
-    | '&' as sep { printf "separator: %c\n" sep; T_amp }
-    | ';' as sep { printf "separator: %c\n" sep; T_sem_col }
-    | '.' as sep { printf "separator: %c\n" sep; T_dot }
-    | '(' as sep { printf "separator: %c\n" sep; T_lparen }
-    | ')' as sep { printf "separator: %c\n" sep; T_rparen }
-    | ':' as sep { printf "separator: %c\n" sep; T_col }
-    | ',' as sep { printf "separator: %c\n" sep; T_comma }
-    | '[' as sep { printf "separator: %c\n" sep; T_lbrack }
-    | ']' as sep { printf "separator: %c\n" sep; T_rbrack }
-    | '{' as sep { printf "separator: %c\n" sep; T_lbrace }
-    | '}' as sep { printf "separator: %c\n" sep; T_rbrace }
+    | '&' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_amp }
+    | ';' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_sem_col }
+    | '.' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_dot }
+    | '(' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_lparen }
+    | ')' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_rparen }
+    | ':' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_col }
+    | ',' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_comma }
+    | '[' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_lbrack }
+    | ']' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_rbrack }
+    | '{' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_lbrace }
+    | '}' as sep { printf "[Lexer.ml]separator: %c\n" sep; T_rbrace }
 
     (* eat up white space characters *)
     | white+ {
@@ -216,13 +216,13 @@
 
     (* dangling comment ending *)
     | "*/" {
-      printf "Lexical error in line %d: Shouldn't have reached here. Check 'comment' entrypoint.\n" lexbuf.lex_curr_p.pos_lnum;
+      printf "[Lexer.ml]Lexical error in line %d: Shouldn't have reached here. Check 'comment' entrypoint.\n" lexbuf.lex_curr_p.pos_lnum;
       pazcal lexbuf
       }
 
     (* anything else *)
     | _ as chr {
-      printf "Lexical error in line %d: Unrecognized character: %c \n" lexbuf.lex_curr_p.pos_lnum chr;
+      printf "[Lexer.ml]Lexical error in line %d: Unrecognized character: %c \n" lexbuf.lex_curr_p.pos_lnum chr;
       pazcal lexbuf
       }
 

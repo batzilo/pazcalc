@@ -64,10 +64,12 @@ let printSymbolTable () =
                     fprintf ppf " CONST %a = %c"
                     pretty_typ inf.constant_type
                     a
+              (*
               | CONST_string (a) ->
                     fprintf ppf " CONST %a = %s"
                     pretty_typ inf.constant_type
                     a
+              *)
             in print_const inf.constant_value
         | ENTRY_function inf ->
             let param ppf e =

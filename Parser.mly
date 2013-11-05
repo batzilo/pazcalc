@@ -14,6 +14,7 @@
 
   open Error
   open Identifier
+  open SemQuad
   open Symbol
   open Symbtest
   open Types
@@ -23,64 +24,12 @@
     printf "\n\t%s\n\n" s;
     flush stdout
 
-  (* Quad operand datatype *)
-  type quad_op_t = Q_None                           (* Error Handling *)
-                 | Q_int of int                     (* Direct Integers *)
-                 | Q_char of char                   (* Direct Characters *)
-                 | Q_string of string               (* Direct String Literals *)
-                 | Q_real of float                  (* Direct Reals *)
-                 | Q_bool of bool                   (* Needed ??? *)
-                 | Q_entry of Symbol.entry          (* Symbol Table entry i.e. name, temp *)
-                 | Q_funct_res                      (* Function result: $$ *)
-                 | Q_deref                          (* Dereference: [x] *)
-                 | Q_addr                           (* Address: {x} *)
-                 | Q_label                          (* label *)
-                 | Q_pass_mode of quad_pass_mode    (* Pass mode: V, R, RET *)
-                 | Q_empty                          (* Empty : - *)
-                 | Q_backpatch                      (* Backpatch : * *)
-
-  and quad_pass_mode = V | R | RET
-
-  (* Semantic Value of expr *)
-  type semv_expr = {
-    place : quad_op_t;
-    typ : Types.typ
-  }
-
-  (* Used for errors *)
-  let sv_err = {
-    place = Q_None;
-    typ = TYPE_none; (* Maybe not needed, since place can tell *)
-  }
-
-  (*
-  type sem_quad_t = {
-    place : quad_op_t;
-    typ : Types.typ;
-    mutable q_next : int list;
-    mutable q_true : int list;
-    mutable q_false : int list
-    }
-  *)
-
-
   (* Simple Function to get Expression Position *)
   let get_binop_pos () =
     (rhs_start_pos 1, rhs_start_pos 3)
 
-  (* convert Type to string *)
-  let rec string_of_typ typ =
-    match typ with
-    |TYPE_none -> "<undefined>"
-    |TYPE_int -> "int"
-    |TYPE_bool -> "bool"
-    |TYPE_char -> "char"
-    |TYPE_REAL -> "REAL"
-    |TYPE_array(et,sz) when sz > 0 -> String.concat "" [(string_of_typ et);("[");(string_of_int sz);("]")]
-    |TYPE_array(et,sz) -> String.concat "" [(string_of_typ et);("[]")]
-
   (* print an error message *)
-  let print_type_error op_name t1 t2 exp_t sp ep =
+  let print_binop_type_error op_name t1 t2 exp_t sp ep =
     error
     "Type Mismatch: Operator (%s) and operand don't agree\n\
     \tOperator Domain:\t%s * %s\n\
@@ -104,247 +53,15 @@
     (string_of_typ t)
     (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
 
-  (* semantically check operands and find return type *)
-  let what_bin_type a op b =
-    match op with
-    | "+"
-    | "-"
-    | "*"
-    | "/" ->
-      begin
-      match (a.typ, b.typ) with
-      | (TYPE_int, TYPE_int)
-      | (TYPE_int, TYPE_char)
-      | (TYPE_char, TYPE_int)
-      | (TYPE_char, TYPE_char) ->
-        TYPE_int
-      | (TYPE_int, TYPE_REAL)
-      | (TYPE_char, TYPE_REAL)
-      | (TYPE_REAL, TYPE_int)
-      | (TYPE_REAL, TYPE_char)
-      | (TYPE_REAL, TYPE_REAL) ->
-        TYPE_REAL
-      | (_,_) ->
-        TYPE_none
-      end
-    | "%" ->
-      begin
-      match (a.typ, b.typ) with
-      | (TYPE_int, TYPE_int)
-      | (TYPE_int, TYPE_char)
-      | (TYPE_char, TYPE_int)
-      | (TYPE_char, TYPE_char) ->
-        TYPE_int
-      | (_,_) ->
-        TYPE_none
-      end
-    | "=="
-    | "!="
-    | "<"
-    | ">"
-    | "<="
-    | ">=" ->
-      begin
-      match (a.typ, b.typ) with
-      | (TYPE_int, TYPE_int)
-      | (TYPE_int, TYPE_char)
-      | (TYPE_char, TYPE_int)
-      | (TYPE_char, TYPE_char)
-      | (TYPE_int, TYPE_REAL)
-      | (TYPE_char, TYPE_REAL)
-      | (TYPE_REAL, TYPE_int)
-      | (TYPE_REAL, TYPE_char)
-      | (TYPE_REAL, TYPE_REAL) ->
-        TYPE_bool
-      | (_,_) ->
-        TYPE_none
-      end
-    | "&&"
-    | "||" ->
-      begin
-      match (a.typ, b.typ) with
-      | (TYPE_bool, TYPE_bool) ->
-        TYPE_bool
-      | (_,_) ->
-        TYPE_none
-      end
-    | _ ->
-      TYPE_none
-
-  (* semantically check operand and find return type *)
-  let what_un_type op a =
-    match op with
-    | "+"
-    | "-" ->
-      begin
-      match a.typ with
-      | TYPE_int -> TYPE_int
-      | TYPE_char -> TYPE_char
-      | TYPE_REAL -> TYPE_REAL
-      | _ -> TYPE_none
-      end
-    | "!" ->
-      begin
-      match a.typ with
-      | TYPE_bool -> TYPE_bool
-      | _ -> TYPE_none
-      end
-    | _ ->
-      TYPE_none
-
-  (* Semantic-Quad actions for binary operators *)
-  let sq_binop a op b =
-    (* TODO: generate actual quads *)
-    (* TODO: division by zero check *)
-    let typ = what_bin_type a op b in
-    match typ with
-    | TYPE_none ->
-      begin
-        error "Binary Operator %s Error" op;
-        sv_err
-      end
-    | _ ->
-      (* make new temporary for result *)
-      let e = newTemporary typ in
-      let sv = {
-        place = (Q_entry e);
-        typ = typ
-      } in sv
-
-  (* Semantic-Quad actions for unary operators *)
-  let sq_unop op a =
-    (* TODO: generate actual quads *)
-    let typ = what_un_type op a in
-    match typ with
-    | TYPE_none ->
-      begin
-        error "Unary Operator %s Error" op;
-        sv_err
-      end
-    | _ ->
-      (* make new temporary for result *)
-      let e = newTemporary typ in
-      let sv = {
-        place = (Q_entry e);
-        typ = typ
-      } in sv
-
-  (* Semantic-Quad actions for constant definiton *)
-  let sq_cdef n t v =
-    try
-      let e = lookupEntry (id_make n) LOOKUP_CURRENT_SCOPE false in
-        begin
-        (* if found, name is already taken *)
-        error "Const name %s is already taken" n;
-        ignore(e);
-        ()
-        end
-    with Not_found ->
-      (* if not found, check types *)
-      if equalType t v.typ then
-        (* if match, find the const value *)
-        (* constant value must be known at compile-time *)
-        let cval = function
-          | Q_int (a) -> CONST_int a
-          | Q_char (a) -> CONST_char a
-          | Q_string (a) -> CONST_string a
-          | Q_real (a) -> CONST_REAL a
-          | _ -> CONST_none
-        in
-          let cv = cval v.place in
-          match cv with
-          | CONST_none ->
-            begin
-            (* not really a const *)
-            error "%s is not really a const!" n;
-            ()
-            end
-          | _ ->
-            begin
-            (* register the new Constant *)
-            ignore (newConstant (id_make n) t cv false);
-            ()
-            end
-      else
-        begin
-        (* const def type mismatch *)
-        error "constant definition type mismatch";
-        ()
-        end
-
-  (* Semantic-Quad actions for lvalue *)
-  (* TODO : Add params because array lvalue place should be a temporary after generating array,a,i,$1 *)
-  (* TODO : Use LOOKUP_ALL_SCOPES when looking for constants *)
-  let sq_lvalue a =
-    (* Lookup the Symbol Table *)
-    let e = lookupEntry (id_make a) LOOKUP_CURRENT_SCOPE true in
-    (* check if entry is variable or parameter or constant *)
-    let etyp = function
-      | ENTRY_variable (a) -> a.variable_type
-      | ENTRY_parameter (a) -> a.parameter_type
-      | ENTRY_constant (a) -> a.constant_type
-      | _ -> TYPE_none
-    in
-      let lt = etyp e.entry_info in
-      match lt with
-      | TYPE_none ->
-        begin
-        error "lvalue %s not an variable or an parameter or a constant" a;
-        sv_err
-        end
-      | _ ->
-        begin
-        let sv = {
-          place = (Q_entry e);
-          typ = lt;
-        } in sv
-        end
-
-  (* Semantic-Quads action for variable definition *)
-  let sq_vardef t foo =
-    let reg (a,b,c) =
-      try
-        let e = lookupEntry (id_make a) LOOKUP_CURRENT_SCOPE false in
-          begin
-          (* if found, name is already taken *)
-          error "Var name %s is already taken" a;
-          ignore(e);
-          ()
-          end
-      with Not_found ->
-        (* if not found *)
-        match c.place with
-        | Q_None ->
-          begin
-          (* no initialization *)
-          let e = newVariable (id_make a) t true
-          in ignore(e)
-          end
-        | _ ->
-          (* check types *)
-          if equalType t c.typ then
-            (* if match, register the new Variable *)
-            let e = newVariable (id_make a) t true
-            in ignore(e)
-          else
-            begin
-            (* var def type mismatch *)
-            error "variable definition type mismatch";
-            ()
-            end
-    in
-      reg foo
-
-
   (* first steps *)
   let prologue () =
-    printf "Start!\n";
+    printf "Start parsing!\n";
     initSymbolTable 256;
     openScope ()
 
   (* last steps *)
   let epilogue () =
-    printf "End!\n";
+    printf "End parsing!\n";
     printSymbolTable ()
 
 %}
@@ -476,38 +193,182 @@ var_init : simple_var_init { $1 }
          | matrix_var_init { $1 }
          ;
 
-simple_var_init : T_id { ($1, [], sv_err) }
+simple_var_init : T_id { ($1, [], esv_err) }
                 | T_id T_assign expr { ($1, [], $3) }
                 ;
 
-matrix_var_init : T_id T_lbrack const_expr T_rbrack { ($1, $3::[], sv_err) }
-                | T_id T_lbrack const_expr T_rbrack matrix_var_init2 { ($1, $3::$5, sv_err) }
+matrix_var_init : T_id T_lbrack const_expr T_rbrack { ($1, $3::[], esv_err) }
+                | T_id T_lbrack const_expr T_rbrack matrix_var_init2 { ($1, $3::$5, esv_err) }
                 ;
 
 matrix_var_init2 : T_lbrack const_expr T_rbrack { $2::[] }
                  | matrix_var_init2 T_lbrack const_expr T_rbrack { $1 @ $3::[] }
                  ;
 
-routine_header : T_PROC T_id T_lparen T_rparen { }
-               | T_PROC T_id T_lparen paztype formal routine_header2 T_rparen { }
-               | T_FUNC paztype T_id T_lparen T_rparen { }
-               | T_FUNC paztype T_id T_lparen paztype formal routine_header2 T_rparen { }
+/*(* batzilo 5/11 *)*/
+routine_header : T_PROC T_id T_lparen T_rparen {
+                        (* i.e PROC foo() *)
+                        let e = newFunction (id_make $2) true in
+                          begin
+                          endFunctionHeader e TYPE_none;
+                          e
+                          end
+                        }
+               | T_PROC T_id T_lparen routine_header2 T_rparen {
+                        (* i.e PROC foo( int a, char b, REAL c, bool d ) *)
+                        let e = newFunction (id_make $2) true in
+                          begin
+                          openScope ();
+                          (* add parameters *)
+                          let paramadd (t,(n,m,dims)) =
+                            let rec ft = function
+                            | (Q_int d)::ds -> TYPE_array (ft ds, d)
+                            | [] -> t
+                            | _ -> TYPE_none
+                            in
+                            ignore (newParameter (id_make n) (ft dims) m e true)
+                          in
+                            begin
+                            (* List.rev $4; *)
+                            List.iter paramadd $4;
+                            endFunctionHeader e TYPE_none;
+                            e
+                            end
+                          end
+                        }
+               | T_FUNC paztype T_id T_lparen T_rparen {
+                        (* i.e FUNC int foo() *)
+                        let e = newFunction (id_make $3) true in
+                          begin
+                          endFunctionHeader e $2;
+                          e
+                          end
+                        }
+               | T_FUNC paztype T_id T_lparen routine_header2 T_rparen {
+                        (* i.e FUNC int foo( int a, char b, REAL c, bool d ) *)
+                        let e = newFunction (id_make $3) true in
+                          begin
+                          openScope ();
+                          (* add parameters *)
+                          let paramadd (t,(n,m,dims)) =
+                            let rec ft = function
+                            | (Q_int d)::ds -> TYPE_array (ft ds, d)
+                            | [] -> t
+                            | _ -> TYPE_none
+                            in
+                            ignore (newParameter (id_make n) (ft dims) m e true)
+                          in
+                            begin
+                            (* List.rev $5; *)
+                            List.iter paramadd $5;
+                            endFunctionHeader e $2;
+                            e
+                            end
+                          end
+                        }
                ;
 
-routine_header2 : T_comma paztype formal { }
-                | routine_header2 T_comma paztype formal { }
+/*(* return a list of tuples (type, (name, mode, dims)) *)*/
+routine_header2 : paztype formal { [ ($1, $2 ) ] }
+                | routine_header2 T_comma paztype formal { $1 @ [ ($3, $4) ] }
                 ;
 
-formal : T_id { }
-       | T_amp T_id { }
-       | T_id T_lbrack T_rbrack { }
-       | T_id T_lbrack T_rbrack formal2 { }
-       | T_id T_lbrack const_expr T_rbrack { }
-       | T_id T_lbrack const_expr T_rbrack formal2 { }
+/*(* return a triplet (name, pass_mode, dims) *)*/
+formal : T_id {
+              (*
+              let sv = {
+                name = id_make $1;
+                typ = TYPE_none;
+                pmode = PASS_BY_VALUE;
+              } in sv
+              *)
+              ($1, PASS_BY_VALUE, [])
+            }
+       | T_amp T_id {
+              (*
+              let sv = {
+                name = id_make $2;
+                typ = TYPE_none;
+                pmode = PASS_BY_REFERENCE;
+              } in sv
+              *)
+              ($2, PASS_BY_REFERENCE, [])
+            }
+       | T_id T_lbrack T_rbrack {
+              (*
+              let sv = {
+                name = id_make $1;
+                typ = TYPE_array (TYPE_none, 0);
+                pmode = PASS_BY_VALUE;
+              } in sv
+              *)
+              ($1, PASS_BY_VALUE, [Q_int 0])
+            } 
+       | T_id T_lbrack T_rbrack formal2 {
+              (*
+              let mktyp l = function
+                match l with
+                | h::t -> TYPE_array (mktyp t, h)
+                | [] -> TYPE_none
+              in
+              let sv = {
+                name = id_make $1;
+                typ = TYPE_array(mktyp $4, 0);
+                pmode = PASS_BY_VALUE;
+              } in sv
+              *)
+              ($1, PASS_BY_VALUE, Q_int 0 :: $4)
+            }
+       | T_id T_lbrack const_expr T_rbrack {
+              (*
+              if not equalType $3.typ TYPE_int then
+                error "array dimension is not int const";
+                (* what if error? *)
+              else
+              let sv = {
+                name = id_make $1;
+                typ = TYPE_array(TYPE_none, $3.place);
+                pmode = PASS_BY_VALUE
+              } in sv
+              *)
+              ($1, PASS_BY_VALUE, [$3.e_place])
+            }
+       | T_id T_lbrack const_expr T_rbrack formal2 {
+              (*
+              let mktyp l = function
+                match l with
+                | h::t -> TYPE_array (mktyp t, h)
+                | [] -> TYPE_none
+              in
+              let sv = {
+                name = id_make $1;
+                typ = mktyp $4;
+                pmode = PASS_BY_VALUE
+              } in sv
+              *)
+              ($1, PASS_BY_VALUE, $3.e_place :: $5)
+            }
        ;
 
-formal2 : T_lbrack const_expr T_rbrack { }
-        | formal2 T_lbrack const_expr T_rbrack { }
+/*(* return an Q_int list *)*/
+formal2 : T_lbrack const_expr T_rbrack {
+              (* the first *)
+              match ($2.e_place, $2.e_typ) with
+              | (Q_int v, TYPE_int) -> [Q_int v]
+              | _ ->
+                error "parameter array dimension is not an integer constant";
+                (* TODO what if error? *)
+                []
+            }
+        | formal2 T_lbrack const_expr T_rbrack {
+              (* the rest *)
+              match ($3.e_place, $3.e_typ) with
+              | (Q_int v, TYPE_int) -> $1 @ [Q_int v]
+              | _ ->
+                error "parameter array dimension is not an integer constant";
+                (* TODO what if error? *)
+                []
+            }
         ;
 
 routine : routine_header T_sem_col { }
@@ -535,44 +396,44 @@ const_expr : expr { $1 }
 (* TODO: separate binop and unop ? *)
 */
 expr : T_int_const {
-            let sv = {
-              place = (Q_int $1);
-              typ = TYPE_int;
-            } in sv
+            let esv = {
+              e_place = (Q_int $1);
+              e_typ = TYPE_int;
+            } in esv
         }
      | T_float_const {
-            let sv = {
-              place = (Q_real $1);
-              typ = TYPE_REAL;
-            } in sv
+            let esv = {
+              e_place = (Q_real $1);
+              e_typ = TYPE_REAL;
+            } in esv
         }
      | T_char_const {
-            let sv = {
-              place = (Q_char $1);
-              typ = TYPE_char;
-            } in sv
+            let esv = {
+              e_place = (Q_char $1);
+              e_typ = TYPE_char;
+            } in esv
         }
      | T_string_literal {
-            let sv = {
-              place = (Q_string $1);
-              typ = TYPE_array(TYPE_char, String.length $1);
-            } in sv
+            let esv = {
+              e_place = (Q_string $1);
+              e_typ = TYPE_array(TYPE_char, String.length $1);
+            } in esv
         }
      | T_true {
-            let sv = {
-              place = (Q_bool true);
-              typ = TYPE_bool;
-            } in sv
+            let esv = {
+              e_place = (Q_bool true);
+              e_typ = TYPE_bool;
+            } in esv
         }
      | T_false {
-            let sv = {
-              place = (Q_bool false);
-              typ = TYPE_bool;
-            } in sv
+            let esv = {
+              e_place = (Q_bool false);
+              e_typ = TYPE_bool;
+            } in esv
         }
      | T_lparen expr T_rparen       { $2 }
      | l_value                      { $1 }
-     | call                         { sv_err (* TODO: complete when done with functions *) }
+     | call                         { esv_err (* TODO: complete when done with functions *) }
      | T_plus expr %prec UNARY      { sq_unop "+" $2 }
      | T_minus expr %prec UNARY     { sq_unop "-" $2 }
      | T_lg_not expr %prec UNARY    { sq_unop "!" $2 }

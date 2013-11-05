@@ -14,7 +14,7 @@ EXEFILE=pazcalc$(EXE)
 
 # Source code files
 MLFILES=Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml Symbtest.ml \
-  Lexer.ml Parser.ml Main.ml
+  SemQuad.ml Lexer.ml Parser.ml Main.ml 
 
 # Interface files
 MLIFILES=Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli \
