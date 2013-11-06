@@ -8,6 +8,7 @@ type typ = TYPE_none        (* no type (used for errors)          *)
          | TYPE_array of    (* array                              *)
              typ *          (*   element type                     *)
              int            (*   size of array if known else zero *)
+         | TYPE_proc
 
 val sizeOfType : typ -> int
 val equalType : typ -> typ -> bool

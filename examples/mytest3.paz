@@ -1,0 +1,16 @@
+// skatoules
+
+PROC hanoi ( int a, int b ) {
+int c = 6;
+int d = 7;
+int e = c*d;
+return;
+}
+
+FUNC int foo ( ) {
+int c = 42;
+return c;
+}
+
+PROGRAM bar () {
+}

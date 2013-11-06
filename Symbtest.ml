@@ -24,6 +24,8 @@ let rec pretty_typ ppf typ =
         fprintf ppf " [%d]" sz
       else
         fprintf ppf " []"
+  | TYPE_proc ->
+      fprintf ppf "PROC"
 
 let pretty_mode ppf mode =
   match mode with

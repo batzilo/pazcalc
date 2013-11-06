@@ -8,6 +8,7 @@ type typ = TYPE_none        (* no type (used for errors)          *)
          | TYPE_array of    (* array                              *)
              typ *          (*   element type                     *)
              int            (*   size of array if known else zero *)
+         | TYPE_proc
 
 let rec sizeOfType t =
    match t with
@@ -33,3 +34,4 @@ let rec string_of_typ typ =
   | TYPE_REAL -> "REAL"
   | TYPE_array(et,sz) when sz > 0 -> String.concat "" [(string_of_typ et);("[");(string_of_int sz);("]")]
   | TYPE_array(et,sz) -> String.concat "" [(string_of_typ et);("[]")]
+  | TYPE_proc -> "PROC"

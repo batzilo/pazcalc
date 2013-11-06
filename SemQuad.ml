@@ -319,3 +319,24 @@ let sq_vardef t foo =
     in
       reg foo
 
+(* Semantic-Quads action for routine header *)
+let sq_rout_head name typ pars =
+  let e = newFunction (id_make name) true in
+    begin
+    openScope ();
+    (* add parameters *)
+    let paramadd (t,(n,m,dims)) =
+      let rec ft = function
+        | (Q_int d)::ds -> TYPE_array (ft ds, d)
+        | [] -> t
+        | _ -> TYPE_none
+      in
+        ignore (newParameter (id_make n) (ft dims) m e true)
+    in
+      begin
+      (* List.rev $4; *)
+      List.iter paramadd pars;
+      endFunctionHeader e typ;
+      e
+      end
+    end

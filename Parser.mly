@@ -61,8 +61,8 @@
 
   (* last steps *)
   let epilogue () =
-    printf "End parsing!\n";
-    printSymbolTable ()
+    printf "End parsing!\n"
+    (* printSymbolTable () *)
 
 %}
 
@@ -208,145 +208,46 @@ matrix_var_init2 : T_lbrack const_expr T_rbrack { $2::[] }
 /*(* batzilo 5/11 *)*/
 routine_header : T_PROC T_id T_lparen T_rparen {
                         (* i.e PROC foo() *)
-                        let e = newFunction (id_make $2) true in
-                          begin
-                          endFunctionHeader e TYPE_none;
-                          e
-                          end
+                        sq_rout_head $2 TYPE_proc []
                         }
                | T_PROC T_id T_lparen routine_header2 T_rparen {
                         (* i.e PROC foo( int a, char b, REAL c, bool d ) *)
-                        let e = newFunction (id_make $2) true in
-                          begin
-                          openScope ();
-                          (* add parameters *)
-                          let paramadd (t,(n,m,dims)) =
-                            let rec ft = function
-                            | (Q_int d)::ds -> TYPE_array (ft ds, d)
-                            | [] -> t
-                            | _ -> TYPE_none
-                            in
-                            ignore (newParameter (id_make n) (ft dims) m e true)
-                          in
-                            begin
-                            (* List.rev $4; *)
-                            List.iter paramadd $4;
-                            endFunctionHeader e TYPE_none;
-                            e
-                            end
-                          end
+                        sq_rout_head $2 TYPE_proc $4
                         }
                | T_FUNC paztype T_id T_lparen T_rparen {
                         (* i.e FUNC int foo() *)
-                        let e = newFunction (id_make $3) true in
-                          begin
-                          endFunctionHeader e $2;
-                          e
-                          end
+                        sq_rout_head $3 $2 []
                         }
                | T_FUNC paztype T_id T_lparen routine_header2 T_rparen {
                         (* i.e FUNC int foo( int a, char b, REAL c, bool d ) *)
-                        let e = newFunction (id_make $3) true in
-                          begin
-                          openScope ();
-                          (* add parameters *)
-                          let paramadd (t,(n,m,dims)) =
-                            let rec ft = function
-                            | (Q_int d)::ds -> TYPE_array (ft ds, d)
-                            | [] -> t
-                            | _ -> TYPE_none
-                            in
-                            ignore (newParameter (id_make n) (ft dims) m e true)
-                          in
-                            begin
-                            (* List.rev $5; *)
-                            List.iter paramadd $5;
-                            endFunctionHeader e $2;
-                            e
-                            end
-                          end
+                        sq_rout_head $3 $2 $5
                         }
                ;
 
 /*(* return a list of tuples (type, (name, mode, dims)) *)*/
-routine_header2 : paztype formal { [ ($1, $2 ) ] }
+routine_header2 : paztype formal { [ ($1, $2) ] }
                 | routine_header2 T_comma paztype formal { $1 @ [ ($3, $4) ] }
                 ;
 
-/*(* return a triplet (name, pass_mode, dims) *)*/
+/*(* return a triplet (name, pass_mode, dims list) *)*/
 formal : T_id {
-              (*
-              let sv = {
-                name = id_make $1;
-                typ = TYPE_none;
-                pmode = PASS_BY_VALUE;
-              } in sv
-              *)
               ($1, PASS_BY_VALUE, [])
             }
        | T_amp T_id {
-              (*
-              let sv = {
-                name = id_make $2;
-                typ = TYPE_none;
-                pmode = PASS_BY_REFERENCE;
-              } in sv
-              *)
               ($2, PASS_BY_REFERENCE, [])
             }
        | T_id T_lbrack T_rbrack {
-              (*
-              let sv = {
-                name = id_make $1;
-                typ = TYPE_array (TYPE_none, 0);
-                pmode = PASS_BY_VALUE;
-              } in sv
-              *)
-              ($1, PASS_BY_VALUE, [Q_int 0])
+              (* TODO when parameter is array, always passed by reference, right ? *)
+              ($1, PASS_BY_REFERENCE, [Q_int 0])
             } 
        | T_id T_lbrack T_rbrack formal2 {
-              (*
-              let mktyp l = function
-                match l with
-                | h::t -> TYPE_array (mktyp t, h)
-                | [] -> TYPE_none
-              in
-              let sv = {
-                name = id_make $1;
-                typ = TYPE_array(mktyp $4, 0);
-                pmode = PASS_BY_VALUE;
-              } in sv
-              *)
-              ($1, PASS_BY_VALUE, Q_int 0 :: $4)
+              ($1, PASS_BY_REFERENCE, (Q_int 0)::$4)
             }
        | T_id T_lbrack const_expr T_rbrack {
-              (*
-              if not equalType $3.typ TYPE_int then
-                error "array dimension is not int const";
-                (* what if error? *)
-              else
-              let sv = {
-                name = id_make $1;
-                typ = TYPE_array(TYPE_none, $3.place);
-                pmode = PASS_BY_VALUE
-              } in sv
-              *)
-              ($1, PASS_BY_VALUE, [$3.e_place])
+              ($1, PASS_BY_REFERENCE, [$3.e_place])
             }
        | T_id T_lbrack const_expr T_rbrack formal2 {
-              (*
-              let mktyp l = function
-                match l with
-                | h::t -> TYPE_array (mktyp t, h)
-                | [] -> TYPE_none
-              in
-              let sv = {
-                name = id_make $1;
-                typ = mktyp $4;
-                pmode = PASS_BY_VALUE
-              } in sv
-              *)
-              ($1, PASS_BY_VALUE, $3.e_place :: $5)
+              ($1, PASS_BY_REFERENCE, $3.e_place::$5)
             }
        ;
 
@@ -356,9 +257,11 @@ formal2 : T_lbrack const_expr T_rbrack {
               match ($2.e_place, $2.e_typ) with
               | (Q_int v, TYPE_int) -> [Q_int v]
               | _ ->
+                begin
                 error "parameter array dimension is not an integer constant";
                 (* TODO what if error? *)
                 []
+                end
             }
         | formal2 T_lbrack const_expr T_rbrack {
               (* the rest *)
@@ -371,14 +274,15 @@ formal2 : T_lbrack const_expr T_rbrack {
             }
         ;
 
-routine : routine_header T_sem_col { }
-        | routine_header block { }
+/*(* batzilo 6/11 *)*/
+routine : routine_header T_sem_col { printSymbolTable (); closeScope () }
+        | routine_header block { printSymbolTable (); closeScope () }
         ;
 
-program_header : T_PROGRAM T_id T_lparen T_rparen { }
+program_header : T_PROGRAM T_id T_lparen T_rparen { ignore (sq_rout_head $2 TYPE_proc []); openScope () }
                ;
 
-program : program_header block { }
+program : program_header block { printSymbolTable (); closeScope () }
         ;
 
 paztype : T_int { TYPE_int }
