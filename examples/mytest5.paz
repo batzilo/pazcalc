@@ -1,0 +1,17 @@
+// skatoules
+
+const int N = 6;
+const int M = N + 1;
+
+// forwarded procedure
+PROC foo ( int a[][N][M] );
+
+PROGRAM bar ( ) {
+    int x[1][N][M];
+    foo(x);
+    return;
+}
+
+PROC foo ( int a[][N][M] ) {
+    return;
+}

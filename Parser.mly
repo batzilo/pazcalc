@@ -100,12 +100,14 @@
 
 %%
 
+/*(* batzilo init *)*/
 pazprog : /* empty */ { }
         | dummy_non_terminal declaration_list T_EOF { epilogue ()  }
 		;
 
 dummy_non_terminal : /*(* empty, used only for semantic actions *)*/ { prologue () }
 
+/*(* *)*/
 declaration_list : declaration { }
                  | declaration_list declaration { }
                  ;
@@ -270,12 +272,14 @@ program : program_header block {
             }
         ;
 
+/*(* batzilo init *)*/
 paztype : T_int { TYPE_int }
         | T_bool { TYPE_bool }
         | T_char { TYPE_char }
         | T_REAL { TYPE_REAL }
         ;
 
+/*(* batzilo 6/11 *)*/
 const_expr : expr {
                   (* make sure it's really a const *)
                   let cv = const_of_quad $1.e_place in
@@ -383,6 +387,7 @@ call2 : expr { [$1] }
       | call2 T_comma expr { $1 @ [$3] }
       ;
 
+/*(* *)*/
 block : T_lbrace T_rbrace { }
       | T_lbrace block2 T_rbrace { }
       /* error recovery */
