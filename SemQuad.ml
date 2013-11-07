@@ -189,6 +189,124 @@ let what_un_type op a =
     | _ ->
       TYPE_none
 
+(* apply the binary operator to constant operands *)
+let const_binop = function
+    (* int add *)
+    | "+", TYPE_int, CONST_int x, CONST_int y -> Q_int ( x + y )
+    | "+", TYPE_int, CONST_int x, CONST_char y -> Q_int ( x + int_of_char y )
+    | "+", TYPE_int, CONST_char x, CONST_int y -> Q_int ( int_of_char x + y )
+    | "+", TYPE_int, CONST_char x, CONST_char y -> Q_int ( int_of_char x + int_of_char y )
+    (* REAL add *)
+    | "+", TYPE_REAL, CONST_int x, CONST_REAL y -> Q_real ( (float x) +. y )
+    | "+", TYPE_REAL, CONST_char x, CONST_REAL y -> Q_real ( (float (int_of_char x)) +. y )
+    | "+", TYPE_REAL, CONST_REAL x, CONST_int y -> Q_real ( x +. (float y) )
+    | "+", TYPE_REAL, CONST_REAL x, CONST_char y -> Q_real ( x +. (float (int_of_char y)) )
+    | "+", TYPE_REAL, CONST_REAL x, CONST_REAL y -> Q_real ( x +. y )
+    (* int sub *)
+    | "-", TYPE_int, CONST_int x, CONST_int y -> Q_int ( x - y )
+    | "-", TYPE_int, CONST_int x, CONST_char y -> Q_int ( x - int_of_char y )
+    | "-", TYPE_int, CONST_char x, CONST_int y -> Q_int ( int_of_char x - y )
+    | "-", TYPE_int, CONST_char x, CONST_char y -> Q_int ( int_of_char x - int_of_char y )
+    (* REAL sub *)
+    | "-", TYPE_REAL, CONST_int x, CONST_REAL y -> Q_real ( (float x) -. y )
+    | "-", TYPE_REAL, CONST_char x, CONST_REAL y -> Q_real ( (float (int_of_char x)) -. y )
+    | "-", TYPE_REAL, CONST_REAL x, CONST_int y -> Q_real ( x -. (float y) )
+    | "-", TYPE_REAL, CONST_REAL x, CONST_char y -> Q_real ( x -. (float (int_of_char y)) )
+    | "-", TYPE_REAL, CONST_REAL x, CONST_REAL y -> Q_real ( x -. y )
+    (* int mul *)
+    | "*", TYPE_int, CONST_int x, CONST_int y -> Q_int ( x * y )
+    | "*", TYPE_int, CONST_int x, CONST_char y -> Q_int ( x * int_of_char y )
+    | "*", TYPE_int, CONST_char x, CONST_int y -> Q_int ( int_of_char x * y )
+    | "*", TYPE_int, CONST_char x, CONST_char y -> Q_int ( int_of_char x * int_of_char y )
+    (* REAL mul *)
+    | "*", TYPE_REAL, CONST_int x, CONST_REAL y -> Q_real ( (float x) *. y )
+    | "*", TYPE_REAL, CONST_char x, CONST_REAL y -> Q_real ( (float (int_of_char x)) *. y )
+    | "*", TYPE_REAL, CONST_REAL x, CONST_int y -> Q_real ( x *. (float y) )
+    | "*", TYPE_REAL, CONST_REAL x, CONST_char y -> Q_real ( x *. (float (int_of_char y)) )
+    | "*", TYPE_REAL, CONST_REAL x, CONST_REAL y -> Q_real ( x *. y )
+    (* int div *)
+    | "/", TYPE_int, CONST_int x, CONST_int y -> Q_int ( x / y )
+    | "/", TYPE_int, CONST_int x, CONST_char y -> Q_int ( x / int_of_char y )
+    | "/", TYPE_int, CONST_char x, CONST_int y -> Q_int ( int_of_char x / y )
+    | "/", TYPE_int, CONST_char x, CONST_char y -> Q_int ( int_of_char x / int_of_char y )
+    (* REAL div *)
+    | "/", TYPE_REAL, CONST_int x, CONST_REAL y -> Q_real ( (float x) /. y )
+    | "/", TYPE_REAL, CONST_char x, CONST_REAL y -> Q_real ( (float (int_of_char x)) /. y )
+    | "/", TYPE_REAL, CONST_REAL x, CONST_int y -> Q_real ( x /. (float y) )
+    | "/", TYPE_REAL, CONST_REAL x, CONST_char y -> Q_real ( x /. (float (int_of_char y)) )
+    | "/", TYPE_REAL, CONST_REAL x, CONST_REAL y -> Q_real ( x /. y )
+    (* int mod *)
+    | "%", TYPE_int, CONST_int x, CONST_int y -> Q_int ( x mod y )
+    | "%", TYPE_int, CONST_int x, CONST_char y -> Q_int ( x mod int_of_char y )
+    | "%", TYPE_int, CONST_char x, CONST_int y -> Q_int ( int_of_char x mod y )
+    | "%", TYPE_int, CONST_char x, CONST_char y -> Q_int ( int_of_char x mod int_of_char y )
+    (* == *)
+    | "==", TYPE_bool, CONST_int x, CONST_int y -> Q_bool ( x == y )
+    | "==", TYPE_bool, CONST_int x, CONST_char y -> Q_bool ( x == int_of_char y )
+    | "==", TYPE_bool, CONST_char x, CONST_int y -> Q_bool ( int_of_char x == y )
+    | "==", TYPE_bool, CONST_char x, CONST_char y -> Q_bool ( int_of_char x == int_of_char y )
+    | "==", TYPE_bool, CONST_int x, CONST_REAL y -> Q_bool ( (float x) == y )
+    | "==", TYPE_bool, CONST_char x, CONST_REAL y -> Q_bool ( (float (int_of_char x)) == y )
+    | "==", TYPE_bool, CONST_REAL x, CONST_int y -> Q_bool ( x == (float y) )
+    | "==", TYPE_bool, CONST_REAL x, CONST_char y -> Q_bool ( x == (float (int_of_char y)) )
+    | "==", TYPE_bool, CONST_REAL x, CONST_REAL y -> Q_bool ( x == y )
+    (* != *)
+    | "!=", TYPE_bool, CONST_int x, CONST_int y -> Q_bool ( x != y )
+    | "!=", TYPE_bool, CONST_int x, CONST_char y -> Q_bool ( x != int_of_char y )
+    | "!=", TYPE_bool, CONST_char x, CONST_int y -> Q_bool ( int_of_char x != y )
+    | "!=", TYPE_bool, CONST_char x, CONST_char y -> Q_bool ( int_of_char x != int_of_char y )
+    | "!=", TYPE_bool, CONST_int x, CONST_REAL y -> Q_bool ( (float x) != y )
+    | "!=", TYPE_bool, CONST_char x, CONST_REAL y -> Q_bool ( (float (int_of_char x)) != y )
+    | "!=", TYPE_bool, CONST_REAL x, CONST_int y -> Q_bool ( x != (float y) )
+    | "!=", TYPE_bool, CONST_REAL x, CONST_char y -> Q_bool ( x != (float (int_of_char y)) )
+    | "!=", TYPE_bool, CONST_REAL x, CONST_REAL y -> Q_bool ( x != y )
+    (* < *)
+    | "<", TYPE_bool, CONST_int x, CONST_int y -> Q_bool ( x < y )
+    | "<", TYPE_bool, CONST_int x, CONST_char y -> Q_bool ( x < int_of_char y )
+    | "<", TYPE_bool, CONST_char x, CONST_int y -> Q_bool ( int_of_char x < y )
+    | "<", TYPE_bool, CONST_char x, CONST_char y -> Q_bool ( int_of_char x < int_of_char y )
+    | "<", TYPE_bool, CONST_int x, CONST_REAL y -> Q_bool ( (float x) < y )
+    | "<", TYPE_bool, CONST_char x, CONST_REAL y -> Q_bool ( (float (int_of_char x)) < y )
+    | "<", TYPE_bool, CONST_REAL x, CONST_int y -> Q_bool ( x < (float y) )
+    | "<", TYPE_bool, CONST_REAL x, CONST_char y -> Q_bool ( x < (float (int_of_char y)) )
+    | "<", TYPE_bool, CONST_REAL x, CONST_REAL y -> Q_bool ( x < y )
+    (* > *)
+    | ">", TYPE_bool, CONST_int x, CONST_int y -> Q_bool ( x > y )
+    | ">", TYPE_bool, CONST_int x, CONST_char y -> Q_bool ( x > int_of_char y )
+    | ">", TYPE_bool, CONST_char x, CONST_int y -> Q_bool ( int_of_char x > y )
+    | ">", TYPE_bool, CONST_char x, CONST_char y -> Q_bool ( int_of_char x > int_of_char y )
+    | ">", TYPE_bool, CONST_int x, CONST_REAL y -> Q_bool ( (float x) > y )
+    | ">", TYPE_bool, CONST_char x, CONST_REAL y -> Q_bool ( (float (int_of_char x)) > y )
+    | ">", TYPE_bool, CONST_REAL x, CONST_int y -> Q_bool ( x > (float y) )
+    | ">", TYPE_bool, CONST_REAL x, CONST_char y -> Q_bool ( x > (float (int_of_char y)) )
+    | ">", TYPE_bool, CONST_REAL x, CONST_REAL y -> Q_bool ( x > y )
+    (* <= *)
+    | "<=", TYPE_bool, CONST_int x, CONST_int y -> Q_bool ( x <= y )
+    | "<=", TYPE_bool, CONST_int x, CONST_char y -> Q_bool ( x <= int_of_char y )
+    | "<=", TYPE_bool, CONST_char x, CONST_int y -> Q_bool ( int_of_char x <= y )
+    | "<=", TYPE_bool, CONST_char x, CONST_char y -> Q_bool ( int_of_char x <= int_of_char y )
+    | "<=", TYPE_bool, CONST_int x, CONST_REAL y -> Q_bool ( (float x) <= y )
+    | "<=", TYPE_bool, CONST_char x, CONST_REAL y -> Q_bool ( (float (int_of_char x)) <= y )
+    | "<=", TYPE_bool, CONST_REAL x, CONST_int y -> Q_bool ( x <= (float y) )
+    | "<=", TYPE_bool, CONST_REAL x, CONST_char y -> Q_bool ( x <= (float (int_of_char y)) )
+    | "<=", TYPE_bool, CONST_REAL x, CONST_REAL y -> Q_bool ( x <= y )
+    (* >= *)
+    | ">=", TYPE_bool, CONST_int x, CONST_int y -> Q_bool ( x >= y )
+    | ">=", TYPE_bool, CONST_int x, CONST_char y -> Q_bool ( x >= int_of_char y )
+    | ">=", TYPE_bool, CONST_char x, CONST_int y -> Q_bool ( int_of_char x >= y )
+    | ">=", TYPE_bool, CONST_char x, CONST_char y -> Q_bool ( int_of_char x >= int_of_char y )
+    | ">=", TYPE_bool, CONST_int x, CONST_REAL y -> Q_bool ( (float x) >= y )
+    | ">=", TYPE_bool, CONST_char x, CONST_REAL y -> Q_bool ( (float (int_of_char x)) >= y )
+    | ">=", TYPE_bool, CONST_REAL x, CONST_int y -> Q_bool ( x >= (float y) )
+    | ">=", TYPE_bool, CONST_REAL x, CONST_char y -> Q_bool ( x >= (float (int_of_char y)) )
+    | ">=", TYPE_bool, CONST_REAL x, CONST_REAL y -> Q_bool ( x >= y )
+    (* && *)
+    | "&&", TYPE_bool, CONST_bool x, CONST_bool y -> Q_bool ( x && y )
+    (* || *)
+    | "||", TYPE_bool, CONST_bool x, CONST_bool y -> Q_bool ( x || y )
+    (* anything else *)
+    | _ -> Q_none
+
 (* Semantic-Quad actions for binary operators *)
 let sq_binop a op b =
     (* TODO: generate actual quads *)
@@ -197,17 +315,30 @@ let sq_binop a op b =
     match typ with
     | TYPE_none ->
       begin
-        error "Binary Operator %s Error" op;
+        error "Binary Operator %s Error: Operands mismatch" op;
         (* print_binop_type_error op a.e_typ b.e_typ *)
         esv_err
       end
     | _ ->
-      (* make new temporary for result *)
-      let e = newTemporary typ in
-      let esv = {
-        e_place = (Q_entry e);
-        e_typ = typ
-      } in esv
+      let c1 = const_of_quad a.e_place in
+      let c2 = const_of_quad b.e_place in
+      match c1,c2 with
+      | CONST_none, _
+      | _, CONST_none ->
+         (* result isn't a const *)
+         (* make new temporary for result *)
+         let e = newTemporary typ in
+         let esv = {
+           e_place = (Q_entry e);
+           e_typ = typ
+         } in esv
+      | _ ->
+         (* result is a const *)
+         let plc = const_binop (op, typ, c1, c2) in
+         let esv = {
+           e_place = plc;
+           e_typ = typ
+         } in esv
 
 (* Semantic-Quad actions for unary operators *)
 let sq_unop op a =
@@ -294,8 +425,15 @@ let sq_lvalue name idxs =
     | ENTRY_parameter inf ->
         mktemp (Q_entry e) inf.parameter_type idxs
     | ENTRY_constant inf ->
+        begin
         let qv = quad_of_const inf.constant_value in
-        mktemp qv inf.constant_type idxs
+        match qv with
+        | Q_none ->
+           error "lvalue %s is not really a const while it should be" name;
+           esv_err;
+        | _ ->
+           mktemp qv inf.constant_type idxs
+        end
     | _ ->
         error "lvalue %s is not a variable or a parameter or a constant in the current scope!" name;
         esv_err
@@ -304,8 +442,15 @@ let sq_lvalue name idxs =
     let e = lookupEntry (id_make name) LOOKUP_ALL_SCOPES true in
     match e.entry_info with
     | ENTRY_constant inf -> 
+        begin
         let qv = quad_of_const inf.constant_value in
-        mktemp qv inf.constant_type idxs
+        match qv with
+        | Q_none ->
+           error "lvalue %s is not really a const while it should be" name;
+           esv_err;
+        | _ ->
+           mktemp qv inf.constant_type idxs
+        end
     | _ ->
         error "lvalue %s isn't a constant!" name;
         esv_err

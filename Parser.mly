@@ -27,13 +27,17 @@
   (* first steps *)
   let prologue () =
     printf "Start parsing!\n";
+    (* initialize the Symbol Table *)
     initSymbolTable 256;
+    (* open the global scope *)
     openScope ()
 
   (* last steps *)
   let epilogue () =
-    printf "End parsing!\n"
+    printf "End parsing!\n";
     (* printSymbolTable () *)
+    (* close the global scope *)
+    closeScope()
 
 %}
 
@@ -77,7 +81,6 @@
 
 %start pazprog
 %type <unit> pazprog
-/* %type <sem_quad_t> expr */
 %type <semv_expr> expr
 %type <Types.typ> paztype
 
@@ -101,7 +104,7 @@ pazprog : /* empty */ { }
         | dummy_non_terminal declaration_list T_EOF { epilogue ()  }
 		;
 
-dummy_non_terminal : /* empty, used only for semantic actions */ { prologue () }
+dummy_non_terminal : /*(* empty, used only for semantic actions *)*/ { prologue () }
 
 declaration_list : declaration { }
                  | declaration_list declaration { }
@@ -121,24 +124,24 @@ const_def :	T_const paztype T_id T_assign const_expr T_sem_col {
           | T_const paztype T_id T_assign const_expr const_def2 T_sem_col {
                 (* For every tuple in list, register a new Constant *)
                 let
-                  reg_all a (b,c) = sq_cdef b a c 
+                  cdef a (b,c) = sq_cdef b a c 
                 in
                   begin
                   (* register the first *)
                   sq_cdef $3 $2 $5;
                   (* register the rest *)
-                  List.iter (reg_all $2) $6
+                  List.iter (cdef $2) $6
                   end
                 }
           ;
 
 const_def2 : T_comma T_id T_assign const_expr {
                 (* Return a tuple (name, value) *)
-                ($2, $4)::[]
+                [($2, $4)]
                 }
            | const_def2 T_comma T_id T_assign const_expr {
                 (* Return a list of tuples *)
-                ($3, $5) :: $1
+                $1 @ [($3, $5)]
                 }
            ;
 
@@ -281,7 +284,7 @@ const_expr : expr {
                      error "const expr isn't really a constant!";
                      esv_err
                   | _ ->
-                     $1
+                    $1
                 }
            ;
 
