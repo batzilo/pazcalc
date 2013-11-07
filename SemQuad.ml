@@ -264,8 +264,25 @@ let sq_cdef n t v =
         end
 
 (* Semantic-Quad actions for lvalue *)
-(* TODO : Add params because array lvalue place should be a temporary after generating array,a,i,$1 *)
-let sq_lvalue name =
+let sq_lvalue name idxs =
+  let rec mktemp plc typ indexes =
+    match typ, indexes with
+    | TYPE_array(et, sz),h::t ->
+       begin
+       let newt = newTemporary et in
+       (* TODO make quad array,a,i,$1 --> array,plc,h,newt *)
+       ignore(newt);
+       mktemp plc et t
+       end
+    | _, [] ->
+       let esv = {
+         e_place = plc;
+         e_typ = typ
+       } in esv
+    | _ ->
+       error "lvalue %s error!" name;
+       esv_err
+  in
   try
     (* Lookup the Symbol Table *)
     let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
@@ -273,31 +290,25 @@ let sq_lvalue name =
     (* check if entry is variable or parameter *)
     match e.entry_info with
     | ENTRY_variable inf ->
-        let esv = {
-          e_place = (Q_entry e);
-          e_typ = inf.variable_type
-        } in esv
+        mktemp (Q_entry e) inf.variable_type idxs
     | ENTRY_parameter inf ->
-        let esv = {
-          e_place = (Q_entry e);
-          e_typ = inf.parameter_type
-        } in esv
+        mktemp (Q_entry e) inf.parameter_type idxs
+    | ENTRY_constant inf ->
+        let qv = quad_of_const inf.constant_value in
+        mktemp qv inf.constant_type idxs
     | _ ->
-        error "lvalue %s is not a variable or a parameter in the current scope!" name;
+        error "lvalue %s is not a variable or a parameter or a constant in the current scope!" name;
         esv_err
     end
   with Not_found ->
     let e = lookupEntry (id_make name) LOOKUP_ALL_SCOPES true in
     match e.entry_info with
     | ENTRY_constant inf -> 
-      let qv = quad_of_const inf.constant_value in
-      let esv = {
-        e_place = qv;
-        e_typ = inf.constant_type
-      } in esv
+        let qv = quad_of_const inf.constant_value in
+        mktemp qv inf.constant_type idxs
     | _ ->
-      error "lvalue %s isn't a constant!" name;
-      esv_err
+        error "lvalue %s isn't a constant!" name;
+        esv_err
 
 (* Semantic-Quads action for variable definition *)
 let sq_vardef typ (name, dims, init) =

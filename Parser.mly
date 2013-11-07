@@ -205,7 +205,7 @@ formal : T_id {
               ($2, PASS_BY_REFERENCE, [])
             }
        | T_id T_lbrack T_rbrack {
-              (* TODO when parameter is array, always passed by reference, right ? *)
+              (* when parameter is array, always passed by reference, right ? *)
               ($1, PASS_BY_REFERENCE, [Q_int 0])
             } 
        | T_id T_lbrack T_rbrack formal2 {
@@ -221,23 +221,19 @@ formal : T_id {
 
 /*(* return an Q_int list *)*/
 formal2 : T_lbrack const_expr T_rbrack {
-              (* the first *)
               match ($2.e_place, $2.e_typ) with
               | (Q_int v, TYPE_int) -> [Q_int v]
               | _ ->
                 begin
                 error "parameter array dimension is not an integer constant";
-                (* TODO what if error? *)
                 []
                 end
             }
         | formal2 T_lbrack const_expr T_rbrack {
-              (* the rest *)
               match ($3.e_place, $3.e_typ) with
               | (Q_int v, TYPE_int) -> $1 @ [Q_int v]
               | _ ->
                 error "parameter array dimension is not an integer constant";
-                (* TODO what if error? *)
                 []
             }
         ;
@@ -278,18 +274,21 @@ paztype : T_int { TYPE_int }
         ;
 
 const_expr : expr {
-                  (* TODO make sure it's really a const !!! *)
+                  (* make sure it's really a const *)
                   let cv = const_of_quad $1.e_place in
                   match cv with
-                  | CONST_none -> esv_err
-                  | _ -> $1
+                  | CONST_none ->
+                     error "const expr isn't really a constant!";
+                     esv_err
+                  | _ ->
+                     $1
                 }
            ;
 
 /*
 (* edited 17/10 - added semantic checks *)
 (* edited 30/10 - more semantic-quad actions *)
-(* TODO: separate binop and unop ? *)
+(* should I separate binop and unop ? *)
 */
 expr : T_int_const {
             let esv = {
@@ -354,16 +353,15 @@ expr : T_int_const {
 
 /*(* batzilo 30/10 *)*/
 l_value : T_id {
-            sq_lvalue $1
+            sq_lvalue $1 []
             }
         | T_id l_value2 {
-            (* add params *)
-            sq_lvalue $1
+            sq_lvalue $1 $2
             }
 		;
 
-l_value2 : T_lbrack expr T_rbrack { $2::[] }
-         | l_value2 T_lbrack expr T_rbrack { $3 :: $1 }
+l_value2 : T_lbrack expr T_rbrack { [$2] }
+         | l_value2 T_lbrack expr T_rbrack { $1 @ [$3] }
          ;
 
 
