@@ -11,5 +11,6 @@ type typ = TYPE_none        (* no type (used for errors)          *)
          | TYPE_proc
 
 val sizeOfType : typ -> int
+val equalArrayType : typ -> typ -> bool
 val equalType : typ -> typ -> bool
 val string_of_typ : typ -> string

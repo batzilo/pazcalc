@@ -6,6 +6,7 @@ open Symbol
 
 let show_offsets = true
 
+(* convert type to string *)
 let rec pretty_typ ppf typ =
   match typ with
   | TYPE_none ->
@@ -19,14 +20,17 @@ let rec pretty_typ ppf typ =
   | TYPE_REAL ->
       fprintf ppf "REAL"
   | TYPE_array (et, sz) ->
-      pretty_typ ppf et;
+      begin
       if sz > 0 then
-        fprintf ppf " [%d]" sz
+        fprintf ppf "[%d]" sz
       else
-        fprintf ppf " []"
+        fprintf ppf "[]"
+      end;
+      pretty_typ ppf et
   | TYPE_proc ->
       fprintf ppf "PROC"
 
+(* convert pass mode to string *)
 let pretty_mode ppf mode =
   match mode with
   | PASS_BY_REFERENCE ->
@@ -34,16 +38,25 @@ let pretty_mode ppf mode =
   | _ ->
       ()
 
+(* print the Symbol Table *)
 let printSymbolTable () =
+  (* walk through the scope printing info about every entry, then walk the parent scope *)
   let rec walk ppf scp =
-    if scp.sco_nesting <> 0 then begin
+    (* if currently not in outer scope *)
+    if scp.sco_nesting <> 0 then
+    begin
       fprintf ppf "scope: ";
+      (* a function to print entry info *)
       let entry ppf e =
+        (* print the entry name *)
         fprintf ppf "%a" pretty_id e.entry_id;
+        (* and print more info *)
         match e.entry_info with
         | ENTRY_none ->
+            fprintf ppf ":%a " pretty_typ TYPE_none;
             fprintf ppf "<none>"
         | ENTRY_variable inf ->
+            fprintf ppf ":%a " pretty_typ inf.variable_type;
             if show_offsets then
               fprintf ppf "[%d]" inf.variable_offset
         | ENTRY_constant inf ->
@@ -74,9 +87,11 @@ let printSymbolTable () =
               *)
             in print_const inf.constant_value
         | ENTRY_function inf ->
+            (* if function, print every parameter *)
             let param ppf e =
               match e.entry_info with
                 | ENTRY_parameter inf ->
+                   (* print pass_mode name and type *)
                    fprintf ppf "%a%a : %a"
                       pretty_mode inf.parameter_mode
                       pretty_id e.entry_id
@@ -91,15 +106,19 @@ let printSymbolTable () =
                   fprintf ppf "%a; %a" param p params ps;
               | [] ->
                   () in
+            (* print every parameter *)
             fprintf ppf "(%a) : %a"
               params inf.function_paramlist
               pretty_typ inf.function_result
         | ENTRY_parameter inf ->
+            fprintf ppf ":%a " pretty_typ inf.parameter_type;
             if show_offsets then
               fprintf ppf "[%d]" inf.parameter_offset
         | ENTRY_temporary inf ->
+            fprintf ppf ":%a " pretty_typ inf.temporary_type;
             if show_offsets then
               fprintf ppf "[%d]" inf.temporary_offset in
+      (* a function to print many entries info *)
       let rec entries ppf es =
         match es with
           | [e] ->
@@ -108,19 +127,28 @@ let printSymbolTable () =
               fprintf ppf "%a, %a" entry e entries es;
           | [] ->
               () in
+      (* print the scope entries and then walk the parent scope *)
       match scp.sco_parent with
       | Some scpar ->
           fprintf ppf "%a\n%a"
+            (* print info about all entries in this scope *)
             entries scp.sco_entries
+            (* walk the parent scope *)
             walk scpar
       | None ->
+          (* cannot reach since we've checked sco_nesting != 0 *)
           fprintf ppf "<impossible>\n"
-    end in
+    end 
+    in
+  (* a function to print the whole Symbol Table *)
   let scope ppf scp =
     if scp.sco_nesting == 0 then
       fprintf ppf "no scope\n"
     else
-      walk ppf scp in
+      (* walk the scope, then its parent etc... *)
+      walk ppf scp
+  in
+  (* do the actual shit! walk the currentScope, then its parent etc... *)
   printf "%a----------------------------------------\n"
     scope !currentScope
 

@@ -24,35 +24,6 @@
     printf "\n\t%s\n\n" s;
     flush stdout
 
-  (* Simple Function to get Expression Position *)
-  let get_binop_pos () =
-    (rhs_start_pos 1, rhs_start_pos 3)
-
-  (* print an error message *)
-  let print_binop_type_error op_name t1 t2 exp_t sp ep =
-    error
-    "Type Mismatch: Operator (%s) and operand don't agree\n\
-    \tOperator Domain:\t%s * %s\n\
-    \tOperand:\t\t%s * %s\n\
-    \tIn expression starting at line %d position %d, ending\
-    at line %d position %d."
-    (op_name)
-    (string_of_typ exp_t) (string_of_typ exp_t)
-    (string_of_typ t1) (string_of_typ t2)
-    (sp.pos_lnum) (sp.pos_cnum - sp.pos_bol)
-    (ep.pos_lnum) (ep.pos_cnum - ep.pos_bol)
-
-  (* print an error message *)
-  let print_unary_type_error op_name t pos =
-    error 
-    "Type Mismatch: Unary Operator (%s) and operand don't agree\n\
-    \tOperator Domain:\t int\
-    \tOperand Domain: \t %s\
-    \tIn expression at line %d, position %d."
-    (op_name)
-    (string_of_typ t)
-    (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
-
   (* first steps *)
   let prologue () =
     printf "Start parsing!\n";
@@ -111,17 +82,13 @@
 %type <Types.typ> paztype
 
 
-/*(* Grammar follows *)*/
-
 /*
 (*
+ * Grammar follows
+ *
  * Because we're generating an LALR(1) parser,
  * left-recursive grammar rules are good!
- *)
- */
-
-/*
-(*
+ *
  * TODO: Do not put any identation for semantic brackets before we know it runs smoothly
  * TODO: Location Tracking
  *
@@ -189,6 +156,7 @@ var_def2 : T_comma var_init { $2::[] }
          | var_def2 T_comma var_init { $1 @ $3::[] }
          ;
 
+/*(* triplet (name, dims, init) *)*/
 var_init : simple_var_init { $1 }
          | matrix_var_init { $1 }
          ;
@@ -197,12 +165,12 @@ simple_var_init : T_id { ($1, [], esv_err) }
                 | T_id T_assign expr { ($1, [], $3) }
                 ;
 
-matrix_var_init : T_id T_lbrack const_expr T_rbrack { ($1, $3::[], esv_err) }
-                | T_id T_lbrack const_expr T_rbrack matrix_var_init2 { ($1, $3::$5, esv_err) }
+matrix_var_init : T_id T_lbrack const_expr T_rbrack { ($1, [$3.e_place], esv_err) }
+                | T_id T_lbrack const_expr T_rbrack matrix_var_init2 { ($1, $3.e_place::$5, esv_err) }
                 ;
 
-matrix_var_init2 : T_lbrack const_expr T_rbrack { $2::[] }
-                 | matrix_var_init2 T_lbrack const_expr T_rbrack { $1 @ $3::[] }
+matrix_var_init2 : T_lbrack const_expr T_rbrack { [$2.e_place] }
+                 | matrix_var_init2 T_lbrack const_expr T_rbrack { $1 @ [$3.e_place] }
                  ;
 
 /*(* batzilo 5/11 *)*/
@@ -275,14 +243,32 @@ formal2 : T_lbrack const_expr T_rbrack {
         ;
 
 /*(* batzilo 6/11 *)*/
-routine : routine_header T_sem_col { printSymbolTable (); closeScope () }
-        | routine_header block { printSymbolTable (); closeScope () }
+routine : routine_header T_sem_col {
+              (* we've seen the header, and no block exists
+               * so set function to be forwarded *)
+              forwardFunction $1;
+              printf "This is a forwarded function\n\n";
+              (* printSymbolTable (); *)
+              closeScope ()
+            }
+        | routine_header block {
+              (* we've seen the header and block *)
+              printSymbolTable ();
+              closeScope ()
+            }
         ;
 
-program_header : T_PROGRAM T_id T_lparen T_rparen { ignore (sq_rout_head $2 TYPE_proc []); openScope () }
+program_header : T_PROGRAM T_id T_lparen T_rparen {
+                      (* main header *)
+                      sq_rout_head $2 TYPE_proc []
+                    }
                ;
 
-program : program_header block { printSymbolTable (); closeScope () }
+program : program_header block {
+              (* we've seen the header and the block *)
+              printSymbolTable ();
+              closeScope ()
+            }
         ;
 
 paztype : T_int { TYPE_int }
@@ -291,7 +277,13 @@ paztype : T_int { TYPE_int }
         | T_REAL { TYPE_REAL }
         ;
 
-const_expr : expr { $1 }
+const_expr : expr {
+                  (* TODO make sure it's really a const !!! *)
+                  let cv = const_of_quad $1.e_place in
+                  match cv with
+                  | CONST_none -> esv_err
+                  | _ -> $1
+                }
            ;
 
 /*
@@ -337,7 +329,7 @@ expr : T_int_const {
         }
      | T_lparen expr T_rparen       { $2 }
      | l_value                      { $1 }
-     | call                         { esv_err (* TODO: complete when done with functions *) }
+     | call                         { $1 }
      | T_plus expr %prec UNARY      { sq_unop "+" $2 }
      | T_minus expr %prec UNARY     { sq_unop "-" $2 }
      | T_lg_not expr %prec UNARY    { sq_unop "!" $2 }
@@ -375,12 +367,19 @@ l_value2 : T_lbrack expr T_rbrack { $2::[] }
          ;
 
 
-call : T_id T_lparen T_rparen { }
-     | T_id T_lparen call2 T_rparen { }
+/*(* batzilo 6/11 *)*/
+call : T_id T_lparen T_rparen {
+          (* call without parameters *)
+          sq_rout_call $1 []
+        }
+     | T_id T_lparen call2 T_rparen {
+          (* call with parameters  *)
+          sq_rout_call $1 $3
+        }
      ;
 
-call2 : expr { }
-      | call2 T_comma expr { }
+call2 : expr { [$1] }
+      | call2 T_comma expr { $1 @ [$3] }
       ;
 
 block : T_lbrace T_rbrace { }
@@ -400,6 +399,7 @@ local_def :	const_def { }
           ;
 
 stmt : T_sem_col { }
+     | block { }
      | l_value assign expr T_sem_col { }
      | l_value T_plus_plus T_sem_col { }
      | l_value T_minus_minus T_sem_col { }
@@ -420,8 +420,8 @@ stmt : T_sem_col { }
      | error T_sem_col { }
      ;
 
-stmt2 : format { }
-      | stmt2 T_comma format { }
+stmt2 : frmt { }
+      | stmt2 T_comma frmt { }
       ;
 
 assign : T_assign { }
@@ -446,7 +446,7 @@ write : T_WRITE { }
       | T_WRITESPLN { }
       ;
 
-format : expr { }
+frmt : expr { }
        | T_FORM T_lparen expr T_comma expr T_rparen	{ }
        | T_FORM T_lparen expr T_comma expr T_comma expr T_rparen { }
        ;
