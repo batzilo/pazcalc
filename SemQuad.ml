@@ -20,12 +20,23 @@ type quad_op_t = Q_none                           (* Error Handling *)
                | Q_funct_res                      (* Function result: $$ *)
                | Q_deref                          (* Dereference: [x] *)
                | Q_addr                           (* Address: {x} *)
-               | Q_label                          (* label *)
+               | Q_label of int                   (* label *)
                | Q_pass_mode of quad_pass_mode    (* Pass mode: V, R, RET *)
                | Q_dash                           (* Dash : - *)
                | Q_backpatch                      (* Backpatch : * *)
 
 and quad_pass_mode = V | R | RET
+
+let string_of_quad_op = function
+  | Q_none -> ""
+  | Q_int i -> string_of_int i
+  | Q_real r -> string_of_float r
+  | Q_bool b -> string_of_bool b
+  | Q_char c -> Char.escaped c
+  | Q_string s -> s
+  | Q_entry e -> id_name e.entry_id
+  | Q_label l -> string_of_int l
+  | _ -> "<dummy!>"
 
 (* Quadruples datatype *)
 type quad_t = Q_empty
@@ -42,6 +53,33 @@ type quad_t = Q_empty
             | Q_call of quad_op_t
             | Q_par of quad_op_t * quad_op_t
             | Q_ret
+
+let string_of_quad = function
+  | Q_empty -> ""
+  | Q_unit u -> "unit, " ^ string_of_quad_op u ^ " ,- ,-"
+  | Q_endu u -> "endu, " ^ string_of_quad_op u ^ " ,- ,-"
+  | Q_op (op,x,y,z) -> op ^ ", " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op y ^ ", " ^ string_of_quad_op z
+  | Q_assign (x,z) -> ":=, " ^ string_of_quad_op x ^ " ,- ," ^ string_of_quad_op z
+  | Q_array (x,y,z) -> "array, " ^ ", " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op y ^ ", " ^ string_of_quad_op z
+  | Q_relop (op,x,y,z) -> op ^ ", " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op y ^ ", " ^ string_of_quad_op z
+  | Q_ifb (x,z) -> "ifb, " ^ string_of_quad_op x ^ " ,- ," ^ string_of_quad_op z
+  | Q_jump z -> "jump, -, -, " ^ string_of_quad_op z
+  | Q_label l -> "unit, " ^ string_of_quad_op l ^ " ,- ,-"
+  | Q_jl l -> "jump, -, -, " ^ string_of_quad_op l
+  | Q_call u -> "call, -, -, " ^ string_of_quad_op u
+  | Q_par (x,m) -> "par, " ^ string_of_quad_op x ^ " ," ^ string_of_quad_op m ^ ", -"
+  | Q_ret -> "ret, -, -, -"
+
+
+let icode = ref []
+
+let printIntermediateCode () =
+  let pr quad =
+    printf "%s\n" (string_of_quad quad)
+  in
+    printf "\n\nIntermediate code:\n";
+    List.iter pr !icode;
+    printf "\n"
 
 (* cast quad operand to constant value *)
 let const_of_quad = function
@@ -521,6 +559,8 @@ let sq_rout_head name typ pars =
     in
       begin
       (* List.rev $4; *)
+      let quad = Q_unit Q_entry e
+      in !icode <- quad :: !icode;
       List.iter paramadd pars;
       endFunctionHeader e typ;
       e

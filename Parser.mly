@@ -37,7 +37,8 @@
     printf "End parsing!\n";
     (* printSymbolTable () *)
     (* close the global scope *)
-    closeScope()
+    closeScope();
+    printIntermediateCode ()
 
 %}
 
@@ -81,6 +82,7 @@
 
 %start pazprog
 %type <unit> pazprog
+/*%type <Semquad.quad_t list> pazprog */
 %type <semv_expr> expr
 %type <Types.typ> paztype
 
