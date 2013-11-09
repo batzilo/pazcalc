@@ -22,10 +22,26 @@ type quad_op_t = Q_none                           (* Error Handling *)
                | Q_addr                           (* Address: {x} *)
                | Q_label                          (* label *)
                | Q_pass_mode of quad_pass_mode    (* Pass mode: V, R, RET *)
-               | Q_empty                          (* Empty : - *)
+               | Q_dash                           (* Dash : - *)
                | Q_backpatch                      (* Backpatch : * *)
 
 and quad_pass_mode = V | R | RET
+
+(* Quadruples datatype *)
+type quad_t = Q_empty
+            | Q_unit of quad_op_t
+            | Q_endu of quad_op_t
+            | Q_op of string * quad_op_t * quad_op_t * quad_op_t
+            | Q_assign of quad_op_t * quad_op_t
+            | Q_array of quad_op_t * quad_op_t * quad_op_t
+            | Q_relop of string * quad_op_t * quad_op_t * quad_op_t
+            | Q_ifb of quad_op_t * quad_op_t
+            | Q_jump of quad_op_t
+            | Q_label of quad_op_t
+            | Q_jl of quad_op_t
+            | Q_call of quad_op_t
+            | Q_par of quad_op_t * quad_op_t
+            | Q_ret
 
 (* cast quad operand to constant value *)
 let const_of_quad = function
