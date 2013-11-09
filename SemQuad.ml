@@ -382,10 +382,13 @@ let sq_binop a op b =
          (* result isn't a const *)
          (* make new temporary for result *)
          let e = newTemporary typ in
+         let q = Q_op (op, a.e_place, b.e_place, Q_entry e) in
          let esv = {
            e_place = (Q_entry e);
            e_typ = typ
-         } in esv
+         } in
+         !icode <- q :: !icode;
+         esv
       | _ ->
          (* result is a const *)
          let plc = const_binop (op, typ, c1, c2) in
@@ -533,13 +536,16 @@ let sq_vardef typ (name, dims, init) =
         ignore( newVariable (id_make name) (ft dims) true )
         end
       | _ ->
+        (* initialization is present *)
         (* check types *)
         if not (equalType typ init.e_typ) then
           (* var def type mismatch *)
-          error "variable definition type mismatch"
+          error "variable definition and initialization type mismatch"
         else
           (* if match, register the new Variable *)
-          ignore( newVariable (id_make name) typ true )
+          let n = newVariable (id_make name) typ true in
+          let q = Q_assign ( (Q_entry n), init.e_place ) in
+          !icode <- q :: !icode
 
 (* Semantic-Quads action for routine header *)
 let sq_rout_head name typ pars =

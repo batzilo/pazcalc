@@ -49,25 +49,26 @@ OCAMLOPT=ocamlopt $(OCAMLOPT_FLAGS)
 OCAMLDEP=ocamldep
 INCLUDES=
 
+# Make the Compiler
+all: $(EXEFILE)
+
 # Make Symbol Table Test
 default: symbtest$(EXE)
 
 symbtest$(EXE): $(filter-out Lexer.cmo Parser.cmo,$(CMOFILES))
 	$(OCAMLC) -o $@ $^
 
-all: $(EXEFILE)
-
 extend.cmo: extend.ml
 	$(OCAMLC) -pp "camlp5o pa_extend.cmo q_MLast.cmo" -I +camlp5 -c $<
+
+%.cmi: %.mli extend.cmo
+	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
 
 %.cmo: %.ml %.mli extend.cmo
 	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
 
 %.cmx: %.ml extend.cmo
 	$(OCAMLOPT) $(CAMLP5_FLAGS) -c $<
-
-%.cmi: %.mli extend.cmo
-	$(OCAMLC) $(CAMLP5_FLAGS) -c $<
 
 %.cmo %.cmi: %.ml extend.cmo
 	$(OCAMLC) $(CAMLP5_FLAGS) -c $<

@@ -252,12 +252,17 @@ routine : routine_header T_sem_col {
               forwardFunction $1;
               printf "This is a forwarded function\n\n";
               (* printSymbolTable (); *)
-              closeScope ()
+              closeScope ();
+              match !icode with
+              | h::t -> !icode <- t
+              | _ -> error "can't reach!"; !icode <- []
             }
         | routine_header block {
               (* we've seen the header and block *)
               printSymbolTable ();
-              closeScope ()
+              closeScope ();
+              let q = Q_endu (Q_entry $1)
+              in !icode <- q :: !icode
             }
         ;
 
@@ -270,7 +275,9 @@ program_header : T_PROGRAM T_id T_lparen T_rparen {
 program : program_header block {
               (* we've seen the header and the block *)
               printSymbolTable ();
-              closeScope ()
+              closeScope ();
+              let q = Q_endu (Q_entry $1)
+              in !icode <- q :: !icode
             }
         ;
 
