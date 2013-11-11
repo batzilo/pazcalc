@@ -1,0 +1,15 @@
+// sdfasdf
+
+FUNC int foo ( int a[][5] );
+
+PROGRAM bar ( ) {
+int x[5][5];
+int y = x[1][1];
+foo(x);
+return;
+}
+
+FUNC int foo ( int a[][5] ) {
+int y = a[7][8];
+return y;
+}

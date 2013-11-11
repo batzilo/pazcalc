@@ -18,7 +18,7 @@ type quad_op_t = Q_none                           (* Error Handling *)
                | Q_string of string               (* Constant String Literal *)
                | Q_entry of Symbol.entry          (* Symbol Table entry i.e. name, temp *)
                | Q_funct_res                      (* Function result: $$ *)
-               | Q_deref                          (* Dereference: [x] *)
+               | Q_deref of Symbol.entry          (* Dereference: [x] *)
                | Q_addr                           (* Address: {x} *)
                | Q_label of int                   (* label *)
                | Q_pass_mode of quad_pass_mode    (* Pass mode: V, R, RET *)
@@ -26,6 +26,10 @@ type quad_op_t = Q_none                           (* Error Handling *)
                | Q_backpatch                      (* Backpatch : * *)
 
 and quad_pass_mode = V | R | RET
+
+let quad_t_of_pass_mode = function
+  | PASS_BY_VALUE -> V
+  | PASS_BY_REFERENCE -> R
 
 let string_of_quad_op = function
   | Q_none -> ""
@@ -35,8 +39,12 @@ let string_of_quad_op = function
   | Q_char c -> Char.escaped c
   | Q_string s -> s
   | Q_entry e -> id_name e.entry_id
+  | Q_deref e -> "[" ^ id_name e.entry_id ^ "]"
   | Q_label l -> string_of_int l
-  | _ -> "<dummy!>"
+  | Q_pass_mode V -> "V"
+  | Q_pass_mode R -> "R"
+  | Q_pass_mode RET -> "RET"
+  | _ -> "<stub!>"
 
 (* Quadruples datatype *)
 type quad_t = Q_empty
@@ -56,18 +64,18 @@ type quad_t = Q_empty
 
 let string_of_quad = function
   | Q_empty -> ""
-  | Q_unit u -> "unit, " ^ string_of_quad_op u ^ " ,- ,-"
-  | Q_endu u -> "endu, " ^ string_of_quad_op u ^ " ,- ,-"
+  | Q_unit u -> "unit, " ^ string_of_quad_op u ^ ", -, -"
+  | Q_endu u -> "endu, " ^ string_of_quad_op u ^ ", -, -"
   | Q_op (op,x,y,z) -> op ^ ", " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op y ^ ", " ^ string_of_quad_op z
-  | Q_assign (x,z) -> ":=, " ^ string_of_quad_op x ^ " ,- ," ^ string_of_quad_op z
-  | Q_array (x,y,z) -> "array, " ^ ", " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op y ^ ", " ^ string_of_quad_op z
+  | Q_assign (x,z) -> ":=, " ^ string_of_quad_op x ^ ", -, " ^ string_of_quad_op z
+  | Q_array (x,y,z) -> "array, " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op y ^ ", " ^ string_of_quad_op z
   | Q_relop (op,x,y,z) -> op ^ ", " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op y ^ ", " ^ string_of_quad_op z
   | Q_ifb (x,z) -> "ifb, " ^ string_of_quad_op x ^ " ,- ," ^ string_of_quad_op z
   | Q_jump z -> "jump, -, -, " ^ string_of_quad_op z
   | Q_label l -> "unit, " ^ string_of_quad_op l ^ " ,- ,-"
   | Q_jl l -> "jump, -, -, " ^ string_of_quad_op l
   | Q_call u -> "call, -, -, " ^ string_of_quad_op u
-  | Q_par (x,m) -> "par, " ^ string_of_quad_op x ^ " ," ^ string_of_quad_op m ^ ", -"
+  | Q_par (x,m) -> "par, " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op m ^ ", -"
   | Q_ret -> "ret, -, -, -"
 
 
@@ -80,7 +88,7 @@ let addNewQuad quad =
 let rmLastQuad () =
   match !icode with
   | h::t ->
-    ignore (!icode = t);
+    !icode <- t;
     ()
   | _ ->
     error "intermediate code is empty!";
@@ -466,14 +474,15 @@ let sq_cdef n t v =
 
 (* Semantic-Quad actions for lvalue *)
 let sq_lvalue name idxs =
+  (* a function that generates quads for array indexing *)
   let rec mktemp plc typ indexes =
     match typ, indexes with
     | TYPE_array(et, sz),h::t ->
        begin
        let newt = newTemporary et in
-       (* TODO make quad array,a,i,$1 --> array,plc,h,newt *)
-       ignore(newt);
-       mktemp plc et t
+       let q = Q_array (plc, h.e_place, Q_entry newt) in
+       addNewQuad q;
+       mktemp (Q_deref newt) et t
        end
     | _, [] ->
        let esv = {
@@ -485,7 +494,7 @@ let sq_lvalue name idxs =
        esv_err
   in
   try
-    (* Lookup the Symbol Table *)
+    (* Lookup the Symbol Table, do not handle the not_found case *)
     let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
     begin
     (* check if entry is variable or parameter *)
@@ -595,9 +604,11 @@ let sq_rout_call name pars =
     (* e should be function entry *)
     | ENTRY_function inf ->
         begin
+        (* should be PARDEF_COMPLETE *)
         match inf.function_pstatus with
         | PARDEF_COMPLETE ->
            begin
+           (* a function that matches array actual parameters with formal parameters *)
            let dimmatch formal actual =
            match formal, actual with
            | TYPE_array(et1,sz1), TYPE_array(et2, sz2) -> if (sz1 = 0 || sz1 = sz2) then equalArrayType et1 et2 else false
@@ -615,7 +626,12 @@ let sq_rout_call name pars =
                    false
                    end
                  else
+                   begin
+                   (* generate quads *)
+                   let q = Q_par (Q_entry fh, Q_pass_mode quad_t_of_pass_mode inf.parameter_mode) in
+                   addNewQuad q;
                    parmatch (ft,at)
+                   end
               | _ ->
                  error "what the hell? this ain't no parameter!";
                  false
