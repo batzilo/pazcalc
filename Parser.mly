@@ -253,16 +253,14 @@ routine : routine_header T_sem_col {
               printf "This is a forwarded function\n\n";
               (* printSymbolTable (); *)
               closeScope ();
-              match !icode with
-              | h::t -> !icode <- t
-              | _ -> error "can't reach!"; !icode <- []
+              rmLastQuad ()
             }
         | routine_header block {
               (* we've seen the header and block *)
               printSymbolTable ();
               closeScope ();
               let q = Q_endu (Q_entry $1)
-              in !icode <- q :: !icode
+              in addNewQuad q
             }
         ;
 
@@ -277,7 +275,7 @@ program : program_header block {
               printSymbolTable ();
               closeScope ();
               let q = Q_endu (Q_entry $1)
-              in !icode <- q :: !icode
+              in addNewQuad q
             }
         ;
 
@@ -415,7 +413,15 @@ local_def :	const_def { }
 
 stmt : T_sem_col { }
      | block { }
-     | l_value assign expr T_sem_col { }
+     | l_value assign expr T_sem_col {
+          (* handle assignment *)
+          if $1.e_typ = $3.e_typ && $2 = "=" then
+            let q = Q_assign ($3.e_place, $1.e_place)
+            in addNewQuad q;
+            ()
+          else
+            ()
+        }
      | l_value T_plus_plus T_sem_col { }
      | l_value T_minus_minus T_sem_col { }
      | call T_sem_col { }
@@ -439,12 +445,12 @@ stmt2 : frmt { }
       | stmt2 T_comma frmt { }
       ;
 
-assign : T_assign { }
-       | T_plus_assign { }
-       | T_minus_assign { }
-       | T_mul_assign { }
-       | T_div_assign { }
-       | T_mod_assign { }
+assign : T_assign           { "=" }
+       | T_plus_assign      { "+=" }
+       | T_minus_assign     { "-=" }
+       | T_mul_assign       { "*=" }
+       | T_div_assign       { "/=" }
+       | T_mod_assign       { "%=" }
        ;
 
 range : expr T_TO expr { }

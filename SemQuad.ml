@@ -73,6 +73,19 @@ let string_of_quad = function
 
 let icode = ref []
 
+let addNewQuad quad =
+  !icode <- quad :: !icode;
+  ()
+
+let rmLastQuad () =
+  match !icode with
+  | h::t ->
+    ignore (!icode = t);
+    ()
+  | _ ->
+    error "intermediate code is empty!";
+    raise Exit
+
 let printIntermediateCode () =
   let pr quad =
     printf "%s\n" (string_of_quad quad)
@@ -387,7 +400,7 @@ let sq_binop a op b =
            e_place = (Q_entry e);
            e_typ = typ
          } in
-         !icode <- q :: !icode;
+         addNewQuad q;
          esv
       | _ ->
          (* result is a const *)
@@ -545,7 +558,7 @@ let sq_vardef typ (name, dims, init) =
           (* if match, register the new Variable *)
           let n = newVariable (id_make name) typ true in
           let q = Q_assign ( (Q_entry n), init.e_place ) in
-          !icode <- q :: !icode
+          addNewQuad q
 
 (* Semantic-Quads action for routine header *)
 let sq_rout_head name typ pars =
@@ -565,8 +578,8 @@ let sq_rout_head name typ pars =
     in
       begin
       (* List.rev $4; *)
-      let quad = Q_unit Q_entry e
-      in !icode <- quad :: !icode;
+      let q = Q_unit Q_entry e
+      in addNewQuad q;
       List.iter paramadd pars;
       endFunctionHeader e typ;
       e
