@@ -9,7 +9,7 @@ open Identifier
 open Symbol
 open Types
 
-(* Quad operand datatype *)
+(* Quadruples operands datatype *)
 type quad_op_t = Q_none                           (* Error Handling *)
                | Q_int of int                     (* Constant Integer *)
                | Q_real of float                  (* Constant Real *)
@@ -27,10 +27,12 @@ type quad_op_t = Q_none                           (* Error Handling *)
 
 and quad_pass_mode = V | R | RET
 
-let quad_t_of_pass_mode = function
+(* convert Symbol.pass_mode to SemQuad.quad_pass_mode *)
+let quad_of_passmode = function
   | PASS_BY_VALUE -> V
   | PASS_BY_REFERENCE -> R
 
+(* convert SemQuad.quad_op_t to string *)
 let string_of_quad_op = function
   | Q_none -> ""
   | Q_int i -> string_of_int i
@@ -45,6 +47,7 @@ let string_of_quad_op = function
   | Q_pass_mode V -> "V"
   | Q_pass_mode R -> "R"
   | Q_pass_mode RET -> "RET"
+  | Q_dash -> "--"
   | _ -> "<stub!>"
 
 (* Quadruples datatype *)
@@ -63,29 +66,38 @@ type quad_t = Q_empty
             | Q_par of quad_op_t * quad_op_t
             | Q_ret
 
+(* concatenate four strings seperated by commas *)
+let concat4 a b c d =
+  let x = ", " in
+  let s y = string_of_quad_op y in
+  a ^ x ^ s b ^ x ^ s c ^ x ^ s d
+
+(* convert SemQuad.quad_t to string *)
 let string_of_quad = function
-  | Q_empty -> ""
-  | Q_unit u -> "unit, " ^ string_of_quad_op u ^ ", -, -"
-  | Q_endu u -> "endu, " ^ string_of_quad_op u ^ ", -, -"
-  | Q_op (op,x,y,z) -> op ^ ", " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op y ^ ", " ^ string_of_quad_op z
-  | Q_assign (x,z) -> ":=, " ^ string_of_quad_op x ^ ", -, " ^ string_of_quad_op z
-  | Q_array (x,y,z) -> "array, " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op y ^ ", " ^ string_of_quad_op z
-  | Q_relop (op,x,y,z) -> op ^ ", " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op y ^ ", " ^ string_of_quad_op z
-  | Q_ifb (x,z) -> "ifb, " ^ string_of_quad_op x ^ " ,- ," ^ string_of_quad_op z
-  | Q_jump z -> "jump, -, -, " ^ string_of_quad_op z
-  | Q_label l -> "unit, " ^ string_of_quad_op l ^ " ,- ,-"
-  | Q_jl l -> "jump, -, -, " ^ string_of_quad_op l
-  | Q_call u -> "call, -, -, " ^ string_of_quad_op u
-  | Q_par (x,m) -> "par, " ^ string_of_quad_op x ^ ", " ^ string_of_quad_op m ^ ", -"
-  | Q_ret -> "ret, -, -, -"
+  | Q_empty ->              ""
+  | Q_unit u ->             concat4 "unit"  u       Q_dash  Q_dash
+  | Q_endu u ->             concat4 "endu"  u       Q_dash  Q_dash
+  | Q_op (op,x,y,z) ->      concat4 op      x       y       z
+  | Q_assign (x,z) ->       concat4 ":="    x       Q_dash  z
+  | Q_array (x,y,z) ->      concat4 "array" x       y       z
+  | Q_relop (op,x,y,z) ->   concat4 op      x       y       z
+  | Q_ifb (x,z) ->          concat4 "ifb"   x       Q_dash  z
+  | Q_jump z ->             concat4 "jump"  Q_dash  Q_dash  z
+  | Q_label l ->            concat4 "label" l       Q_dash  Q_dash
+  | Q_jl l ->               concat4 "jumpl" Q_dash  Q_dash  l
+  | Q_call u ->             concat4 "call"  Q_dash  Q_dash  u
+  | Q_par (x,m) ->          concat4 "par"   x       m       Q_dash
+  | Q_ret ->                concat4 "ret"   Q_dash  Q_dash  Q_dash
 
-
+(* intermediate code : list of quads *)
 let icode = ref []
 
+(* a function to add a new quad to intermediate code *)
 let addNewQuad quad =
   !icode <- quad :: !icode;
   ()
 
+(* remove last quad from intermediate code *)
 let rmLastQuad () =
   match !icode with
   | h::t ->
@@ -95,6 +107,7 @@ let rmLastQuad () =
     error "intermediate code is empty!";
     raise Exit
 
+(* print every quad in intermediate code quad list *)
 let printIntermediateCode () =
   let pr quad =
     printf "%s\n" (string_of_quad quad)
@@ -103,7 +116,8 @@ let printIntermediateCode () =
     List.iter pr !icode;
     printf "\n"
 
-(* cast quad operand to constant value *)
+
+(* convert SemQuad.quad_op_t to Symbol.const_val *)
 let const_of_quad = function
     | Q_int q -> CONST_int q
     | Q_real q -> CONST_REAL q
@@ -111,13 +125,14 @@ let const_of_quad = function
     | Q_char q -> CONST_char q
     | _ -> CONST_none
 
-(* cast constant value to quad operand *)
+(* convert Symbol.const_val to SemQuad.quad_op_t *)
 let quad_of_const = function
     | CONST_int c -> Q_int c
     | CONST_REAL c -> Q_real c
     | CONST_bool c -> Q_bool c 
     | CONST_char c -> Q_char c
     | _ -> Q_none
+
 
 (* Simple Function to get Expression Position *)
 let get_binop_pos () =
@@ -150,34 +165,39 @@ let print_unary_type_error op_name t pos =
 
 (* Semantic Value of expr *)
 type semv_expr = {
-    e_place : quad_op_t;
-    e_typ : Types.typ
-  }
+  e_place : quad_op_t;
+  e_typ : Types.typ     (* Maybe not needed, since place can tell *)
+}
 
 (* Used for errors *)
 let esv_err = {
-    e_place = Q_none;
-    e_typ = TYPE_none; (* Maybe not needed, since place can tell *)
-  }
+  e_place = Q_none;
+  e_typ = TYPE_none;
+}
 
-  (*
-  type sem_quad_t = {
-    place : quad_op_t;
-    typ : Types.typ;
-    mutable q_next : int list;
-    mutable q_true : int list;
-    mutable q_false : int list
-    }
-  *)
+(* DEPRECATED *)
+(*
+type sem_quad_t = {
+  place : quad_op_t;
+  typ : Types.typ;
+  mutable q_next : int list;
+  mutable q_true : int list;
+  mutable q_false : int list
+}
+*)
 
+(* DEPRECATED *)
 (* Semantic Value of parameters *)
+(*
 type semv_par = {
-    p_name : Identifier.id;
-    p_typ : Types.typ;
-    p_mode : Symbol.pass_mode
-  }
+  p_name : Identifier.id;
+  p_typ : Types.typ;
+  p_mode : Symbol.pass_mode
+}
+*)
 
-(* semantically check binary expression operands and find return type *)
+(* Semantically check binary expression operand types
+ * and find return type according to compatibility *)
 let what_bin_type a op b =
     match op with
     | "+"
@@ -244,7 +264,7 @@ let what_bin_type a op b =
     | _ ->
       TYPE_none
 
-(* semantically check unary expression operand and find return type *)
+(* Semantically check unary expression operand type and find return type *)
 let what_un_type op a =
     match op with
     | "+"
@@ -265,7 +285,7 @@ let what_un_type op a =
     | _ ->
       TYPE_none
 
-(* apply the binary operator to constant operands *)
+(* Apply a binary operator to constant operands *)
 let const_binop = function
     (* int add *)
     | "+", TYPE_int, CONST_int x, CONST_int y -> Q_int ( x + y )
@@ -562,6 +582,7 @@ let sq_vardef typ (name, dims, init) =
       | _ ->
         (* initialization is present *)
         (* check types *)
+        (* TODO check for type compatibility *)
         if not (equalType typ init.e_typ) then
           (* var def type mismatch *)
           error "variable definition and initialization type mismatch"
@@ -630,7 +651,7 @@ let sq_rout_call name pars =
                  else
                    begin
                    (* generate quads *)
-                   let q = Q_par (ah.e_place, Q_pass_mode quad_t_of_pass_mode inf.parameter_mode) in
+                   let q = Q_par (ah.e_place, Q_pass_mode quad_of_passmode inf.parameter_mode) in
                    addNewQuad q;
                    parmatch (ft,at)
                    end

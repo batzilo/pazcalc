@@ -415,10 +415,20 @@ stmt : T_sem_col { }
      | block { }
      | l_value assign expr T_sem_col {
           (* handle assignment *)
-          if $1.e_typ = $3.e_typ && $2 = "=" then
-            let q = Q_assign ($3.e_place, $1.e_place)
-            in addNewQuad q;
-            ()
+          (* TODO check for type compatibility *)
+          if $1.e_typ = $3.e_typ then
+            match $2 with
+            | "=" ->
+              begin
+              let q = Q_assign ($3.e_place, $1.e_place) in
+              addNewQuad q;
+              end
+            | op ->
+              begin
+              let e = sq_binop $1 op $3 in
+              let q = Q_assign (e.e_place, $1.e_place) in
+              addNewQuad q;
+              end
           else
             ()
         }
@@ -456,11 +466,11 @@ stmt2 : frmt { }
       ;
 
 assign : T_assign           { "=" }
-       | T_plus_assign      { "+=" }
-       | T_minus_assign     { "-=" }
-       | T_mul_assign       { "*=" }
-       | T_div_assign       { "/=" }
-       | T_mod_assign       { "%=" }
+       | T_plus_assign      { "+" }
+       | T_minus_assign     { "-" }
+       | T_mul_assign       { "*" }
+       | T_div_assign       { "/" }
+       | T_mod_assign       { "%" }
        ;
 
 range : expr T_TO expr { }
