@@ -628,7 +628,7 @@ let sq_rout_call name pars =
                  else
                    begin
                    (* generate quads *)
-                   let q = Q_par (Q_entry fh, Q_pass_mode quad_t_of_pass_mode inf.parameter_mode) in
+                   let q = Q_par (ah.e_place, Q_pass_mode quad_t_of_pass_mode inf.parameter_mode) in
                    addNewQuad q;
                    parmatch (ft,at)
                    end
@@ -648,14 +648,21 @@ let sq_rout_call name pars =
              begin
              match inf.function_result with
              | TYPE_proc ->
-                let esv = {
-                   e_place = Q_none;
-                   e_typ = TYPE_proc
-                } in esv
+               (* generate call quad *)
+               let q = Q_call Q_entry e in
+               addNewQuad q;
+               let esv = {
+                  e_place = Q_none;
+                  e_typ = TYPE_proc
+               } in esv
              | _ ->
-                begin
                 let t = inf.function_result in
                 let etemp = newTemporary t in
+                let q = Q_par (Q_entry etemp, Q_pass_mode RET) in
+                begin
+                addNewQuad q;
+                let q = Q_call Q_entry e in
+                addNewQuad q;
                 let esv = {
                   e_place = (Q_entry etemp);
                   e_typ = t
