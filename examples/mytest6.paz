@@ -2,14 +2,23 @@
 
 FUNC int foo ( int a[][5] );
 
-PROGRAM bar ( ) {
-int x[5][5];
-int y = x[1][1];
-foo(x);
-return;
+FUNC int bar ( int a, int b );
+
+PROGRAM prog ( ) {
+    int x[5][5];
+    int y;
+    y = foo(x);
+    int z = x[1][1];
+    z = bar(y, z);
+    return;
 }
 
 FUNC int foo ( int a[][5] ) {
-int y = a[7][8];
-return y;
+    int y = a[7][8];
+    return y;
+}
+
+FUNC int bar ( int a, int b ) {
+    int c = a + b;
+    return c;
 }

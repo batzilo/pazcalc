@@ -39,6 +39,7 @@ let string_of_quad_op = function
   | Q_char c -> Char.escaped c
   | Q_string s -> s
   | Q_entry e -> id_name e.entry_id
+  | Q_funct_res -> "$$"
   | Q_deref e -> "[" ^ id_name e.entry_id ^ "]"
   | Q_label l -> string_of_int l
   | Q_pass_mode V -> "V"
@@ -480,6 +481,7 @@ let sq_lvalue name idxs =
     | TYPE_array(et, sz),h::t ->
        begin
        let newt = newTemporary et in
+       (* generate quad *)
        let q = Q_array (plc, h.e_place, Q_entry newt) in
        addNewQuad q;
        mktemp (Q_deref newt) et t
@@ -566,7 +568,7 @@ let sq_vardef typ (name, dims, init) =
         else
           (* if match, register the new Variable *)
           let n = newVariable (id_make name) typ true in
-          let q = Q_assign ( (Q_entry n), init.e_place ) in
+          let q = Q_assign ( init.e_place, (Q_entry n)) in
           addNewQuad q
 
 (* Semantic-Quads action for routine header *)

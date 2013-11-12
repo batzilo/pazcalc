@@ -433,8 +433,18 @@ stmt : T_sem_col { }
      /* switch ? */
      | T_break T_sem_col { }
      | T_continue T_sem_col { }
-     | T_return T_sem_col { }
-     | T_return expr T_sem_col { }
+     | T_return T_sem_col {
+          (* handle return *)
+          let q = Q_ret in
+          addNewQuad q
+        }
+     | T_return expr T_sem_col {
+          (* handle return *)
+          let q = Q_assign ( $2.e_place , Q_funct_res)
+          in addNewQuad q;
+          let q = Q_ret in
+          addNewQuad q
+        }
      | write T_lparen T_rparen T_sem_col { }
      | write T_lparen stmt2 T_rparen T_sem_col { }
      /* error recovery */
