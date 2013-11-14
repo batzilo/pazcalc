@@ -568,6 +568,20 @@ let sq_lvalue name idxs =
         error "lvalue %s isn't a constant!" name;
         esv_err
 
+let sq_assign a op b =
+  (* FIXME check for type compatibility instead of type equality ? *)
+  if a.e_typ = b.e_typ then
+    match op with
+    | "=" ->
+      let q = Q_assign (b.e_place, a.e_place) in
+      addNewQuad q;
+    | binop ->
+      let e = sq_binop a binop b (get_binop_pos ()) in
+      let q = Q_assign (e.e_place, a.e_place) in
+      addNewQuad q;
+  else
+    ()
+
 (* Semantic-Quads actions for variable definition *)
 let sq_vardef typ (name, dims, init) =
   try
@@ -589,15 +603,13 @@ let sq_vardef typ (name, dims, init) =
       in
       ignore( newVariable (id_make name) (ft dims) false )
     | _ ->
-      (* initialization is present, so check types *)
-      (* FIXME check for type compatibility instead of type equality ? *)
-      if not (equalType typ init.e_typ) then
-        error "variable definition and initialization type mismatch"
-      else
-        (* if types match, register the new variable *)
-        let n = newVariable (id_make name) typ false in
-        let q = Q_assign (init.e_place, Q_entry n) in
-        addNewQuad q
+      (* initialization is present *)
+      let n = newVariable (id_make name) typ false in
+      let var = {
+        e_place = Q_entry n;
+        e_typ = typ
+      } in
+      sq_assign var "=" init
 
 (* Semantic-Quads actions for routine header *)
 let sq_rout_head name typ pars =
@@ -649,7 +661,7 @@ let sq_rout_call name pars =
                    false
                    end
                  else
-                   let q = Q_par (ah.e_place, Q_pass_mode quad_of_passmode inf.parameter_mode) in
+                   let q = Q_par (ah.e_place, Q_pass_mode (quad_of_passmode inf.parameter_mode)) in
                    addNewQuad q;
                    parmatch (ft,at)
               | _ ->
@@ -701,3 +713,21 @@ let sq_rout_call name pars =
     | _ ->
         error "Cannot call %s, is not a function" name;
         esv_err
+
+let sq_plus_plus id =
+  let esv = {
+    e_place = Q_int 1;
+    e_typ = TYPE_int
+  } in
+  let e = sq_binop id "+" esv (get_binop_pos ()) in
+  let q = Q_assign (e.e_place, id.e_place) in
+  addNewQuad q
+
+let sq_minus_minus id =
+  let esv = {
+    e_place = Q_int 1;
+    e_typ = TYPE_int
+  } in
+  let e = sq_binop id "-" esv (get_binop_pos ()) in
+  let q = Q_assign (e.e_place, id.e_place) in
+  addNewQuad q

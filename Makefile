@@ -17,7 +17,7 @@ MLFILES=Hashcons.ml Identifier.ml Error.ml Types.ml Symbol.ml Symbtest.ml \
   SemQuad.ml Lexer.ml Parser.ml Main.ml 
 
 # Interface files
-MLIFILES=Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli \
+MLIFILES=Hashcons.mli Identifier.mli Error.mli Types.mli Symbol.mli SemQuad.mli \
   Parser.mli# Lexer.mli
 
 # Object files. Same as Source files, but with extension .cmo

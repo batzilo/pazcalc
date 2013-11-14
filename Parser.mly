@@ -365,45 +365,9 @@ local_def :	const_def { }
 
 stmt : T_sem_col { }
      | block { }
-     | l_value assign expr T_sem_col {
-          (* handle assignment *)
-          (* TODO check for type compatibility *)
-          if $1.e_typ = $3.e_typ then
-            match $2 with
-            | "=" ->
-              begin
-              let q = Q_assign ($3.e_place, $1.e_place) in
-              addNewQuad q;
-              end
-            | op ->
-              begin
-              let e = sq_binop $1 op $3 (get_binop_pos ()) in
-              let q = Q_assign (e.e_place, $1.e_place) in
-              addNewQuad q;
-              end
-          else
-            ()
-        }
-     | l_value T_plus_plus T_sem_col {
-          (* handle plus plus *)
-          let esv = {
-            e_place = Q_int 1;
-            e_typ = TYPE_int
-          } in
-          let e = sq_binop $1 "+" esv (get_binop_pos ()) in
-          let q = Q_assign (e.e_place, $1.e_place) in
-          addNewQuad q;
-        }
-     | l_value T_minus_minus T_sem_col {
-          (* handle minus minus *)
-          let esv = {
-            e_place = Q_int 1;
-            e_typ = TYPE_int
-          } in
-          let e = sq_binop $1 "-" esv (get_binop_pos ()) in
-          let q = Q_assign (e.e_place, $1.e_place) in
-          addNewQuad q;
-        }
+     | l_value assign expr T_sem_col { sq_assign $1 $2 $3 }
+     | l_value T_plus_plus T_sem_col { sq_plus_plus $1 }
+     | l_value T_minus_minus T_sem_col { sq_minus_minus $1 }
      | call T_sem_col { }
      | T_if T_lparen expr T_rparen stmt	%prec NOELSE { }
      | T_if T_lparen expr T_rparen stmt T_else stmt { }
