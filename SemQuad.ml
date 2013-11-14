@@ -138,6 +138,7 @@ let quad_of_const = function
 let get_binop_pos () =
     (rhs_start_pos 1, rhs_start_pos 3)
 
+(*
 (* print an error message *)
 let print_binop_type_error op_name t1 t2 exp_t sp ep =
     error
@@ -151,7 +152,21 @@ let print_binop_type_error op_name t1 t2 exp_t sp ep =
     (string_of_typ t1) (string_of_typ t2)
     (sp.pos_lnum) (sp.pos_cnum - sp.pos_bol)
     (ep.pos_lnum) (ep.pos_cnum - ep.pos_bol)
+*)
 
+(* Print an error message *)
+let binop_error a op b x y =
+  error
+  "Binary Operator \"%s\" Error : \
+  Line %d Position %d and Line %d Position %d\n\
+  Operands Type Mismatch : \
+  Can't apply \"%s\" to \"%s\" and \"%s\"\n"
+  op
+  x.pos_lnum (x.pos_cnum - x.pos_bol)
+  y.pos_lnum (y.pos_cnum - y.pos_bol)
+  op (string_of_typ a) (string_of_typ b)
+
+(*
 (* print an error message *)
 let print_unary_type_error op_name t pos =
     error 
@@ -162,6 +177,18 @@ let print_unary_type_error op_name t pos =
     (op_name)
     (string_of_typ t)
     (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
+*)
+
+(* Print an error message *)
+let unop_error op a x =
+  error
+  "Unary Operator \"%s\" Error : \
+  Line %d Position %d\n\
+  Operand Type Mismatch : \
+  Can't apply \"%s\" to \"%s\"\n"
+  op
+  x.pos_lnum (x.pos_cnum - x.pos_bol)
+  op (string_of_typ a)
 
 (* Semantic Value of expr *)
 type semv_expr = {
@@ -404,25 +431,23 @@ let const_binop = function
     | _ -> Q_none
 
 (* Semantic-Quad actions for binary operators *)
-let sq_binop a op b =
-    (* TODO: generate actual quads *)
+let sq_binop a op b (x,y) =
     (* TODO: division by zero check *)
     let typ = what_bin_type a op b in
     match typ with
     | TYPE_none ->
-      begin
-        error "Binary Operator %s Error: Operands mismatch" op;
-        (* print_binop_type_error op a.e_typ b.e_typ *)
-        esv_err
-      end
+      (* if TYPE_none, we have an error *)
+      binop_error a.e_typ op b.e_typ x y;
+      esv_err
     | _ ->
+      (* Check if Constants *)
+      (* TODO add bool param for this *)
       let c1 = const_of_quad a.e_place in
       let c2 = const_of_quad b.e_place in
       match c1,c2 with
       | CONST_none, _
       | _, CONST_none ->
-         (* result isn't a const *)
-         (* make new temporary for result *)
+         (* No constant *)
          let e = newTemporary typ in
          let q = Q_op (op, a.e_place, b.e_place, Q_entry e) in
          let esv = {
@@ -432,7 +457,7 @@ let sq_binop a op b =
          addNewQuad q;
          esv
       | _ ->
-         (* result is a const *)
+         (* Constant *)
          let plc = const_binop (op, typ, c1, c2) in
          let esv = {
            e_place = plc;
@@ -440,17 +465,15 @@ let sq_binop a op b =
          } in esv
 
 (* Semantic-Quad actions for unary operators *)
-let sq_unop op a =
+let sq_unop op a x =
     (* TODO: generate actual quads *)
     let typ = what_un_type op a in
     match typ with
     | TYPE_none ->
-      begin
-        error "Unary Operator %s Error" op;
-        esv_err
-      end
+      (* if TYPE_none we have an error *)
+      unop_error op a.e_typ x;
+      esv_err
     | _ ->
-      (* make new temporary for result *)
       let e = newTemporary typ in
       let esv = {
         e_place = (Q_entry e);

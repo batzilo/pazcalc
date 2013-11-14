@@ -343,26 +343,26 @@ expr : T_int_const {
      | T_lparen expr T_rparen       { $2 }
      | l_value                      { $1 }
      | call                         { $1 }
-     | T_plus expr %prec UNARY      { sq_unop "+" $2 }
-     | T_minus expr %prec UNARY     { sq_unop "-" $2 }
-     | T_lg_not expr %prec UNARY    { sq_unop "!" $2 }
-     | T_not expr %prec UNARY       { sq_unop "!" $2 }
-     | expr T_plus expr             { sq_binop $1 "+" $3 }
-     | expr T_minus expr            { sq_binop $1 "-" $3 }
-     | expr T_mul expr              { sq_binop $1 "*" $3 }
-     | expr T_div expr              { sq_binop $1 "/" $3 }
-     | expr T_mod expr              { sq_binop $1 "%" $3 }
-     | expr T_MOD expr              { sq_binop $1 "%" $3 }
-     | expr T_eq expr               { sq_binop $1 "==" $3 }
-     | expr T_neq expr              { sq_binop $1 "!=" $3 }
-     | expr T_ls expr               { sq_binop $1 "<" $3 }
-     | expr T_gr expr               { sq_binop $1 ">" $3 }
-     | expr T_lseq expr             { sq_binop $1 "<=" $3 }
-     | expr T_greq expr             { sq_binop $1 ">=" $3 }
-     | expr T_lg_and expr           { sq_binop $1 "&&" $3 }
-     | expr T_and expr              { sq_binop $1 "&&" $3 }
-     | expr T_lg_or expr            { sq_binop $1 "||" $3 }
-     | expr T_or expr               { sq_binop $1 "||" $3 }
+     | T_plus expr     %prec UNARY  { sq_unop "+" $2 (rhs_start_pos 2) }
+     | T_minus expr    %prec UNARY  { sq_unop "-" $2 (rhs_start_pos 2) }
+     | T_lg_not expr   %prec UNARY  { sq_unop "!" $2 (rhs_start_pos 2) }
+     | T_not expr      %prec UNARY  { sq_unop "!" $2 (rhs_start_pos 2) }
+     | expr T_plus expr             { sq_binop $1 "+" $3 (get_binop_pos ()) }
+     | expr T_minus expr            { sq_binop $1 "-" $3 (get_binop_pos ()) }
+     | expr T_mul expr              { sq_binop $1 "*" $3 (get_binop_pos ()) }
+     | expr T_div expr              { sq_binop $1 "/" $3 (get_binop_pos ()) }
+     | expr T_mod expr              { sq_binop $1 "%" $3 (get_binop_pos ()) }
+     | expr T_MOD expr              { sq_binop $1 "%" $3 (get_binop_pos ()) }
+     | expr T_eq expr               { sq_binop $1 "==" $3 (get_binop_pos ()) }
+     | expr T_neq expr              { sq_binop $1 "!=" $3 (get_binop_pos ()) }
+     | expr T_ls expr               { sq_binop $1 "<" $3 (get_binop_pos ()) }
+     | expr T_gr expr               { sq_binop $1 ">" $3 (get_binop_pos ()) }
+     | expr T_lseq expr             { sq_binop $1 "<=" $3 (get_binop_pos ()) }
+     | expr T_greq expr             { sq_binop $1 ">=" $3 (get_binop_pos ()) }
+     | expr T_lg_and expr           { sq_binop $1 "&&" $3 (get_binop_pos ()) }
+     | expr T_and expr              { sq_binop $1 "&&" $3 (get_binop_pos ()) }
+     | expr T_lg_or expr            { sq_binop $1 "||" $3 (get_binop_pos ()) }
+     | expr T_or expr               { sq_binop $1 "||" $3 (get_binop_pos ()) }
      ;
 
 /*(* batzilo 30/10 *)*/
@@ -425,15 +425,33 @@ stmt : T_sem_col { }
               end
             | op ->
               begin
-              let e = sq_binop $1 op $3 in
+              let e = sq_binop $1 op $3 (get_binop_pos ()) in
               let q = Q_assign (e.e_place, $1.e_place) in
               addNewQuad q;
               end
           else
             ()
         }
-     | l_value T_plus_plus T_sem_col { }
-     | l_value T_minus_minus T_sem_col { }
+     | l_value T_plus_plus T_sem_col {
+          (* handle plus plus *)
+          let esv = {
+            e_place = Q_int 1;
+            e_typ = TYPE_int
+          } in
+          let e = sq_binop $1 "+" esv (get_binop_pos ()) in
+          let q = Q_assign (e.e_place, $1.e_place) in
+          addNewQuad q;
+        }
+     | l_value T_minus_minus T_sem_col {
+          (* handle minus minus *)
+          let esv = {
+            e_place = Q_int 1;
+            e_typ = TYPE_int
+          } in
+          let e = sq_binop $1 "-" esv (get_binop_pos ()) in
+          let q = Q_assign (e.e_place, $1.e_place) in
+          addNewQuad q;
+        }
      | call T_sem_col { }
      | T_if T_lparen expr T_rparen stmt	%prec NOELSE { }
      | T_if T_lparen expr T_rparen stmt T_else stmt { }
