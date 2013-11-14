@@ -8,37 +8,38 @@
  */
 
 %{
-  (*/* Header - Ocaml code */*)
-  open Printf
-  open Lexing
 
-  open Error
-  open Identifier
-  open SemQuad
-  open Symbol
-  open Symbtest
-  open Types
+(*/* Header - Ocaml code */*)
+open Printf
+open Lexing
 
-  (* Called by the parser function on error *)
-  let parse_error s = 
-    printf "\n\t%s\n\n" s;
-    flush stdout
+open Error
+open Identifier
+open SemQuad
+open Symbol
+open Symbtest
+open Types
 
-  (* first steps *)
-  let prologue () =
-    printf "Start parsing!\n";
-    (* initialize the Symbol Table *)
-    initSymbolTable 256;
-    (* open the global scope *)
-    openScope ()
+(* Called by the parser function on error *)
+let parse_error s = 
+  printf "\n\t%s\n\n" s;
+  flush stdout
 
-  (* last steps *)
-  let epilogue () =
-    printf "End parsing!\n";
-    (* printSymbolTable () *)
-    (* close the global scope *)
-    closeScope();
-    printIntermediateCode ()
+(* first steps *)
+let prologue () =
+  printf "Start parsing!\n";
+  (* initialize the Symbol Table *)
+  initSymbolTable 256;
+  (* open the global scope *)
+  openScope ()
+
+(* last steps *)
+let epilogue () =
+  printf "End parsing!\n";
+  (* printSymbolTable () *)
+  (* close the global scope *)
+  closeScope();
+  printIntermediateCode ()
 
 %}
 
@@ -69,7 +70,7 @@
 %token T_minus_minus
 %token T_EOF
 
-%nonassoc NOELSE      /* pseudo-token. it gives T_ELSE higher precedence */
+%nonassoc NOELSE      /*(* pseudo-token. it gives T_ELSE higher precedence *)*/
 %nonassoc T_else
 
 %left T_lg_or T_or
@@ -82,7 +83,7 @@
 
 %start pazprog
 %type <unit> pazprog
-/*%type <Semquad.quad_t list> pazprog */
+/*(* %type <Semquad.quad_t list> pazprog *)*/
 %type <semv_expr> expr
 %type <Types.typ> paztype
 
@@ -94,7 +95,7 @@
  * Because we're generating an LALR(1) parser,
  * left-recursive grammar rules are good!
  *
- * TODO: Do not put any identation for semantic brackets before we know it runs smoothly
+ * TODO: Do not put any identation to semantic brackets until we know it runs smoothly
  * TODO: Location Tracking
  *
  *)
@@ -102,14 +103,12 @@
 
 %%
 
-/*(* batzilo init *)*/
-pazprog : /* empty */ { }
+pazprog : /*(* empty *)*/ { }
         | dummy_non_terminal declaration_list T_EOF { epilogue ()  }
 		;
 
 dummy_non_terminal : /*(* empty, used only for semantic actions *)*/ { prologue () }
 
-/*(* *)*/
 declaration_list : declaration { }
                  | declaration_list declaration { }
                  ;
@@ -120,13 +119,12 @@ declaration : const_def { }
             | program { }
             ;
 
-/*(* batzilo 30/10 *)*/
 const_def :	T_const paztype T_id T_assign const_expr T_sem_col {
-                (* semantic-quad actions for constant definition. name, type, value *)
+                (* Semantic-Quads actions for constant definition. name, type, value *)
                 sq_cdef $3 $2 $5
                 }
           | T_const paztype T_id T_assign const_expr const_def2 T_sem_col {
-                (* For every tuple in list, register a new Constant *)
+                (* For every tuple in list, register a new constant *)
                 let
                   cdef a (b,c) = sq_cdef b a c 
                 in
@@ -139,17 +137,11 @@ const_def :	T_const paztype T_id T_assign const_expr T_sem_col {
                 }
           ;
 
-const_def2 : T_comma T_id T_assign const_expr {
-                (* Return a tuple (name, value) *)
-                [($2, $4)]
-                }
-           | const_def2 T_comma T_id T_assign const_expr {
-                (* Return a list of tuples *)
-                $1 @ [($3, $5)]
-                }
+/*(* Return a list of tuples (name, value) *)*/
+const_def2 : T_comma T_id T_assign const_expr               { [($2, $4)] }
+           | const_def2 T_comma T_id T_assign const_expr    { $1 @ [($3, $5)] }
            ;
 
-/*(* batzilo 2/11 *)*/
 var_def : paztype var_init T_sem_col {
                 sq_vardef $1 $2
                 }
@@ -159,28 +151,27 @@ var_def : paztype var_init T_sem_col {
                 }
 		;
 
-var_def2 : T_comma var_init { $2::[] }
-         | var_def2 T_comma var_init { $1 @ $3::[] }
+var_def2 : T_comma var_init             { [$2] }
+         | var_def2 T_comma var_init    { $1 @ [$3] }
          ;
 
-/*(* triplet (name, dims, init) *)*/
+/*(* Return a list of triplets (name, dims, init) *)*/
 var_init : simple_var_init { $1 }
          | matrix_var_init { $1 }
          ;
 
-simple_var_init : T_id { ($1, [], esv_err) }
-                | T_id T_assign expr { ($1, [], $3) }
+simple_var_init : T_id                  { ($1, [], esv_err) }
+                | T_id T_assign expr    { ($1, [], $3) }
                 ;
 
-matrix_var_init : T_id T_lbrack const_expr T_rbrack { ($1, [$3.e_place], esv_err) }
-                | T_id T_lbrack const_expr T_rbrack matrix_var_init2 { ($1, $3.e_place::$5, esv_err) }
+matrix_var_init : T_id T_lbrack const_expr T_rbrack                     { ($1, [$3.e_place], esv_err) }
+                | T_id T_lbrack const_expr T_rbrack matrix_var_init2    { ($1, $3.e_place::$5, esv_err) }
                 ;
 
-matrix_var_init2 : T_lbrack const_expr T_rbrack { [$2.e_place] }
-                 | matrix_var_init2 T_lbrack const_expr T_rbrack { $1 @ [$3.e_place] }
+matrix_var_init2 : T_lbrack const_expr T_rbrack                     { [$2.e_place] }
+                 | matrix_var_init2 T_lbrack const_expr T_rbrack    { $1 @ [$3.e_place] }
                  ;
 
-/*(* batzilo 5/11 *)*/
 routine_header : T_PROC T_id T_lparen T_rparen {
                         (* i.e PROC foo() *)
                         sq_rout_head $2 TYPE_proc []
@@ -200,30 +191,18 @@ routine_header : T_PROC T_id T_lparen T_rparen {
                ;
 
 /*(* return a list of tuples (type, (name, mode, dims)) *)*/
-routine_header2 : paztype formal { [ ($1, $2) ] }
-                | routine_header2 T_comma paztype formal { $1 @ [ ($3, $4) ] }
+routine_header2 : paztype formal                            { [ ($1, $2) ] }
+                | routine_header2 T_comma paztype formal    { $1 @ [ ($3, $4) ] }
                 ;
 
 /*(* return a triplet (name, pass_mode, dims list) *)*/
-formal : T_id {
-              ($1, PASS_BY_VALUE, [])
-            }
-       | T_amp T_id {
-              ($2, PASS_BY_REFERENCE, [])
-            }
-       | T_id T_lbrack T_rbrack {
-              (* when parameter is array, always passed by reference, right ? *)
-              ($1, PASS_BY_REFERENCE, [Q_int 0])
-            } 
-       | T_id T_lbrack T_rbrack formal2 {
-              ($1, PASS_BY_REFERENCE, (Q_int 0)::$4)
-            }
-       | T_id T_lbrack const_expr T_rbrack {
-              ($1, PASS_BY_REFERENCE, [$3.e_place])
-            }
-       | T_id T_lbrack const_expr T_rbrack formal2 {
-              ($1, PASS_BY_REFERENCE, $3.e_place::$5)
-            }
+/*(* FIXME when parameter is array, it's always passed by reference, right ? *)*/
+formal : T_id                                       { ($1, PASS_BY_VALUE, []) }
+       | T_amp T_id                                 { ($2, PASS_BY_REFERENCE, []) }
+       | T_id T_lbrack T_rbrack                     { ($1, PASS_BY_REFERENCE, [Q_int 0]) } 
+       | T_id T_lbrack T_rbrack formal2             { ($1, PASS_BY_REFERENCE, (Q_int 0)::$4) }
+       | T_id T_lbrack const_expr T_rbrack          { ($1, PASS_BY_REFERENCE, [$3.e_place]) }
+       | T_id T_lbrack const_expr T_rbrack formal2  { ($1, PASS_BY_REFERENCE, $3.e_place::$5) }
        ;
 
 /*(* return an Q_int list *)*/
@@ -231,10 +210,8 @@ formal2 : T_lbrack const_expr T_rbrack {
               match ($2.e_place, $2.e_typ) with
               | (Q_int v, TYPE_int) -> [Q_int v]
               | _ ->
-                begin
                 error "parameter array dimension is not an integer constant";
                 []
-                end
             }
         | formal2 T_lbrack const_expr T_rbrack {
               match ($3.e_place, $3.e_typ) with
@@ -245,18 +222,16 @@ formal2 : T_lbrack const_expr T_rbrack {
             }
         ;
 
-/*(* batzilo 6/11 *)*/
 routine : routine_header T_sem_col {
               (* we've seen the header, and no block exists
                * so set function to be forwarded *)
               forwardFunction $1;
               printf "This is a forwarded function\n\n";
-              (* printSymbolTable (); *)
               closeScope ();
               rmLastQuad ()
             }
         | routine_header block {
-              (* we've seen the header and block *)
+              (* we've seen the header and the block *)
               printSymbolTable ();
               closeScope ();
               let q = Q_endu (Q_entry $1)
@@ -264,10 +239,7 @@ routine : routine_header T_sem_col {
             }
         ;
 
-program_header : T_PROGRAM T_id T_lparen T_rparen {
-                      (* main header *)
-                      sq_rout_head $2 TYPE_proc []
-                    }
+program_header : T_PROGRAM T_id T_lparen T_rparen   { sq_rout_head $2 TYPE_proc [] }
                ;
 
 program : program_header block {
@@ -279,14 +251,12 @@ program : program_header block {
             }
         ;
 
-/*(* batzilo init *)*/
-paztype : T_int { TYPE_int }
-        | T_bool { TYPE_bool }
-        | T_char { TYPE_char }
-        | T_REAL { TYPE_REAL }
+paztype : T_int     { TYPE_int }
+        | T_bool    { TYPE_bool }
+        | T_char    { TYPE_char }
+        | T_REAL    { TYPE_REAL }
         ;
 
-/*(* batzilo 6/11 *)*/
 const_expr : expr {
                   (* make sure it's really a const *)
                   let cv = const_of_quad $1.e_place in
@@ -299,11 +269,6 @@ const_expr : expr {
                 }
            ;
 
-/*
-(* edited 17/10 - added semantic checks *)
-(* edited 30/10 - more semantic-quad actions *)
-(* should I separate binop and unop ? *)
-*/
 expr : T_int_const {
             let esv = {
               e_place = (Q_int $1);
@@ -365,36 +330,23 @@ expr : T_int_const {
      | expr T_or expr               { sq_binop $1 "||" $3 (get_binop_pos ()) }
      ;
 
-/*(* batzilo 30/10 *)*/
-l_value : T_id {
-            sq_lvalue $1 []
-            }
-        | T_id l_value2 {
-            sq_lvalue $1 $2
-            }
+l_value : T_id              { sq_lvalue $1 [] }
+        | T_id l_value2     { sq_lvalue $1 $2 }
 		;
 
-l_value2 : T_lbrack expr T_rbrack { [$2] }
-         | l_value2 T_lbrack expr T_rbrack { $1 @ [$3] }
+l_value2 : T_lbrack expr T_rbrack           { [$2] }
+         | l_value2 T_lbrack expr T_rbrack  { $1 @ [$3] }
          ;
 
 
-/*(* batzilo 6/11 *)*/
-call : T_id T_lparen T_rparen {
-          (* call without parameters *)
-          sq_rout_call $1 []
-        }
-     | T_id T_lparen call2 T_rparen {
-          (* call with parameters  *)
-          sq_rout_call $1 $3
-        }
+call : T_id T_lparen T_rparen           { sq_rout_call $1 [] }
+     | T_id T_lparen call2 T_rparen     { sq_rout_call $1 $3 }
      ;
 
-call2 : expr { [$1] }
-      | call2 T_comma expr { $1 @ [$3] }
+call2 : expr                { [$1] }
+      | call2 T_comma expr  { $1 @ [$3] }
       ;
 
-/*(* *)*/
 block : T_lbrace T_rbrace { }
       | T_lbrace block2 T_rbrace { }
       /* error recovery */
