@@ -466,7 +466,6 @@ let sq_binop a op b (x,y) =
 
 (* Semantic-Quad actions for unary operators *)
 let sq_unop op a x =
-    (* TODO: generate actual quads *)
     let typ = what_un_type op a in
     match typ with
     | TYPE_none ->
@@ -475,63 +474,53 @@ let sq_unop op a x =
       esv_err
     | _ ->
       let e = newTemporary typ in
+      let q = Q_op (op, a.e_place, Q_dash, Q_entry e) in
       let esv = {
         e_place = (Q_entry e);
         e_typ = typ
-      } in esv
+      } in
+      addNewQuad q;
+      esv
 
 (* Semantic-Quad actions for constant definiton *)
 let sq_cdef n t v =
-    try
-      let e = lookupEntry (id_make n) LOOKUP_CURRENT_SCOPE false in
-        begin
-        (* if found, name is already taken *)
-        error "Const name %s is already taken" n;
-        ignore(e);
-        ()
-        end
-    with Not_found ->
-      (* if not found, check types *)
-      if equalType t v.e_typ then
-        (* if match, find the const value *)
-        (* constant value must be known at compile-time *)
-        let cv = const_of_quad v.e_place in
-        match cv with
-        | CONST_none ->
-          begin
-          (* not really a const *)
-          error "%s is not really a const!" n;
-          ()
-          end
-        | _ ->
-          begin
-          (* register the new Constant *)
-          ignore (newConstant (id_make n) t cv false);
-          ()
-          end
-      else
-        begin
-        (* const def type mismatch *)
-        error "constant definition type mismatch";
-        ()
-        end
+  try
+    (* Lookup the Symbol Table. not_found is not handled *)
+    let e = lookupEntry (id_make n) LOOKUP_CURRENT_SCOPE false in
+      (* if found, name is already taken *)
+      error "Const name %s is already taken" n;
+      ignore(e)
+  with Not_found ->
+    (* if not found, check types *)
+    if equalType t v.e_typ then
+      (* if match, find the constant value which must be known at compile-time *)
+      match const_of_quad v.e_place with
+      | CONST_none ->
+        (* not really a const *)
+        error "%s is not really a const!" n
+      | cv ->
+        (* register the new Constant *)
+        ignore (newConstant (id_make n) t cv false)
+    else
+      (* const def type mismatch *)
+      error "constant definition type mismatch"
 
 (* Semantic-Quad actions for lvalue *)
 let sq_lvalue name idxs =
-  (* a function that generates quads for array indexing *)
-  let rec mktemp plc typ indexes =
-    match typ, indexes with
-    | TYPE_array(et, sz),h::t ->
+  (* a function that generates quads and temporaries for array indexing *)
+  let rec mktemp id typ index_list =
+    match typ, index_list with
+    | TYPE_array(et, sz), h::t ->
        begin
+       (* FIXME is temporary type TYPE_array OK ? *)
        let newt = newTemporary et in
-       (* generate quad *)
-       let q = Q_array (plc, h.e_place, Q_entry newt) in
+       let q = Q_array (id, h.e_place, Q_entry newt) in
        addNewQuad q;
        mktemp (Q_deref newt) et t
        end
     | _, [] ->
        let esv = {
-         e_place = plc;
+         e_place = id;
          e_typ = typ
        } in esv
     | _ ->
@@ -541,8 +530,7 @@ let sq_lvalue name idxs =
   try
     (* Lookup the Symbol Table, do not handle the not_found case *)
     let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
-    begin
-    (* check if entry is variable or parameter *)
+    (* check if entry is variable or parameter or constant *)
     match e.entry_info with
     | ENTRY_variable inf ->
         mktemp (Q_entry e) inf.variable_type idxs
@@ -554,15 +542,16 @@ let sq_lvalue name idxs =
         match qv with
         | Q_none ->
            error "lvalue %s is not really a const while it should be" name;
-           esv_err;
+           esv_err
         | _ ->
            mktemp qv inf.constant_type idxs
         end
     | _ ->
         error "lvalue %s is not a variable or a parameter or a constant in the current scope!" name;
         esv_err
-    end
   with Not_found ->
+    (* if not found in current scope, check if it's a constant in the global scope *)
+    (* Lookup the Symbol Table, and handle the not_found case *)
     let e = lookupEntry (id_make name) LOOKUP_ALL_SCOPES true in
     match e.entry_info with
     | ENTRY_constant inf -> 
@@ -579,51 +568,44 @@ let sq_lvalue name idxs =
         error "lvalue %s isn't a constant!" name;
         esv_err
 
-(* Semantic-Quads action for variable definition *)
+(* Semantic-Quads actions for variable definition *)
 let sq_vardef typ (name, dims, init) =
-    try
-      let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
-        begin
-        (* if found, name is already taken *)
-        error "Var name %s is already taken" name;
-        ignore(e);
-        ()
-        end
-    with Not_found ->
-      (* if name not already taken *)
-      match init.e_place with
-      | Q_none ->
-        (* no initialization or array *)
-        begin
-        let rec ft = function
-        | (Q_int h)::t -> TYPE_array ( (ft t), h )
-        | [] -> typ
-        | _ -> error "Array dimension isn't int const"; TYPE_none
-        in
-        ignore( newVariable (id_make name) (ft dims) true )
-        end
-      | _ ->
-        (* initialization is present *)
-        (* check types *)
-        (* TODO check for type compatibility *)
-        if not (equalType typ init.e_typ) then
-          (* var def type mismatch *)
-          error "variable definition and initialization type mismatch"
-        else
-          (* if match, register the new Variable *)
-          let n = newVariable (id_make name) typ true in
-          let q = Q_assign ( init.e_place, (Q_entry n)) in
-          addNewQuad q
+  try
+    (* Lookup the Symbol Table, do not handle the not_found case *)
+    let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
+      (* if found, name is already taken *)
+      error "Var name %s is already taken" name;
+      ignore(e)
+  with Not_found ->
+    (* if not found, name is available *)
+    match init.e_place with
+    | Q_none ->
+      (* no initialization OR array *)
+      (* ft is a function that produces the full type of an array *)
+      let rec ft = function
+      | (Q_int h)::t -> TYPE_array ( (ft t), h )
+      | [] -> typ
+      | _ -> error "Array dimension isn't int const"; TYPE_none
+      in
+      ignore( newVariable (id_make name) (ft dims) false )
+    | _ ->
+      (* initialization is present, so check types *)
+      (* FIXME check for type compatibility instead of type equality ? *)
+      if not (equalType typ init.e_typ) then
+        error "variable definition and initialization type mismatch"
+      else
+        (* if types match, register the new variable *)
+        let n = newVariable (id_make name) typ false in
+        let q = Q_assign (init.e_place, Q_entry n) in
+        addNewQuad q
 
-(* Semantic-Quads action for routine header *)
+(* Semantic-Quads actions for routine header *)
 let sq_rout_head name typ pars =
-  (* register a new function or
-   * find the forwarded function *)
+  (* register a new function or find the forwarded function header *)
   let e = newFunction (id_make name) true in
-    begin
     openScope ();
     (* add parameters *)
-    let paramadd (t,(n,m,dims)) =
+    let paramadd (t, (n, m, dims)) =
       let rec ft = function
         | (Q_int d)::ds -> TYPE_array (ft ds, d)
         | [] -> t
@@ -631,21 +613,16 @@ let sq_rout_head name typ pars =
       in
         ignore (newParameter (id_make n) (ft dims) m e true)
     in
-      begin
-      (* List.rev $4; *)
-      let q = Q_unit Q_entry e
-      in addNewQuad q;
+      let q = Q_unit (Q_entry e) in
+      addNewQuad q;
       List.iter paramadd pars;
       endFunctionHeader e typ;
       e
-      end
-    end
 
-(* Semantic-Quads action for routine call *)
+(* Semantic-Quads actions for routine call *)
 let sq_rout_call name pars =
-  (* not found is handled *)
-  let e = lookupEntry (id_make name) LOOKUP_ALL_SCOPES true
-  in
+  (* Lookup the Symbol Table, and handle the not_found case *)
+  let e = lookupEntry (id_make name) LOOKUP_ALL_SCOPES true in
     match e.entry_info with
     (* e should be function entry *)
     | ENTRY_function inf ->
@@ -654,13 +631,13 @@ let sq_rout_call name pars =
         match inf.function_pstatus with
         | PARDEF_COMPLETE ->
            begin
-           (* a function that matches array actual parameters with formal parameters *)
+           (* a function that matches ARRAY actual parameters with ARRAY formal parameters *)
            let dimmatch formal actual =
            match formal, actual with
            | TYPE_array(et1,sz1), TYPE_array(et2, sz2) -> if (sz1 = 0 || sz1 = sz2) then equalArrayType et1 et2 else false
            | _ -> true
            in 
-           (* function that matches formal parameters with actual parameters *)
+           (* function that matches a list of formal parameters with a list of actual parameters *)
            let rec parmatch = function
            | (fh::ft, ah::at) ->
               begin
@@ -672,12 +649,9 @@ let sq_rout_call name pars =
                    false
                    end
                  else
-                   begin
-                   (* generate quads *)
                    let q = Q_par (ah.e_place, Q_pass_mode quad_of_passmode inf.parameter_mode) in
                    addNewQuad q;
                    parmatch (ft,at)
-                   end
               | _ ->
                  error "what the hell? this ain't no parameter!";
                  false
@@ -685,7 +659,7 @@ let sq_rout_call name pars =
            | ([], []) -> true
            | ([], _)
            | (_, []) ->
-              error "too many or not enough arguments";
+              error "There are too many or not enough arguments when calling %s" name;
               false
            in
            (* do the matching *)
@@ -694,41 +668,36 @@ let sq_rout_call name pars =
              begin
              match inf.function_result with
              | TYPE_proc ->
-               (* generate call quad *)
-               let q = Q_call Q_entry e in
+               (* routine is a PROCEDURE, no result is expected to be returned, so just call *)
+               let q = Q_call (Q_entry e) in
                addNewQuad q;
                let esv = {
                   e_place = Q_none;
                   e_typ = TYPE_proc
                } in esv
              | _ ->
-                let t = inf.function_result in
-                let etemp = newTemporary t in
-                let q = Q_par (Q_entry etemp, Q_pass_mode RET) in
-                begin
-                addNewQuad q;
-                let q = Q_call Q_entry e in
-                addNewQuad q;
-                let esv = {
-                  e_place = (Q_entry etemp);
-                  e_typ = t
-                } in esv
-                end
+               (* routine is a FUNCTION, so reserve memory for result, and then call *)
+               let t = inf.function_result in
+               let etemp = newTemporary t in
+               let q = Q_par (Q_entry etemp, Q_pass_mode RET) in
+               addNewQuad q;
+               let q = Q_call (Q_entry e) in
+               addNewQuad q;
+               let esv = {
+                 e_place = (Q_entry etemp);
+                 e_typ = t
+               } in esv
              end
            else
-             (* some error occured! *)
+             (* some error occured and parmatch failed! *)
              esv_err
            end
         (* maybe should never reach *)
         | _ ->
-           begin
            error "function params are not checked?";
            esv_err
-           end
         end
     (* should never reach *)
     | _ ->
-        begin
-        error "Cannot call %s, not a function" name;
+        error "Cannot call %s, is not a function" name;
         esv_err
-        end
