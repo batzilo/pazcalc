@@ -58,7 +58,7 @@ val get_binop_pos : unit -> Lexing.position * Lexing.position
 
 val binop_error : Types.typ -> string -> Types.typ -> Lexing.position -> Lexing.position -> unit
 
-val unop_error : string -> Types.typ -> Lexing.position -> unit
+val unop_error : string -> Types.typ -> Lexing.position -> Lexing.position -> unit
 
 (* Semantic Value of expr *)
 type semv_expr = {
@@ -77,11 +77,11 @@ val csv_err : semv_cond
 
 val cond_of_expr : semv_expr -> semv_cond
 
-val sq_binop : semv_expr -> string -> semv_expr -> Lexing.position * Lexing.position -> semv_expr
+val sq_binop : semv_expr -> string -> semv_expr -> Lexing.position -> Lexing.position -> semv_expr
 
-val sq_relop : semv_expr -> string -> semv_expr -> Lexing.position * Lexing.position -> semv_expr
+val sq_relop : semv_expr -> string -> semv_expr -> Lexing.position -> Lexing.position -> semv_expr
 
-val sq_unop : string -> semv_expr -> Lexing.position -> semv_expr
+val sq_unop : string -> semv_expr -> Lexing.position -> Lexing.position -> semv_expr
 
 val sq_cdef : string -> Types.typ -> semv_expr -> unit
 

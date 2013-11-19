@@ -9,7 +9,7 @@
 {
   open Printf
   open Lexing
-  (* TODO: why? write comment *)
+  (* open Parser for tokens type *)
   open Parser
 
   let create_hashtable size init =

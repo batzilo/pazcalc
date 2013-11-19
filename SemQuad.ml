@@ -188,7 +188,7 @@ let print_binop_type_error op_name t1 t2 exp_t sp ep =
 let binop_error a op b x y =
   error
   "Binary Operator \"%s\" Error : \
-  Line %d Position %d and Line %d Position %d\n\
+  Line %d Position %d through Line %d Position %d\n\
   Operands Type Mismatch : \
   Can't apply \"%s\" to \"%s\" and \"%s\"\n"
   op
@@ -210,14 +210,15 @@ let print_unary_type_error op_name t pos =
 *)
 
 (* Print an error message *)
-let unop_error op a x =
+let unop_error op a x y =
   error
   "Unary Operator \"%s\" Error : \
-  Line %d Position %d\n\
+  Line %d Position %d through Line %d Position %d\n\
   Operand Type Mismatch : \
   Can't apply \"%s\" to \"%s\"\n"
   op
   x.pos_lnum (x.pos_cnum - x.pos_bol)
+  y.pos_lnum (y.pos_cnum - y.pos_bol)
   op (string_of_typ a)
 
 (* Semantic Value of expr *)
@@ -484,7 +485,7 @@ let const_binop = function
     | _ -> Q_none
 
 (* Semantic-Quad actions for binary operators *)
-let sq_binop a op b (x,y) =
+let sq_binop a op b x y =
     (* TODO: division by zero check *)
     let typ = what_bin_type a op b in
     match typ with
@@ -518,7 +519,7 @@ let sq_binop a op b (x,y) =
          } in esv
 
 (* Semantic-Quad actions for relop operators *)
-let sq_relop a op b (x,y) =
+let sq_relop a op b x y =
     let typ = what_bin_type a op b in
     match typ with
     | TYPE_none ->
@@ -552,12 +553,12 @@ let sq_relop a op b (x,y) =
       } in esv
 
 (* Semantic-Quad actions for unary operators *)
-let sq_unop op a x =
+let sq_unop op a x y =
     let typ = what_un_type op a in
     match typ with
     | TYPE_none ->
       (* if TYPE_none we have an error *)
-      unop_error op a.e_typ x;
+      unop_error op a.e_typ x y;
       esv_err
     | _ ->
       let e = newTemporary typ in
@@ -663,7 +664,7 @@ let sq_assign a op b =
       let q = Q_assign (b.e_place, a.e_place) in
       addNewQuad q;
     | binop ->
-      let e = sq_binop a binop b (get_binop_pos ()) in
+      let e = sq_binop a binop b (rhs_start_pos 1) (rhs_end_pos 3) in
       let q = Q_assign (e.e_place, a.e_place) in
       addNewQuad q;
   else
@@ -806,7 +807,7 @@ let sq_plus_plus id =
     e_place = Q_int 1;
     e_typ = TYPE_int
   } in
-  let e = sq_binop id "+" esv (get_binop_pos ()) in
+  let e = sq_binop id "+" esv (rhs_start_pos 1) (rhs_end_pos 3) in
   let q = Q_assign (e.e_place, id.e_place) in
   addNewQuad q
 
@@ -815,6 +816,6 @@ let sq_minus_minus id =
     e_place = Q_int 1;
     e_typ = TYPE_int
   } in
-  let e = sq_binop id "-" esv (get_binop_pos ()) in
+  let e = sq_binop id "-" esv (rhs_start_pos 1) (rhs_end_pos 3) in
   let q = Q_assign (e.e_place, id.e_place) in
   addNewQuad q
