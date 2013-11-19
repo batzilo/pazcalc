@@ -364,13 +364,19 @@ local_def :	const_def { }
           ;
 
 stmt : T_sem_col { }
-     | block { }
+     | block { (* stmt.next = block.next *) }
      | l_value assign expr T_sem_col { sq_assign $1 $2 $3 }
      | l_value T_plus_plus T_sem_col { sq_plus_plus $1 }
      | l_value T_minus_minus T_sem_col { sq_minus_minus $1 }
      | call T_sem_col { }
-     | T_if T_lparen expr T_rparen stmt	%prec NOELSE { }
-     | T_if T_lparen expr T_rparen stmt T_else stmt { }
+     | T_if T_lparen expr T_rparen stmt	%prec NOELSE {
+          (* handle if then *)
+          let c = cond_of_expr $3 in
+          ignore (c)
+        }
+     | T_if T_lparen expr T_rparen stmt T_else stmt {
+          (* handle if then else *)
+        }
      | T_while T_lparen expr T_rparen stmt { }
      | T_FOR T_lparen T_id T_comma range T_rparen stmt { }
      | T_do stmt T_while T_lparen expr T_rparen T_sem_col { }

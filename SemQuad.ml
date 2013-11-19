@@ -48,6 +48,7 @@ let string_of_quad_op = function
   | Q_pass_mode R -> "R"
   | Q_pass_mode RET -> "RET"
   | Q_dash -> "--"
+  | Q_backpatch -> "*"
   | _ -> "<stub!>"
 
 (* Quadruples datatype *)
@@ -201,6 +202,29 @@ let esv_err = {
   e_place = Q_none;
   e_typ = TYPE_none;
 }
+
+(* Semantic Value of cond *)
+type semv_cond = {
+  c_true : int list;
+  c_false : int list
+}
+
+let csv_err = {
+  c_true = [];
+  c_false = []
+}
+
+let cond_of_expr e =
+  let tr = [!quadNext] in
+  let q1 = Q_ifb (e.e_place, Q_backpatch) in
+  addNewQuad q1;
+  let fa = [!quadNext] in
+  let q2 = Q_jump (Q_backpatch) in
+  addNewQuad q2;
+  let c = {
+    c_true = tr;
+    c_false = fa
+  } in c
 
 (* DEPRECATED *)
 (*

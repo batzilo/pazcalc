@@ -66,6 +66,15 @@ type semv_expr = {
 
 val esv_err : semv_expr
 
+type semv_cond = {
+  c_true : int list;
+  c_false : int list
+}
+
+val csv_err : semv_cond
+
+val cond_of_expr : semv_expr -> semv_cond
+
 val sq_binop : semv_expr -> string -> semv_expr -> Lexing.position * Lexing.position -> semv_expr
 
 val sq_unop : string -> semv_expr -> Lexing.position -> semv_expr

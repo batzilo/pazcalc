@@ -1,5 +1,9 @@
 # Makefile
 
+foo:
+	make depend
+	make all
+
 .PHONY: clean distclean pack count
 
 # OS type: Linux/Win DJGPP
