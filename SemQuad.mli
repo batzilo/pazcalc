@@ -48,6 +48,8 @@ val rmLastQuad : unit -> unit
 
 val printIntermediateCode : unit -> unit
 
+val backpatch : int list -> quad_op_t -> unit
+
 val const_of_quad : quad_op_t -> Symbol.const_val
 
 val quad_of_const : Symbol.const_val -> quad_op_t
@@ -76,6 +78,8 @@ val csv_err : semv_cond
 val cond_of_expr : semv_expr -> semv_cond
 
 val sq_binop : semv_expr -> string -> semv_expr -> Lexing.position * Lexing.position -> semv_expr
+
+val sq_relop : semv_expr -> string -> semv_expr -> Lexing.position * Lexing.position -> semv_expr
 
 val sq_unop : string -> semv_expr -> Lexing.position -> semv_expr
 

@@ -318,12 +318,12 @@ expr : T_int_const {
      | expr T_div expr              { sq_binop $1 "/" $3 (get_binop_pos ()) }
      | expr T_mod expr              { sq_binop $1 "%" $3 (get_binop_pos ()) }
      | expr T_MOD expr              { sq_binop $1 "%" $3 (get_binop_pos ()) }
-     | expr T_eq expr               { sq_binop $1 "==" $3 (get_binop_pos ()) }
-     | expr T_neq expr              { sq_binop $1 "!=" $3 (get_binop_pos ()) }
-     | expr T_ls expr               { sq_binop $1 "<" $3 (get_binop_pos ()) }
-     | expr T_gr expr               { sq_binop $1 ">" $3 (get_binop_pos ()) }
-     | expr T_lseq expr             { sq_binop $1 "<=" $3 (get_binop_pos ()) }
-     | expr T_greq expr             { sq_binop $1 ">=" $3 (get_binop_pos ()) }
+     | expr T_eq expr               { sq_relop $1 "==" $3 (get_binop_pos ()) }
+     | expr T_neq expr              { sq_relop $1 "!=" $3 (get_binop_pos ()) }
+     | expr T_ls expr               { sq_relop $1 "<" $3 (get_binop_pos ()) }
+     | expr T_gr expr               { sq_relop $1 ">" $3 (get_binop_pos ()) }
+     | expr T_lseq expr             { sq_relop $1 "<=" $3 (get_binop_pos ()) }
+     | expr T_greq expr             { sq_relop $1 ">=" $3 (get_binop_pos ()) }
      | expr T_lg_and expr           { sq_binop $1 "&&" $3 (get_binop_pos ()) }
      | expr T_and expr              { sq_binop $1 "&&" $3 (get_binop_pos ()) }
      | expr T_lg_or expr            { sq_binop $1 "||" $3 (get_binop_pos ()) }

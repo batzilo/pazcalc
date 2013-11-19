@@ -1,6 +1,6 @@
 # Makefile
 
-foo:
+compiler:
 	make depend
 	make all
 

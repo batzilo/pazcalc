@@ -95,7 +95,9 @@ let icode = ref []
 
 (* a function to add a new quad to intermediate code *)
 let addNewQuad quad =
-  !icode <- quad :: !icode;
+  let q = (!quadNext, quad) in
+  !icode <- q :: !icode;
+  !quadNext <- !quadNext + 1;
   ()
 
 (* remove last quad from intermediate code *)
@@ -103,6 +105,7 @@ let rmLastQuad () =
   match !icode with
   | h::t ->
     !icode <- t;
+    !quadNext <- !quadNext - 1;
     ()
   | _ ->
     error "intermediate code is empty!";
@@ -110,13 +113,39 @@ let rmLastQuad () =
 
 (* print every quad in intermediate code quad list *)
 let printIntermediateCode () =
-  let pr quad =
-    printf "%s\n" (string_of_quad quad)
+  let pr (n,quad) =
+    printf "%3d: %s\n" n (string_of_quad quad)
   in
     printf "\n\nIntermediate code:\n";
     List.iter pr !icode;
     printf "\n"
 
+(* backpatch *)
+let backpatch l nz =
+  (* make a new quad out of the old one *)
+  let fix quad =
+    match quad with
+    | Q_relop (op,x,y,z) -> Q_relop (op,x,y,nz)
+    | Q_jump z -> Q_jump nz
+    | _ -> internal "cannot backpatch that quad!"; raise Exit
+  in
+  (* check if n is in l *)
+  let is_to_be_fixed n =
+    let rec find lst =
+      match lst with
+      | h::t -> if ( h = n ) then true else find t
+      | _ -> false
+    in find l
+  in
+  (* go through every quad and produce a new quad list with quads backpatched *)
+  let rec walk ic =
+    match ic with
+    | (hn,hq)::t -> if ( is_to_be_fixed hn ) then (hn,(fix hq))::(walk t) else (hn,hq)::(walk t)
+    | [] -> []
+  in
+  let newicode = walk !icode in
+  (* replace icode with backpatced icode *)
+  !icode <- newicode
 
 (* convert SemQuad.quad_op_t to Symbol.const_val *)
 let const_of_quad = function
@@ -487,6 +516,40 @@ let sq_binop a op b (x,y) =
            e_place = plc;
            e_typ = typ
          } in esv
+
+(* Semantic-Quad actions for relop operators *)
+let sq_relop a op b (x,y) =
+    let typ = what_bin_type a op b in
+    match typ with
+    | TYPE_none ->
+      (* if TYPE_none, we have an error *)
+      binop_error a.e_typ op b.e_typ x y;
+      esv_err
+    | _ ->
+      let tr = [!quadNext] in
+      let q = Q_relop (op, a.e_place, b.e_place, Q_backpatch) in
+      addNewQuad q;
+      let fa = [!quadNext] in
+      let q = Q_jump ( Q_backpatch ) in
+      addNewQuad q;
+      let csv = {
+        c_true = tr;
+        c_false = fa
+      } in
+      let e = newTemporary TYPE_bool in
+      backpatch csv.c_true (Q_int !quadNext);
+      let q = Q_assign ( Q_bool true, Q_entry e) in
+      addNewQuad q;
+      let foo = !quadNext + 2 in
+      let q = Q_jump ( Q_int foo ) in
+      addNewQuad q;
+      backpatch csv.c_false (Q_int !quadNext);
+      let q = Q_assign ( Q_bool false, Q_entry e) in
+      addNewQuad q;
+      let esv = {
+        e_place = Q_entry e;
+        e_typ = TYPE_bool
+      } in esv
 
 (* Semantic-Quad actions for unary operators *)
 let sq_unop op a x =
