@@ -152,7 +152,7 @@ int b = 1;
 45: jump, --, --, 47
 46: :=, false, --, $2
 
-47: ifb, <expr>.place, --, 49
+47: ifb, $2, --, 49
 48: jump, --, --, 53
 
 49: :=, 6, --, c
@@ -196,19 +196,6 @@ cond.false = 48
     <expr>.place = W;
 }
 
-
-<expr> ::= <cond> {
-    W = NEWTEMP (boolean);
-    BACKPATCH(<cond>.TRUE, NEXTQUAD());
-    GENQUAD(:=, true, --, W)
-    Q = NEXTQUAD()+2;
-    GENQUAD(jump, --, --, Q);
-    BACKPATCH(<cond>.FALSE, NEXTQUAD());
-    GENQUAD(:=, false, --, W);
-    <expr>.PLACE = W
-}
-
-
 <cond> ::= <expr> {
     <cond>.true = [47];
     addQuad : ifb, <expr>.place, --, *;
@@ -227,4 +214,34 @@ cond.false = 48
 } <stmt2> {
     L2 = <stmt2>.next; // []
     <stmt>.next = merge(L1, <stmt1>.next, L2); // 51
+}
+
+
+------------------------
+------------------------
+
+expr + expr : semv_expr * semv_expr -> semv_expr
+
+expr > expr : semv_expr * semv_expr -> semv_cond
+
+expr && expr : semv_cond * semv_cond -> semv_cond
+
+cond_of_expr : semv_expr -> semv_cond
+<cond> ::= <expr> {
+    <cond>.true = [42];
+    addQuad : ifb, <expr>.place, --, *;
+    <cond>.false = [43];
+    addQuad : jump, --, --, *;
+}
+
+expr_of_cond : semv_cond -> semv_expr
+<expr> ::= <cond> {
+    W = NEWTEMP (boolean);
+    BACKPATCH(<cond>.TRUE, NEXTQUAD());
+    GENQUAD(:=, true, --, W)
+    Q = NEXTQUAD()+2;
+    GENQUAD(jump, --, --, Q);
+    BACKPATCH(<cond>.FALSE, NEXTQUAD());
+    GENQUAD(:=, false, --, W);
+    <expr>.PLACE = W
 }
