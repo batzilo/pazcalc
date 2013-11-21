@@ -114,7 +114,7 @@ declaration_list : declaration { }
                  ;
 
 declaration : const_def { }
-            | var_def { }
+            | var_def { List.iter addNewQuad $1 }
             | routine { }
             | program { }
             ;
@@ -146,8 +146,14 @@ var_def : paztype var_init T_sem_col {
                 sq_vardef $1 $2
                 }
         | paztype var_init var_def2 T_sem_col {
+                (*
                 sq_vardef $1 $2;
                 List.iter (sq_vardef $1) $3
+                *)
+                let first = (sq_vardef $1 $2) in
+                let rest = List.map (sq_vardef $1) $3 in
+                let all = first @ (List.concat rest) in
+                all
                 }
 		;
 
@@ -347,58 +353,200 @@ call2 : expr                { [$1] }
       | call2 T_comma expr  { $1 @ [$3] }
       ;
 
-block : T_lbrace T_rbrace { }
-      | T_lbrace block2 T_rbrace { }
+block : T_lbrace T_rbrace           { ssv_empty }
+      | T_lbrace block2 T_rbrace    {
+          (* FIXME add the quads here!!! *)
+          (* List.iter addNewQuad $2.s_code; *)
+          (* backpatch $2.s_next (Q_int !quadNext); *)
+          (* ssv_empty *)
+          $2
+        }
       /* error recovery */
-      | T_lbrace error T_rbrace { }
+      | T_lbrace error T_rbrace     { ssv_err }
       ;
 
-block2 : local_def { }
-       | stmt { }
-       | block2 local_def { }
-       | block2 stmt { }
+block2 : local_def          {
+              (*
+              (* List.iter addNewQuad $1.s_code; *)
+              backpatch $1.s_next (Q_int (!quadNext + (List.length $1.s_code)));
+              let ssv = {
+                s_next = [];
+                s_code = $1.s_code
+              } in ssv
+              *)
+              List.iter addNewQuad $1.s_code;
+              backpatch $1.s_next (Q_int !quadNext);
+              let ssv = {
+                s_next = [];
+                s_code = $1.s_code
+              } in ssv
+              (* ssv_empty *)
+            }
+       | stmt               {
+              (*
+              (* List.iter addNewQuad $1.s_code; *)
+              backpatch $1.s_next (Q_int (!quadNext + (List.length $1.s_code)));
+              let ssv = {
+                s_next = [];
+                s_code = $1.s_code
+              } in ssv
+              *)
+              (* List.iter addNewQuad $1.s_code; *)
+              backpatch $1.s_next (Q_int !quadNext);
+              let ssv = {
+                s_next = [];
+                s_code = $1.s_code
+              } in ssv
+              (* ssv_empty *)
+            }
+       | block2 local_def   {
+              (*
+              (* List.iter addNewQuad $2.s_code; *)
+              backpatch $2.s_next (Q_int (!quadNext + (List.length $2.s_code)));
+              let ssv = {
+                s_next = [];
+                s_code = $1.s_code @ $2.s_code
+              } in ssv
+              *)
+              backpatch $1.s_next (Q_int !quadNext);
+              List.iter addNewQuad $2.s_code;
+              backpatch $2.s_next (Q_int !quadNext);
+              let ssv = {
+                s_next = [];
+                s_code = $1.s_code @ $2.s_code
+              } in ssv
+              (* ssv_empty *)
+            }
+       | block2 stmt        {
+              (*
+              (* List.iter addNewQuad $2.s_code; *)
+              backpatch $2.s_next (Q_int (!quadNext + (List.length $2.s_code)));
+              let ssv = {
+                s_next = [];
+                s_code = $1.s_code @ $2.s_code
+              } in ssv
+              *)
+              backpatch $1.s_next (Q_int !quadNext);
+              (* List.iter addNewQuad $2.s_code; *)
+              backpatch $2.s_next (Q_int !quadNext);
+              let ssv = {
+                s_next = [];
+                s_code = $1.s_code @ $2.s_code
+              } in ssv
+              (* ssv_empty *)
+            }
        ;
 
-local_def :	const_def { }
-          | var_def { }
+local_def :	const_def   { ssv_empty }
+          | var_def     { let ssv = { s_next = []; s_code = $1 } in ssv }
           ;
 
-stmt : T_sem_col { }
-     | block { (* stmt.next = block.next *) }
-     | l_value assign expr T_sem_col { sq_assign $1 $2 $3 }
-     | l_value T_plus_plus T_sem_col { sq_plus_plus $1 }
-     | l_value T_minus_minus T_sem_col { sq_minus_minus $1 }
-     | call T_sem_col { }
-     | T_if T_lparen expr T_rparen stmt	%prec NOELSE {
+cond : expr { cond_of_expr $1 }
+     ;
+
+stmt : T_sem_col { ssv_empty }
+     | block { $1 }
+     | l_value assign expr T_sem_col {
+          let qs = sq_assign $1 $2 $3 in
+          List.iter addNewQuad qs;
+          let ssv = {
+            s_next = [];
+            s_code = qs
+          } in ssv
+        }
+     | l_value T_plus_plus T_sem_col {
+          let qs = sq_plus_plus $1 in
+          let ssv = {
+            s_next = [];
+            s_code = qs
+          } in ssv
+        }
+     | l_value T_minus_minus T_sem_col {
+          let qs = sq_minus_minus $1 in
+          let ssv = {
+            s_next = [];
+            s_code = qs
+          } in ssv
+        }
+     | call T_sem_col {
+          let ssv = {
+            s_next = [];
+            s_code = []
+          } in ssv
+        }
+     | T_if T_lparen cond T_rparen stmt	%prec NOELSE {
           (* handle if then *)
-          let c = cond_of_expr $3 in
-          ignore (c)
+          let c = $3 in
+          backpatch c.c_true (Q_int (!quadNext - (List.length $5.s_code)));
+          (* backpatch c.c_true (Q_int !quadNext); *)
+          let l1 = c.c_false in
+          (* List.iter addNewQuad $5.s_code; *)
+          let l = List.merge compare l1 $5.s_next in
+          let ssv = {
+            s_next = l;
+            s_code = []
+          } in ssv
         }
-     | T_if T_lparen expr T_rparen stmt T_else stmt {
+     | T_if T_lparen cond T_rparen stmt T_else stmt {
           (* handle if then else *)
+          let c = $3 in
+          backpatch c.c_true (Q_int !quadNext);
+          (* List.iter addNewQuad $5.s_code; *)
+          let s1_len = List.length $5.s_code in
+          let s1_code = $5.s_code in
+          let l1 = [!quadNext + s1_len] in
+          let q = Q_jump ( Q_backpatch ) in
+          (* addNewQuad q; *)
+          backpatch c.c_false (Q_int (!quadNext + 1 + s1_len));
+          (* List.iter addNewQuad $7.s_code; *)
+          let s2_code = $7.s_code in
+          let l2 = List.merge compare l1 $5.s_next in
+          let l = List.merge compare l2 $7.s_next in
+          let code = s1_code @ [q] @ s2_code in
+          let ssv = {
+            s_next = l;
+            s_code = code
+          } in ssv
         }
-     | T_while T_lparen expr T_rparen stmt { }
-     | T_FOR T_lparen T_id T_comma range T_rparen stmt { }
-     | T_do stmt T_while T_lparen expr T_rparen T_sem_col { }
+     | T_while T_lparen cond T_rparen stmt { ssv_empty }
+     | T_FOR T_lparen T_id T_comma range T_rparen stmt { ssv_empty }
+     | T_do stmt T_while T_lparen cond T_rparen T_sem_col { ssv_empty }
      /* switch ? */
-     | T_break T_sem_col { }
-     | T_continue T_sem_col { }
+     | T_break T_sem_col { ssv_empty }
+     | T_continue T_sem_col { ssv_empty }
      | T_return T_sem_col {
           (* handle return *)
           let q = Q_ret in
-          addNewQuad q
+          addNewQuad q;
+          let ssv = {
+            s_next = [];
+            s_code = [q]
+          } in ssv;
         }
      | T_return expr T_sem_col {
           (* handle return *)
-          let q = Q_assign ( $2.e_place , Q_funct_res)
-          in addNewQuad q;
-          let q = Q_ret in
-          addNewQuad q
+          let q1 = Q_assign ( $2.e_place , Q_funct_res) in
+          let q2 = Q_ret in
+          let ssv = {
+            s_next = [];
+            s_code = [q1]@[q2]
+          } in ssv
         }
-     | write T_lparen T_rparen T_sem_col { }
-     | write T_lparen stmt2 T_rparen T_sem_col { }
+     | write T_lparen T_rparen T_sem_col {
+          (* handle write *)
+          (* FIXME *)
+          ssv_empty
+        }
+     | write T_lparen stmt2 T_rparen T_sem_col {
+          (* handle write *)
+          (* FIXME *)
+          ssv_empty
+        }
      /* error recovery */
-     | error T_sem_col { }
+     | error T_sem_col {
+          (* error *)
+          ssv_err
+        }
      ;
 
 stmt2 : frmt { }

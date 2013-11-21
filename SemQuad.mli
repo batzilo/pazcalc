@@ -75,7 +75,18 @@ type semv_cond = {
 
 val csv_err : semv_cond
 
+type semv_stmt = {
+  s_next : int list;
+  s_code : quad_t list
+}
+
+val ssv_err : semv_stmt
+
+val ssv_empty : semv_stmt
+
 val cond_of_expr : semv_expr -> semv_cond
+
+val expr_of_cond : semv_cond -> semv_expr
 
 val sq_binop : semv_expr -> string -> semv_expr -> Lexing.position -> Lexing.position -> semv_expr
 
@@ -87,14 +98,16 @@ val sq_cdef : string -> Types.typ -> semv_expr -> unit
 
 val sq_lvalue : string -> semv_expr list -> semv_expr
 
-val sq_assign : semv_expr -> string -> semv_expr -> unit
+(* val sq_assign : semv_expr -> string -> semv_expr -> unit *)
+val sq_assign : semv_expr -> string -> semv_expr -> quad_t list
 
-val sq_vardef : Types.typ -> string * quad_op_t list * semv_expr -> unit
+(* val sq_vardef : Types.typ -> string * quad_op_t list * semv_expr -> unit *)
+val sq_vardef : Types.typ -> string * quad_op_t list * semv_expr -> quad_t list
 
 val sq_rout_head : string -> Types.typ -> (Types.typ * (string * Symbol.pass_mode * quad_op_t list)) list -> Symbol.entry
 
 val sq_rout_call : string -> semv_expr list -> semv_expr
 
-val sq_plus_plus : semv_expr -> unit
+val sq_plus_plus : semv_expr -> quad_t list
 
-val sq_minus_minus : semv_expr -> unit
+val sq_minus_minus : semv_expr -> quad_t list

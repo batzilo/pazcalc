@@ -1,0 +1,8 @@
+PROGRAM bar ( ) {
+int a,b;
+a = 6;
+a *= 7;
+if ( a > 0 ) b = 0;
+else b = 1;
+return;
+}

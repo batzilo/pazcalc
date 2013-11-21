@@ -127,7 +127,8 @@ let backpatch l nz =
     match quad with
     | Q_relop (op,x,y,z) -> Q_relop (op,x,y,nz)
     | Q_jump z -> Q_jump nz
-    | _ -> internal "cannot backpatch that quad!"; raise Exit
+    | Q_ifb (x,z) -> Q_ifb (x,nz)
+    | _ -> printf "error\n"; printf "%s\n" (string_of_quad quad); internal "cannot backpatch that quad!"; raise Exit
   in
   (* check if n is in l *)
   let is_to_be_fixed n =
@@ -244,6 +245,21 @@ let csv_err = {
   c_false = []
 }
 
+type semv_stmt = {
+  s_next : int list;
+  s_code : quad_t list
+}
+
+let ssv_err = {
+  s_next = [-1];
+  s_code = []
+}
+
+let ssv_empty = {
+  s_next = [];
+  s_code = []
+}
+
 let cond_of_expr e =
   let tr = [!quadNext] in
   let q1 = Q_ifb (e.e_place, Q_backpatch) in
@@ -255,6 +271,22 @@ let cond_of_expr e =
     c_true = tr;
     c_false = fa
   } in c
+
+let expr_of_cond c =
+  let e = newTemporary TYPE_bool in
+  backpatch c.c_true (Q_int !quadNext);
+  let q = Q_assign ( Q_bool true, Q_entry e) in
+  addNewQuad q;
+  let foo = !quadNext + 2 in
+  let q = Q_jump ( Q_int foo ) in
+  addNewQuad q;
+  backpatch c.c_false (Q_int !quadNext);
+  let q = Q_assign ( Q_bool false, Q_entry e) in
+  addNewQuad q;
+  let esv = {
+    e_place = Q_entry e;
+    e_typ = TYPE_bool
+  } in esv
 
 (* DEPRECATED *)
 (*
@@ -537,20 +569,8 @@ let sq_relop a op b x y =
         c_true = tr;
         c_false = fa
       } in
-      let e = newTemporary TYPE_bool in
-      backpatch csv.c_true (Q_int !quadNext);
-      let q = Q_assign ( Q_bool true, Q_entry e) in
-      addNewQuad q;
-      let foo = !quadNext + 2 in
-      let q = Q_jump ( Q_int foo ) in
-      addNewQuad q;
-      backpatch csv.c_false (Q_int !quadNext);
-      let q = Q_assign ( Q_bool false, Q_entry e) in
-      addNewQuad q;
-      let esv = {
-        e_place = Q_entry e;
-        e_typ = TYPE_bool
-      } in esv
+      let e = expr_of_cond csv in
+      e
 
 (* Semantic-Quad actions for unary operators *)
 let sq_unop op a x y =
@@ -662,13 +682,16 @@ let sq_assign a op b =
     match op with
     | "=" ->
       let q = Q_assign (b.e_place, a.e_place) in
-      addNewQuad q;
+      (* addNewQuad q *)
+      [q]
     | binop ->
       let e = sq_binop a binop b (rhs_start_pos 1) (rhs_end_pos 3) in
       let q = Q_assign (e.e_place, a.e_place) in
-      addNewQuad q;
+      (* addNewQuad q *)
+      [q]
   else
-    ()
+    (* () *)
+    []
 
 (* Semantic-Quads actions for variable definition *)
 let sq_vardef typ (name, dims, init) =
@@ -677,7 +700,8 @@ let sq_vardef typ (name, dims, init) =
     let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
       (* if found, name is already taken *)
       error "Var name %s is already taken" name;
-      ignore(e)
+      ignore(e);
+      []
   with Not_found ->
     (* if not found, name is available *)
     match init.e_place with
@@ -689,7 +713,8 @@ let sq_vardef typ (name, dims, init) =
       | [] -> typ
       | _ -> error "Array dimension isn't int const"; TYPE_none
       in
-      ignore( newVariable (id_make name) (ft dims) false )
+      ignore( newVariable (id_make name) (ft dims) false );
+      []
     | _ ->
       (* initialization is present *)
       let n = newVariable (id_make name) typ false in
@@ -809,7 +834,7 @@ let sq_plus_plus id =
   } in
   let e = sq_binop id "+" esv (rhs_start_pos 1) (rhs_end_pos 3) in
   let q = Q_assign (e.e_place, id.e_place) in
-  addNewQuad q
+  [q]
 
 let sq_minus_minus id =
   let esv = {
@@ -818,4 +843,4 @@ let sq_minus_minus id =
   } in
   let e = sq_binop id "-" esv (rhs_start_pos 1) (rhs_end_pos 3) in
   let q = Q_assign (e.e_place, id.e_place) in
-  addNewQuad q
+  [q]
