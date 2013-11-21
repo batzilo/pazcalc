@@ -1,8 +1,8 @@
 PROGRAM bar ( ) {
-int a, b=0;
-a = 7;
-if ( a > 0 ) {
-b = 1;
-}
-return;
+    int a, b=0;
+    a = 7;
+    if ( a > 0 ) {
+        b = 1;
+    }
+    return;
 }

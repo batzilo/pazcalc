@@ -270,7 +270,7 @@ let cond_of_expr e =
   let c = {
     c_true = tr;
     c_false = fa
-  } in c
+  } in (c,[q1]@[q2])
 
 let expr_of_cond c =
   let e = newTemporary TYPE_bool in

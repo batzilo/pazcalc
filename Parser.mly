@@ -441,7 +441,7 @@ local_def :	const_def   { ssv_empty }
           | var_def     { let ssv = { s_next = []; s_code = $1 } in ssv }
           ;
 
-cond : expr { cond_of_expr $1 }
+cond : expr { let (c,qs) = cond_of_expr $1 in let foo = Q_empty in (c,[foo]@[foo]@[foo]@[foo]@[foo]@qs) }
      ;
 
 stmt : T_sem_col { ssv_empty }
@@ -476,7 +476,7 @@ stmt : T_sem_col { ssv_empty }
         }
      | T_if T_lparen cond T_rparen stmt	%prec NOELSE {
           (* handle if then *)
-          let c = $3 in
+          let (c,qs) = $3 in
           backpatch c.c_true (Q_int (!quadNext - (List.length $5.s_code)));
           (* backpatch c.c_true (Q_int !quadNext); *)
           let l1 = c.c_false in
@@ -484,11 +484,12 @@ stmt : T_sem_col { ssv_empty }
           let l = List.merge compare l1 $5.s_next in
           let ssv = {
             s_next = l;
-            s_code = []
+            s_code = qs @ $5.s_code
           } in ssv
         }
      | T_if T_lparen cond T_rparen stmt T_else stmt {
           (* handle if then else *)
+          (*
           let c = $3 in
           backpatch c.c_true (Q_int !quadNext);
           (* List.iter addNewQuad $5.s_code; *)
@@ -507,6 +508,8 @@ stmt : T_sem_col { ssv_empty }
             s_next = l;
             s_code = code
           } in ssv
+          *)
+          ssv_empty
         }
      | T_while T_lparen cond T_rparen stmt { ssv_empty }
      | T_FOR T_lparen T_id T_comma range T_rparen stmt { ssv_empty }

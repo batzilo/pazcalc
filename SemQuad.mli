@@ -84,7 +84,8 @@ val ssv_err : semv_stmt
 
 val ssv_empty : semv_stmt
 
-val cond_of_expr : semv_expr -> semv_cond
+(* val cond_of_expr : semv_expr -> semv_cond *)
+val cond_of_expr : semv_expr -> semv_cond * quad_t list
 
 val expr_of_cond : semv_cond -> semv_expr
 
