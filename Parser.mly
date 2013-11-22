@@ -114,7 +114,7 @@ declaration_list : declaration { }
                  ;
 
 declaration : const_def { }
-            | var_def { (* List.iter addNewQuad $1 *) }
+            | var_def { }
             | routine { }
             | program { }
             ;
@@ -143,18 +143,14 @@ const_def2 : T_comma T_id T_assign const_expr               { [($2, $4)] }
            ;
 
 var_def : paztype var_init T_sem_col {
-                List.iter addNewQuad (sq_vardef $1 $2)
+                let qs = sq_vardef $1 $2 in
+                List.iter addNewQuad qs
                 }
         | paztype var_init var_def2 T_sem_col {
-                (*
-                sq_vardef $1 $2;
-                List.iter (sq_vardef $1) $3
-                *)
                 let first = (sq_vardef $1 $2) in
                 let rest = List.map (sq_vardef $1) $3 in
                 let all = first @ (List.concat rest) in
                 List.iter addNewQuad all
-                (* all *)
                 }
 		;
 
@@ -355,90 +351,44 @@ call2 : expr                { [$1] }
       ;
 
 block : T_lbrace T_rbrace           { ssv_empty }
-      | T_lbrace block2 T_rbrace    {
-          (* FIXME add the quads here!!! *)
-          (* List.iter addNewQuad $2.s_code; *)
-          (* backpatch $2.s_next (Q_int !quadNext); *)
-          (* ssv_empty *)
-          $2
-        }
+      | T_lbrace block2 T_rbrace    { $2 }
       /* error recovery */
       | T_lbrace error T_rbrace     { ssv_err }
       ;
 
 block2 : local_def          {
-              (*
-              (* List.iter addNewQuad $1.s_code; *)
-              backpatch $1.s_next (Q_int (!quadNext + (List.length $1.s_code)));
-              let ssv = {
-                s_next = [];
-                s_code = $1.s_code
-              } in ssv
-              *)
-              (* List.iter addNewQuad $1.s_code; *)
               backpatch $1.s_next (Q_int !quadNext);
               let ssv = {
                 s_next = [];
                 (* s_code = $1.s_code *)
                 s_len = $1.s_len
               } in ssv
-              (* ssv_empty *)
             }
        | stmt               {
-              (*
-              (* List.iter addNewQuad $1.s_code; *)
-              backpatch $1.s_next (Q_int (!quadNext + (List.length $1.s_code)));
-              let ssv = {
-                s_next = [];
-                s_code = $1.s_code
-              } in ssv
-              *)
-              (* List.iter addNewQuad $1.s_code; *)
               backpatch $1.s_next (Q_int !quadNext);
               let ssv = {
                 s_next = [];
                 (* s_code = $1.s_code *)
                 s_len = $1.s_len
               } in ssv
-              (* ssv_empty *)
             }
        | block2 local_def   {
-              (*
-              (* List.iter addNewQuad $2.s_code; *)
-              backpatch $2.s_next (Q_int (!quadNext + (List.length $2.s_code)));
-              let ssv = {
-                s_next = [];
-                s_code = $1.s_code @ $2.s_code
-              } in ssv
-              *)
               backpatch $1.s_next (Q_int !quadNext);
-              (* List.iter addNewQuad $2.s_code; *)
               backpatch $2.s_next (Q_int !quadNext);
               let ssv = {
                 s_next = [];
                 (* s_code = $1.s_code @ $2.s_code *)
                 s_len = $1.s_len + $2.s_len
               } in ssv
-              (* ssv_empty *)
             }
        | block2 stmt        {
-              (*
-              (* List.iter addNewQuad $2.s_code; *)
-              backpatch $2.s_next (Q_int (!quadNext + (List.length $2.s_code)));
-              let ssv = {
-                s_next = [];
-                s_code = $1.s_code @ $2.s_code
-              } in ssv
-              *)
               backpatch $1.s_next (Q_int !quadNext);
-              (* List.iter addNewQuad $2.s_code; *)
               backpatch $2.s_next (Q_int !quadNext);
               let ssv = {
                 s_next = [];
                 (* s_code = $1.s_code @ $2.s_code *)
                 s_len = $1.s_len + $2.s_len
               } in ssv
-              (* ssv_empty *)
             }
        ;
 
@@ -446,10 +396,26 @@ local_def :	const_def   { ssv_empty }
           | var_def     { (* let ssv = { s_next = []; s_code = $1 } in ssv*) ssv_empty }
           ;
 
-cond : expr { let (c,qs) = cond_of_expr $1 in (* let foo = Q_empty in *) (c,(*[foo]@[foo]@[foo]@[foo]@[foo]@qs*)(5+List.length qs)) }
+cond : expr {
+          (* cond is expr *)
+          let (c,qs) = cond_of_expr $1 in
+          (*
+          let foo = Q_empty in
+          (c,[foo]@[foo]@[foo]@[foo]@[foo]@qs)
+          *)
+          let len = ( 5 + List.length qs ) in
+          (c,len)
+        }
      ;
 
-fly : /* empty */ { let l = [!quadNext] in let q = Q_jump ( Q_backpatch ) in addNewQuad q; (l,(*[q]*)1) }
+fly : /* empty */ {
+          (* dummy! *)
+          let l = [!quadNext] in
+          let q = Q_jump ( Q_backpatch )
+          in addNewQuad q;
+          (* (l,[q]) *)
+          (l,1)
+        }
     ;
 
 stmt : T_sem_col { ssv_empty }
@@ -486,23 +452,13 @@ stmt : T_sem_col { ssv_empty }
             s_len = List.length qs
           } in ssv
         }
-     | call T_sem_col {
-          (*
-          let ssv = {
-            s_next = [];
-            s_code = []
-          } in ssv
-          *)
-          ssv_empty
-        }
+     | call T_sem_col { ssv_empty }
      | T_if T_lparen cond T_rparen stmt	%prec NOELSE {
           (* handle if then *)
           let (c,qs) = $3 in
           (* backpatch c.c_true (Q_int (!quadNext - (List.length $5.s_code))); *)
           backpatch c.c_true (Q_int (!quadNext - $5.s_len));
-          (* backpatch c.c_true (Q_int !quadNext); *)
           let l1 = c.c_false in
-          (* List.iter addNewQuad $5.s_code; *)
           let l = List.merge compare l1 $5.s_next in
           let ssv = {
             s_next = l;
@@ -514,12 +470,10 @@ stmt : T_sem_col { ssv_empty }
           (* handle if then else *)
           let (c,qs) = $3 in
           let (fly_back, fly_q) = $7 in
-          (* backpatch c.c_true (Q_int (!quadNext -(List.length $8.s_code) -2 -(List.length $5.s_code))); *)
+          (* backpatch c.c_true (Q_int (!quadNext -(List.length $8.s_code) -1 -(List.length $5.s_code))); *)
           backpatch c.c_true (Q_int (!quadNext -$8.s_len -1 -$5.s_len));
-          (* backpatch fly_back (Q_int (!quadNext - (List.length $8.s_code) -2)); *)
           (* backpatch c.c_false (Q_int (!quadNext - (List.length $8.s_code))); *)
           backpatch c.c_false (Q_int (!quadNext - $8.s_len));
-          (* List.iter addNewQuad $7.s_code; *)
           let l2 = List.merge compare fly_back $5.s_next in
           let l = List.merge compare l2 $8.s_next in
           (* let code = qs @ $5.s_code @ fly_q @ $8.s_code in *)
