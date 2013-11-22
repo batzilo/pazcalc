@@ -58,13 +58,6 @@ type semv_stmt = {
   s_len : int
 }
 
-(* Used for errors *)
-let ssv_err = {
-  s_next = [-1];
-  (* s_code = [] *)
-  s_len = -1
-}
-
 let ssv_empty = {
   s_next = [];
   (* s_code = [] *)
@@ -292,19 +285,22 @@ let cond_of_expr e =
   let c = {
     c_true = tr;
     c_false = fa
-  } in (c,[q1]@[q2])
+  } in (c,2)
 
 let expr_of_cond c =
   let e = newTemporary TYPE_bool in
   backpatch c.c_true (Q_int !quadNext);
   let q = Q_assign ( Q_bool true, Q_entry e) in
   addNewQuad q;
+  incExprQuadLen ();
   let foo = !quadNext + 2 in
   let q = Q_jump ( Q_int foo ) in
   addNewQuad q;
+  incExprQuadLen ();
   backpatch c.c_false (Q_int !quadNext);
   let q = Q_assign ( Q_bool false, Q_entry e) in
   addNewQuad q;
+  incExprQuadLen ();
   let esv = {
     e_place = Q_entry e;
     e_typ = TYPE_bool
@@ -585,9 +581,11 @@ let sq_relop a op b x y =
       let tr = [!quadNext] in
       let q = Q_relop (op, a.e_place, b.e_place, Q_backpatch) in
       addNewQuad q;
+      incExprQuadLen ();
       let fa = [!quadNext] in
       let q = Q_jump ( Q_backpatch ) in
       addNewQuad q;
+      incExprQuadLen ();
       let csv = {
         c_true = tr;
         c_false = fa
@@ -707,16 +705,15 @@ let sq_assign a op b =
     match op with
     | "=" ->
       let q = Q_assign (b.e_place, a.e_place) in
-      (* addNewQuad q *)
-      [q]
+      addNewQuad q;
+      1
     | binop ->
       let e = sq_binop a binop b (rhs_start_pos 1) (rhs_end_pos 3) in
       let q = Q_assign (e.e_place, a.e_place) in
-      (* addNewQuad q *)
-      [q]
+      addNewQuad q;
+      1
   else
-    (* () *)
-    []
+    0
 
 (* Semantic-Quads actions for variable definition *)
 let sq_vardef typ (name, dims, init) =
@@ -726,7 +723,6 @@ let sq_vardef typ (name, dims, init) =
       (* if found, name is already taken *)
       error "Var name %s is already taken" name;
       ignore(e);
-      []
   with Not_found ->
     (* if not found, name is available *)
     match init.e_place with
@@ -739,7 +735,6 @@ let sq_vardef typ (name, dims, init) =
       | _ -> error "Array dimension isn't int const"; TYPE_none
       in
       ignore( newVariable (id_make name) (ft dims) false );
-      []
     | _ ->
       (* initialization is present *)
       let n = newVariable (id_make name) typ false in
@@ -747,7 +742,10 @@ let sq_vardef typ (name, dims, init) =
         e_place = Q_entry n;
         e_typ = typ
       } in
-      sq_assign var "=" init
+      let l = sq_assign var "=" init in
+      if ( l = 1 ) then incExprQuadLen ()
+      else if ( l > 0 ) then internal "l > 1"
+      else ()
 
 (* Semantic-Quads actions for routine header *)
 let sq_rout_head name typ pars =

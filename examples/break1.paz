@@ -1,0 +1,11 @@
+PROGRAM bar ( ) {
+    int a;
+    bool b;
+    a = 0;
+    b = true;
+    while ( b ) {
+        a += 1;
+        if ( a > 10 ) break;
+    }
+    return;
+}

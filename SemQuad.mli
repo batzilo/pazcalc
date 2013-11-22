@@ -41,8 +41,6 @@ type semv_stmt = {
   s_len : int
 }
 
-val ssv_err : semv_stmt
-
 val ssv_empty : semv_stmt
 
 val quad_of_passmode : Symbol.pass_mode -> quad_pass_mode
@@ -100,7 +98,7 @@ val binop_error : Types.typ -> string -> Types.typ -> Lexing.position -> Lexing.
 val unop_error : string -> Types.typ -> Lexing.position -> Lexing.position -> unit
 
 (* val cond_of_expr : semv_expr -> semv_cond *)
-val cond_of_expr : semv_expr -> semv_cond * quad_t list
+val cond_of_expr : semv_expr -> semv_cond * int
 
 val expr_of_cond : semv_cond -> semv_expr
 
@@ -114,11 +112,9 @@ val sq_cdef : string -> Types.typ -> semv_expr -> unit
 
 val sq_lvalue : string -> semv_expr list -> semv_expr
 
-(* val sq_assign : semv_expr -> string -> semv_expr -> unit *)
-val sq_assign : semv_expr -> string -> semv_expr -> quad_t list
+val sq_assign : semv_expr -> string -> semv_expr -> int
 
-(* val sq_vardef : Types.typ -> string * quad_op_t list * semv_expr -> unit *)
-val sq_vardef : Types.typ -> string * quad_op_t list * semv_expr -> quad_t list
+val sq_vardef : Types.typ -> string * quad_op_t list * semv_expr -> unit
 
 val sq_rout_head : string -> Types.typ -> (Types.typ * (string * Symbol.pass_mode * quad_op_t list)) list -> Symbol.entry
 
