@@ -27,6 +27,50 @@ type quad_op_t = Q_none                           (* Error Handling *)
 
 and quad_pass_mode = V | R | RET
 
+(* Semantic Value of expr *)
+type semv_expr = {
+  e_place : quad_op_t;
+  e_typ : Types.typ     (* Maybe not needed, since place can tell *)
+}
+
+(* Used for errors *)
+let esv_err = {
+  e_place = Q_none;
+  e_typ = TYPE_none;
+}
+
+(* Semantic Value of cond *)
+type semv_cond = {
+  c_true : int list;
+  c_false : int list
+}
+
+(* Used for errors *)
+let csv_err = {
+  c_true = [];
+  c_false = []
+}
+
+(* Semantic Value of stmt *)
+type semv_stmt = {
+  s_next : int list;
+  (* s_code : quad_t list *)
+  s_len : int
+}
+
+(* Used for errors *)
+let ssv_err = {
+  s_next = [-1];
+  (* s_code = [] *)
+  s_len = -1
+}
+
+let ssv_empty = {
+  s_next = [];
+  (* s_code = [] *)
+  s_len = 0
+}
+
 (* convert Symbol.pass_mode to SemQuad.quad_pass_mode *)
 let quad_of_passmode = function
   | PASS_BY_VALUE -> V
@@ -148,6 +192,22 @@ let backpatch l nz =
   (* replace icode with backpatced icode *)
   !icode <- newicode
 
+let exprQuadLen = ref 0
+
+let resetExprQuadLen () =
+  !exprQuadLen <- 0
+
+let incExprQuadLen () =
+  !exprQuadLen <- !exprQuadLen + 1
+
+let lvalQuadLen = ref 0
+
+let resetLvalQuadLen () =
+  !lvalQuadLen <- 0
+
+let incLvalQuadLen () =
+  !lvalQuadLen <- !lvalQuadLen + 1
+
 (* convert SemQuad.quad_op_t to Symbol.const_val *)
 let const_of_quad = function
     | Q_int q -> CONST_int q
@@ -221,44 +281,6 @@ let unop_error op a x y =
   x.pos_lnum (x.pos_cnum - x.pos_bol)
   y.pos_lnum (y.pos_cnum - y.pos_bol)
   op (string_of_typ a)
-
-(* Semantic Value of expr *)
-type semv_expr = {
-  e_place : quad_op_t;
-  e_typ : Types.typ     (* Maybe not needed, since place can tell *)
-}
-
-(* Used for errors *)
-let esv_err = {
-  e_place = Q_none;
-  e_typ = TYPE_none;
-}
-
-(* Semantic Value of cond *)
-type semv_cond = {
-  c_true : int list;
-  c_false : int list
-}
-
-let csv_err = {
-  c_true = [];
-  c_false = []
-}
-
-type semv_stmt = {
-  s_next : int list;
-  s_code : quad_t list
-}
-
-let ssv_err = {
-  s_next = [-1];
-  s_code = []
-}
-
-let ssv_empty = {
-  s_next = [];
-  s_code = []
-}
 
 let cond_of_expr e =
   let tr = [!quadNext] in
@@ -541,6 +563,7 @@ let sq_binop a op b x y =
            e_typ = typ
          } in
          addNewQuad q;
+         incExprQuadLen ();
          esv
       | _ ->
          (* Constant *)
@@ -588,6 +611,7 @@ let sq_unop op a x y =
         e_typ = typ
       } in
       addNewQuad q;
+      incExprQuadLen ();
       esv
 
 (* Semantic-Quad actions for constant definiton *)
@@ -624,6 +648,7 @@ let sq_lvalue name idxs =
        let newt = newTemporary et in
        let q = Q_array (id, h.e_place, Q_entry newt) in
        addNewQuad q;
+       incLvalQuadLen ();
        mktemp (Q_deref newt) et t
        end
     | _, [] ->

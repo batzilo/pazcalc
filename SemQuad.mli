@@ -18,6 +18,33 @@ type quad_op_t = Q_none                           (* Error Handling *)
 
 and quad_pass_mode = V | R | RET
 
+(* Semantic Value of expr *)
+type semv_expr = {
+  e_place : quad_op_t;
+  e_typ : Types.typ     (* Maybe not needed, since place can tell *)
+}
+
+val esv_err : semv_expr
+
+(* Semantic Value of cond *)
+type semv_cond = {
+  c_true : int list;
+  c_false : int list
+}
+
+val csv_err : semv_cond
+
+(* Semantic Value of stmt *)
+type semv_stmt = {
+  s_next : int list;
+  (* s_code : quad_t list *)
+  s_len : int
+}
+
+val ssv_err : semv_stmt
+
+val ssv_empty : semv_stmt
+
 val quad_of_passmode : Symbol.pass_mode -> quad_pass_mode
 
 val string_of_quad_op : quad_op_t -> string
@@ -50,6 +77,18 @@ val printIntermediateCode : unit -> unit
 
 val backpatch : int list -> quad_op_t -> unit
 
+val exprQuadLen : int ref
+
+val resetExprQuadLen : unit -> unit
+
+val incExprQuadLen : unit  -> unit
+
+val lvalQuadLen : int ref
+
+val resetLvalQuadLen : unit -> unit
+
+val incLvalQuadLen : unit -> unit
+
 val const_of_quad : quad_op_t -> Symbol.const_val
 
 val quad_of_const : Symbol.const_val -> quad_op_t
@@ -59,30 +98,6 @@ val get_binop_pos : unit -> Lexing.position * Lexing.position
 val binop_error : Types.typ -> string -> Types.typ -> Lexing.position -> Lexing.position -> unit
 
 val unop_error : string -> Types.typ -> Lexing.position -> Lexing.position -> unit
-
-(* Semantic Value of expr *)
-type semv_expr = {
-  e_place : quad_op_t;
-  e_typ : Types.typ     (* Maybe not needed, since place can tell *)
-}
-
-val esv_err : semv_expr
-
-type semv_cond = {
-  c_true : int list;
-  c_false : int list
-}
-
-val csv_err : semv_cond
-
-type semv_stmt = {
-  s_next : int list;
-  s_code : quad_t list
-}
-
-val ssv_err : semv_stmt
-
-val ssv_empty : semv_stmt
 
 (* val cond_of_expr : semv_expr -> semv_cond *)
 val cond_of_expr : semv_expr -> semv_cond * quad_t list
