@@ -484,7 +484,19 @@ stmt : T_sem_col { ssv_empty }
             s_len = len
           } in ssv
         }
-     | T_while T_lparen cond T_rparen stmt { ssv_empty }
+     | T_while T_lparen cond T_rparen stmt {
+          (* handle while loop *)
+          let (c,qs) = $3 in
+          backpatch c.c_true (Q_int (!quadNext -$5.s_len -1));
+          let while_start = Q_int (!quadNext -$5.s_len -qs -1) in
+          backpatch $5.s_next while_start;
+          let q = Q_jump ( while_start ) in
+          addNewQuad q;
+          let ssv = {
+            s_next = c.c_false;
+            s_len = qs + $5.s_len + 1
+          } in ssv
+        }
      | T_FOR T_lparen T_id T_comma range T_rparen stmt { ssv_empty }
      | T_do stmt T_while T_lparen cond T_rparen T_sem_col { ssv_empty }
      /* switch ? */
