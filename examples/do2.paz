@@ -1,0 +1,6 @@
+PROGRAM bar ( ) {
+    int a;
+    a = 0;
+    do { a++; } while ( a < 5 );
+    return;
+}

@@ -487,10 +487,10 @@ stmt : T_sem_col { ssv_empty }
      | T_while T_lparen cond T_rparen stmt {
           (* handle while loop *)
           let (c,qs) = $3 in
-          backpatch c.c_true (Q_int (!quadNext -$5.s_len -1));
-          let while_start = Q_int (!quadNext -$5.s_len -qs -1) in
-          backpatch $5.s_next while_start;
-          let q = Q_jump ( while_start ) in
+          let stmt_start = !quadNext -$5.s_len -1 in
+          backpatch c.c_true (Q_int stmt_start);
+          backpatch $5.s_next (Q_int (stmt_start - qs));
+          let q = Q_jump (Q_int (stmt_start - qs)) in
           addNewQuad q;
           let ssv = {
             s_next = c.c_false;
@@ -498,7 +498,17 @@ stmt : T_sem_col { ssv_empty }
           } in ssv
         }
      | T_FOR T_lparen T_id T_comma range T_rparen stmt { ssv_empty }
-     | T_do stmt T_while T_lparen cond T_rparen T_sem_col { ssv_empty }
+     | T_do stmt T_while T_lparen cond T_rparen T_sem_col {
+          (* handle do-while *)
+          let (c,qs) = $5 in
+          let stmt_start = !quadNext -$2.s_len -qs -1 in
+          backpatch c.c_true (Q_int stmt_start);
+          backpatch $2.s_next (Q_int (stmt_start + $2.s_len));
+          let ssv = {
+            s_next = c.c_false;
+            s_len = $2.s_len + qs + 1
+          } in ssv
+        }
      /* switch ? */
      | T_break T_sem_col { ssv_empty }
      | T_continue T_sem_col { ssv_empty }
