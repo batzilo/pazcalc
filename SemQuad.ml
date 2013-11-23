@@ -867,3 +867,48 @@ let sq_minus_minus id =
   let e = sq_binop id "-" esv (rhs_start_pos 1) (rhs_end_pos 3) in
   let q = Q_assign (e.e_place, id.e_place) in
   [q]
+
+let breakQuad = ref []
+
+let addBreakQuad l =
+  !breakQuad <- !breakQuad @ l
+
+let rmBreakQuad n =
+  let rec seekAndDestroy a b which =
+    match b with
+    | h::t ->
+      if ( h = which ) then
+        begin
+        !breakQuad <- a@t
+        end
+      else
+        seekAndDestroy (a@[h]) t which
+    | _ -> internal "quad asked to be removed does not exist!"
+  in
+  seekAndDestroy [] !breakQuad n
+
+
+let resetBreakQuad () =
+  !breakQuad <- []
+
+let collectMyBreaks a b =
+(*
+  let getN = function
+    | [n] -> n
+    | _ -> internal "break quad isn't a list?"; (-1)
+  in
+*)
+  let belongsToMe n = 
+    if ( a < n && n < b ) then true else false
+  in
+  let fix n =
+    (* let n = getN brkQuad in *)
+    if ( belongsToMe n ) then
+      begin
+      backpatch [n] (Q_int b);
+      rmBreakQuad n;
+      end
+    else
+      ()
+  in
+  List.iter fix !breakQuad

@@ -123,3 +123,13 @@ val sq_rout_call : string -> semv_expr list -> semv_expr
 val sq_plus_plus : semv_expr -> quad_t list
 
 val sq_minus_minus : semv_expr -> quad_t list
+
+val breakQuad : int list ref
+
+val addBreakQuad : int list -> unit
+
+val rmBreakQuad : int -> unit
+
+val resetBreakQuad : unit -> unit
+
+val collectMyBreaks : int -> int -> unit

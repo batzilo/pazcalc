@@ -1,7 +1,9 @@
 PROGRAM bar ( ) {
     bool a,b;
     while ( a ) {
-        if ( b ) break;
+        if ( b ) {
+            break;
+        }
     }
     return;
 }

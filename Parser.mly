@@ -533,20 +533,26 @@ stmt : T_sem_col { ssv_empty }
           backpatch c.c_true (Q_int stmt_start);
           backpatch $5.s_next (Q_int (stmt_start - qs));
           (* backpatch $5.s_next (Q_int !quadNext); *)
+          (* FIXME break, continue *)
           let q = Q_jump (Q_int (stmt_start - qs)) in
           addNewQuad q;
+          collectMyBreaks (stmt_start - qs) (!quadNext);
           let ssv = {
             s_next = c.c_false;
             s_len = qs + $5.s_len + 1
           } in ssv
         }
-     | T_FOR T_lparen T_id T_comma range T_rparen stmt { ssv_empty }
+     | T_FOR T_lparen T_id T_comma range T_rparen stmt {
+          (* handle for loop *)
+          ssv_empty
+        }
      | T_do stmt T_while T_lparen cond T_rparen T_sem_col {
           (* handle do-while *)
           let (c,qs) = $5 in
           let stmt_start = !quadNext -$2.s_len -qs in
           backpatch c.c_true (Q_int stmt_start);
           backpatch $2.s_next (Q_int (stmt_start + $2.s_len));
+          (* FIXME break, continue *)
           let ssv = {
             s_next = c.c_false;
             s_len = $2.s_len + qs
@@ -555,11 +561,12 @@ stmt : T_sem_col { ssv_empty }
      /* switch ? */
      | T_break T_sem_col {
           (* break *)
-          let nq = [!quadNext] in
+          let brk = [!quadNext] in
           let q = Q_jump (Q_backpatch) in
           addNewQuad q;
+          addBreakQuad brk;
           let ssv = {
-            s_next = nq;
+            s_next = [];
             s_len = 1
           } in ssv
         }

@@ -1,7 +1,10 @@
 PROGRAM bar ( ) {
-    bool a,b;
+    bool a,b,c,d;
     while ( a ) {
         if ( b ) break;
+        while ( c ) {
+            if ( d ) break;
+        }
     }
     return;
 }
