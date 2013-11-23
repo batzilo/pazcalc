@@ -544,12 +544,12 @@ stmt : T_sem_col { ssv_empty }
      | T_do stmt T_while T_lparen cond T_rparen T_sem_col {
           (* handle do-while *)
           let (c,qs) = $5 in
-          let stmt_start = !quadNext -$2.s_len -qs -1 in
+          let stmt_start = !quadNext -$2.s_len -qs in
           backpatch c.c_true (Q_int stmt_start);
           backpatch $2.s_next (Q_int (stmt_start + $2.s_len));
           let ssv = {
             s_next = c.c_false;
-            s_len = $2.s_len + qs + 1
+            s_len = $2.s_len + qs
           } in ssv
         }
      /* switch ? */
