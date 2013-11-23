@@ -128,8 +128,16 @@ val breakQuad : int list ref
 
 val addBreakQuad : int list -> unit
 
-val rmBreakQuad : int -> unit
+val rmQuad : int list ref -> int -> unit
 
 val resetBreakQuad : unit -> unit
 
 val collectMyBreaks : int -> int -> unit
+
+val contQuad : int list ref
+
+val addContQuad : int list -> unit
+
+val resetContQuad : unit -> unit
+
+val collectMyConts : int -> int -> unit

@@ -1,0 +1,10 @@
+PROGRAM bar ( ) {
+    bool a,b,c,d;
+    while ( a ) {
+        if ( b ) continue;
+        while ( c ) {
+            if ( d ) continue;
+        }
+    }
+    return;
+}

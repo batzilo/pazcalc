@@ -537,6 +537,7 @@ stmt : T_sem_col { ssv_empty }
           let q = Q_jump (Q_int (stmt_start - qs)) in
           addNewQuad q;
           collectMyBreaks (stmt_start - qs) (!quadNext);
+          collectMyConts (stmt_start - qs) (!quadNext);
           let ssv = {
             s_next = c.c_false;
             s_len = qs + $5.s_len + 1
@@ -570,7 +571,17 @@ stmt : T_sem_col { ssv_empty }
             s_len = 1
           } in ssv
         }
-     | T_continue T_sem_col { ssv_empty }
+     | T_continue T_sem_col {
+          (* continue *)
+          let cnt = [!quadNext] in
+          let q = Q_jump (Q_backpatch) in
+          addNewQuad q;
+          addContQuad cnt;
+          let ssv = {
+            s_next = [];
+            s_len = 1
+          } in ssv
+        }
      | T_return T_sem_col {
           (* handle return *)
           let q = Q_ret in

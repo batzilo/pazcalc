@@ -873,42 +873,57 @@ let breakQuad = ref []
 let addBreakQuad l =
   !breakQuad <- !breakQuad @ l
 
-let rmBreakQuad n =
+let rmQuad lis n =
   let rec seekAndDestroy a b which =
     match b with
     | h::t ->
       if ( h = which ) then
         begin
-        !breakQuad <- a@t
+        !lis <- a@t
         end
       else
         seekAndDestroy (a@[h]) t which
     | _ -> internal "quad asked to be removed does not exist!"
   in
-  seekAndDestroy [] !breakQuad n
-
+  seekAndDestroy [] !lis n
 
 let resetBreakQuad () =
   !breakQuad <- []
 
 let collectMyBreaks a b =
-(*
-  let getN = function
-    | [n] -> n
-    | _ -> internal "break quad isn't a list?"; (-1)
-  in
-*)
   let belongsToMe n = 
     if ( a < n && n < b ) then true else false
   in
   let fix n =
-    (* let n = getN brkQuad in *)
     if ( belongsToMe n ) then
       begin
       backpatch [n] (Q_int b);
-      rmBreakQuad n;
+      rmQuad breakQuad n;
       end
     else
       ()
   in
   List.iter fix !breakQuad
+
+let contQuad = ref []
+
+let addContQuad l =
+  !contQuad <- !contQuad @ l
+
+let resetContQuad () =
+  !contQuad <- []
+
+let collectMyConts a b =
+  let belongsToMe n = 
+    if ( a < n && n < b ) then true else false
+  in
+  let fix n =
+    if ( belongsToMe n ) then
+      begin
+      backpatch [n] (Q_int a);
+      rmQuad contQuad n;
+      end
+    else
+      ()
+  in
+  List.iter fix !contQuad

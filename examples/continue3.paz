@@ -1,0 +1,5 @@
+PROGRAM bar ( ) {
+    bool a;
+    while ( a ) continue;
+    return;
+}
