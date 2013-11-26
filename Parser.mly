@@ -447,6 +447,13 @@ fly : /* empty */ {
         }
     ;
 
+for_control : T_id T_comma range {
+                  (* for loop control *)
+                  let (a,b,c) = $3 in
+                  sq_for_control $1 a b c
+                }
+            ;
+
 stmt : T_sem_col { ssv_empty }
      | block { $1 }
      | l_value assign expr T_sem_col {
@@ -543,9 +550,30 @@ stmt : T_sem_col { ssv_empty }
             s_len = qs + $5.s_len + 1
           } in ssv
         }
-     | T_FOR T_lparen T_id T_comma range T_rparen stmt {
+     | T_FOR T_lparen for_control T_rparen stmt {
           (* handle for loop *)
-          ssv_empty
+          let (init, c, qs, stepqs) = $3 in
+          printf "\tqs = %d quads\n" qs;
+          let stmt_start = !quadNext - $5.s_len in
+          printf "\tstmt_start = %d\n" stmt_start;
+          backpatch c.c_true (Q_int stmt_start);
+          printf "\tbackpatch c.c_true with %d\n" stmt_start;
+          (* backpatch $5.s_next (Q_int (stmt_start - qs)); *)
+          backpatch $5.s_next (Q_int !quadNext);
+          printf "\tbackpatch stmt.s_next with %d\n" !quadNext;
+          List.iter addNewQuad stepqs;
+          let steplen = List.length stepqs in
+          printf "\tsteplen = %d\n" steplen;
+          let q = Q_jump (Q_int (stmt_start - qs + init)) in
+          addNewQuad q;
+          printf "\tFOR len = %d\n" (qs + $5.s_len + steplen + 1);
+          (* FIXME *)
+          collectMyBreaks (stmt_start - qs) (!quadNext);
+          collectMyConts (stmt_start - qs) (!quadNext);
+          let ssv = {
+            s_next = c.c_false;
+            s_len = qs + $5.s_len + steplen + 1
+          } in ssv
         }
      | T_do stmt T_while T_lparen cond T_rparen T_sem_col {
           (* handle do-while *)
@@ -633,10 +661,30 @@ assign : T_assign           { "=" }
        | T_mod_assign       { "%" }
        ;
 
-range : expr T_TO expr { }
-      | expr T_TO expr T_STEP expr { }
-      | expr T_DOWNTO expr { }
-      | expr T_DOWNTO expr T_STEP expr { }
+range : expr T_TO expr {
+          (* a TO b *)
+          let one = {
+            e_place = Q_int 1;
+            e_typ = TYPE_int
+          } in
+          sq_range $1 $3 one
+        }
+      | expr T_TO expr T_STEP expr {
+          (* a TO b STEP c *)
+          sq_range $1 $3 $5
+        }
+      | expr T_DOWNTO expr {
+          (* a DOWNTO b *)
+          let one = {
+            e_place = Q_int 1;
+            e_typ = TYPE_int
+          } in
+          sq_range $1 $3 one
+        }
+      | expr T_DOWNTO expr T_STEP expr {
+          (* a DOWNTO b STEP c *)
+          sq_range $1 $3 $5
+        }
       ;
 
 /* clause */

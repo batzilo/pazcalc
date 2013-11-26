@@ -927,3 +927,93 @@ let collectMyConts a b =
       ()
   in
   List.iter fix !contQuad
+
+let sq_range a b c =
+  match a.e_typ, b.e_typ, c.e_typ with
+  | TYPE_int, TYPE_int, TYPE_int ->
+    (a.e_place, b.e_place, c.e_place )
+  | _ ->
+    error "Range arguments isn't all ints!";
+    let zero = Q_int 0 in
+    (zero, zero, zero)
+
+let sq_for_control i a b c =
+  let ie = sq_lvalue i [] in
+  let q1 = Q_assign (a, ie.e_place) in
+  addNewQuad q1;
+  incExprQuadLen ();
+  let len0 = !exprQuadLen in
+  resetExprQuadLen ();
+  printf "\tafter init, quads = %d\n" len0;
+  let cmp = if ( a <= b ) then "<" else ">" in
+  let tr = [!quadNext] in
+  let q2 = Q_relop (cmp, ie.e_place, b, Q_backpatch) in
+  addNewQuad q2;
+  incExprQuadLen ();
+  let fa = [!quadNext] in
+  let q3 = Q_jump (Q_backpatch) in
+  addNewQuad q3;
+  incExprQuadLen ();
+  let csv = {
+    c_true = tr;
+    c_false = fa
+  } in
+  let e = expr_of_cond csv in
+  let (cond,qs) = cond_of_expr e in
+  let l1 = !exprQuadLen in
+  resetExprQuadLen ();
+  let l2 = !lvalQuadLen in
+  resetLvalQuadLen ();
+  printf "\tafter check, quads = %d\n" (qs+l1+l2);
+  let len = len0 + qs + l1 + l2 in
+  let e = newTemporary TYPE_int in
+  let q4 = Q_op ("+", ie.e_place, c, Q_entry e) in
+  let q5 = Q_assign (Q_entry e, ie.e_place) in
+  let incquads = q4::[q5] in
+  (len0, cond, len, incquads)
+
+
+(*
+let sq_for i range stmt =
+  let for_quads iter =
+    let (a,b,c) = range in
+    let q1 = Q_assign (a, iter) in
+    addNewQuad q1;
+  in
+  try
+    (* search for i in the current scope, don't handle the not_found case *)
+    let e = lookupEntry (id_make i) LOOKUP_CURRENT_SCOPE false in
+    match e.entry_info with
+    (* if it is a variable, check type *)
+    | ENTRY_variable inf ->
+      if (inf.variable_type != TYPE_int) then
+        (* if type isn't int, error *)
+        error "loop iterator '%s' isn't of type int" i
+      else
+        (* if type is int, go make quads *)
+        for_quads (Q_entry e)
+    (* if it is a parameter, check type *)
+    | ENTRY_parameter inf ->
+      if (inf.parameter_type != TYPE_int) then
+        (* if type isn't int, error *)
+        error "loop iterator '%s' isn't of type int" i
+      else
+        (* if type is int, go make quads *)
+        for_quads (Q_entry e)
+    (* if it is not a variable nor a parameter, error *)
+    | _ ->
+      error "loop iterator '%s' is not a variable or a parameter in the current scope!" i
+  with Not_found ->
+    let e = lookupEntry (id_make i) LOOKUP_ALL_SCOPES true in
+    match e.entry_info with
+    | ENTRY_variable inf ->
+      if (inf.variable_type != TYPE_int) then
+        (* if type isn't int, error *)
+        error "loop iterator '%s' isn't of type int" i
+      else
+        (* if type is int, go make quads *)
+        for_quads (Q_entry e)
+    | _ ->
+      error "loop iterator '%s' is not a variable in the global scope!" i
+*)
+

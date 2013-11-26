@@ -1,0 +1,5 @@
+PROGRAM bar ( ) {
+    int a, b = 0;
+    FOR ( a, 1 TO 5 ) b += a;
+    return;
+}

@@ -141,3 +141,11 @@ val addContQuad : int list -> unit
 val resetContQuad : unit -> unit
 
 val collectMyConts : int -> int -> unit
+
+val sq_range : semv_expr -> semv_expr -> semv_expr -> quad_op_t * quad_op_t * quad_op_t
+
+val sq_for_control : string -> quad_op_t -> quad_op_t -> quad_op_t -> int * semv_cond * int * quad_t list
+
+(*
+val sq_for : string -> quad_op_t * quad_op_t * quad_op_t -> semv_stmt -> unit
+*)
