@@ -21,9 +21,11 @@ open Symbtest
 open Types
 
 (* Called by the parser function on error *)
+(*
 let parse_error s = 
   printf "\n\t%s\n\n" s;
   flush stdout
+*)
 
 (* first steps *)
 let prologue () =
@@ -117,6 +119,7 @@ declaration : const_def { }
             | var_def { }
             | routine { }
             | program { }
+            | error { }
             ;
 
 const_def :	T_const paztype T_id T_assign const_expr T_sem_col {
@@ -370,7 +373,7 @@ call2 : expr                { [$1] }
 block : T_lbrace T_rbrace           { ssv_empty }
       | T_lbrace block2 T_rbrace    { $2 }
       /* error recovery */
-      | T_lbrace error T_rbrace     { ssv_empty }
+      | T_lbrace error T_rbrace     { printf "A syntax error occured inside the block\n"; ssv_empty }
       ;
 
 block2 : local_def          {
@@ -422,7 +425,8 @@ local_def :	const_def   { ssv_empty }
 
 cond : expr {
           (* cond is expr *)
-          let (c,qs) = cond_of_expr $1 in
+          let c = cond_of_expr $1 in
+          let qs = 2 in
           (*
           let foo = Q_empty in
           (c,[foo]@[foo]@[foo]@[foo]@[foo]@qs)
@@ -645,6 +649,7 @@ stmt : T_sem_col { ssv_empty }
      /* error recovery */
      | error T_sem_col {
           (* error *)
+          printf "A syntax error occured in this statement";
           ssv_empty
         }
      ;
@@ -689,15 +694,42 @@ range : expr T_TO expr {
 
 /* clause */
 
-write : T_WRITE { }
-      | T_WRITELN { }
-      | T_WRITESP { }
-      | T_WRITESPLN { }
+write : T_WRITE     { "WRITE"     }
+      | T_WRITELN   { "WRITELN"   }
+      | T_WRITESP   { "WRITESP"   }
+      | T_WRITESPLN { "WRITESPLN" }
       ;
 
-frmt : expr { }
-       | T_FORM T_lparen expr T_comma expr T_rparen	{ }
-       | T_FORM T_lparen expr T_comma expr T_comma expr T_rparen { }
-       ;
+frmt : expr {
+          (* a *)
+          (*
+          let zero = {
+            e_place = Q_int 0;
+            e_typ = TYPE_int
+          } in
+          let minusone = {
+            e_place = Q_int (-1);
+            e_typ = TYPE_int
+          } in
+          sq_format ($1, zero, minusone)
+          *)
+        }
+     | T_FORM T_lparen expr T_comma expr T_rparen {
+          (* FORM(a,5) *)
+          (*
+          let minusone = {
+            e_place = Q_int (-1);
+            e_typ = TYPE_int
+          } in
+          sq_format ($3, $5, minusone)
+          *)
+        }
+     | T_FORM T_lparen expr T_comma expr T_comma expr T_rparen  {
+          (* FORM(a,5,5) *)
+          (*
+          sq_format ($3, $5, $7)
+          *)
+        }
+     ;
 
 %%

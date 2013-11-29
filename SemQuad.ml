@@ -9,6 +9,10 @@ open Identifier
 open Symbol
 open Types
 
+
+
+(* Datatypes *)
+
 (* Quadruples operands datatype *)
 type quad_op_t = Q_none                           (* Error Handling *)
                | Q_int of int                     (* Constant Integer *)
@@ -20,10 +24,10 @@ type quad_op_t = Q_none                           (* Error Handling *)
                | Q_funct_res                      (* Function result: $$ *)
                | Q_deref of Symbol.entry          (* Dereference: [x] *)
                | Q_addr                           (* Address: {x} *)
-               | Q_label of int                   (* label *)
+               | Q_lbl of int                     (* label *)
                | Q_pass_mode of quad_pass_mode    (* Pass mode: V, R, RET *)
-               | Q_dash                           (* Dash : - *)
-               | Q_backpatch                      (* Backpatch : * *)
+               | Q_dash                           (* Dash: -- *)
+               | Q_backpatch                      (* Backpatch: * *)
 
 and quad_pass_mode = V | R | RET
 
@@ -58,35 +62,12 @@ type semv_stmt = {
   s_len : int
 }
 
+(* Used for simple cases *)
 let ssv_empty = {
   s_next = [];
   (* s_code = [] *)
   s_len = 0
 }
-
-(* convert Symbol.pass_mode to SemQuad.quad_pass_mode *)
-let quad_of_passmode = function
-  | PASS_BY_VALUE -> V
-  | PASS_BY_REFERENCE -> R
-
-(* convert SemQuad.quad_op_t to string *)
-let string_of_quad_op = function
-  | Q_none -> ""
-  | Q_int i -> string_of_int i
-  | Q_real r -> string_of_float r
-  | Q_bool b -> string_of_bool b
-  | Q_char c -> Char.escaped c
-  | Q_string s -> s
-  | Q_entry e -> id_name e.entry_id
-  | Q_funct_res -> "$$"
-  | Q_deref e -> "[" ^ id_name e.entry_id ^ "]"
-  | Q_label l -> string_of_int l
-  | Q_pass_mode V -> "V"
-  | Q_pass_mode R -> "R"
-  | Q_pass_mode RET -> "RET"
-  | Q_dash -> "--"
-  | Q_backpatch -> "*"
-  | _ -> "<stub!>"
 
 (* Quadruples datatype *)
 type quad_t = Q_empty
@@ -99,10 +80,54 @@ type quad_t = Q_empty
             | Q_ifb of quad_op_t * quad_op_t
             | Q_jump of quad_op_t
             | Q_label of quad_op_t
-            | Q_jl of quad_op_t
+            | Q_jumpl of quad_op_t
             | Q_call of quad_op_t
             | Q_par of quad_op_t * quad_op_t
             | Q_ret
+
+
+
+(* Conversions *)
+
+(* convert Symbol.pass_mode to SemQuad.quad_pass_mode *)
+let quad_of_passmode = function
+  | PASS_BY_VALUE -> V
+  | PASS_BY_REFERENCE -> R
+
+(* convert SemQuad.quad_op_t to Symbol.const_val *)
+let const_of_quad = function
+    | Q_int q -> CONST_int q
+    | Q_real q -> CONST_REAL q
+    | Q_bool q -> CONST_bool q
+    | Q_char q -> CONST_char q
+    | _ -> CONST_none
+
+(* convert Symbol.const_val to SemQuad.quad_op_t *)
+let quad_of_const = function
+    | CONST_int c -> Q_int c
+    | CONST_REAL c -> Q_real c
+    | CONST_bool c -> Q_bool c 
+    | CONST_char c -> Q_char c
+    | _ -> Q_none
+
+(* convert SemQuad.quad_op_t to string *)
+let string_of_quad_op = function
+  | Q_none -> ""
+  | Q_int i -> string_of_int i
+  | Q_real r -> string_of_float r
+  | Q_bool b -> string_of_bool b
+  | Q_char c -> Char.escaped c
+  | Q_string s -> s
+  | Q_entry e -> id_name e.entry_id
+  | Q_funct_res -> "$$"
+  | Q_deref e -> "[" ^ id_name e.entry_id ^ "]"
+  | Q_lbl l -> string_of_int l
+  | Q_pass_mode V -> "V"
+  | Q_pass_mode R -> "R"
+  | Q_pass_mode RET -> "RET"
+  | Q_dash -> "--"
+  | Q_backpatch -> "*"
+  | _ -> "<stub!>"
 
 (* concatenate four strings seperated by commas *)
 let concat4 a b c d =
@@ -122,12 +147,16 @@ let string_of_quad = function
   | Q_ifb (x,z) ->          concat4 "ifb"   x       Q_dash  z
   | Q_jump z ->             concat4 "jump"  Q_dash  Q_dash  z
   | Q_label l ->            concat4 "label" l       Q_dash  Q_dash
-  | Q_jl l ->               concat4 "jumpl" Q_dash  Q_dash  l
+  | Q_jumpl l ->            concat4 "jumpl" Q_dash  Q_dash  l
   | Q_call u ->             concat4 "call"  Q_dash  Q_dash  u
   | Q_par (x,m) ->          concat4 "par"   x       m       Q_dash
   | Q_ret ->                concat4 "ret"   Q_dash  Q_dash  Q_dash
 
-(* intermediate code : list of quads *)
+
+
+(* Intermediate Code Representation *)
+
+(* intermediate code is a list of quads *)
 let icode = ref []
 
 (* a function to add a new quad to intermediate code *)
@@ -148,6 +177,21 @@ let rmLastQuad () =
     error "intermediate code is empty!";
     raise Exit
 
+(* remove from quad list reference lis the quad with FIXME *)
+let rmQuad lis n =
+  let rec seekAndDestroy a b which =
+    match b with
+    | h::t ->
+      if ( h = which ) then
+        begin
+        !lis <- a@t
+        end
+      else
+        seekAndDestroy (a@[h]) t which
+    | _ -> internal "quad asked to be removed does not exist!"
+  in
+  seekAndDestroy [] !lis n
+
 (* print every quad in intermediate code quad list *)
 let printIntermediateCode () =
   let pr (n,quad) =
@@ -165,7 +209,7 @@ let backpatch l nz =
     | Q_relop (op,x,y,z) -> Q_relop (op,x,y,nz)
     | Q_jump z -> Q_jump nz
     | Q_ifb (x,z) -> Q_ifb (x,nz)
-    | _ -> printf "error\n"; printf "%s\n" (string_of_quad quad); internal "cannot backpatch that quad!"; raise Exit
+    | _ -> internal "error! cannot backpatch that quad! %s\n" (string_of_quad quad); raise Exit
   in
   (* check if n is in l *)
   let is_to_be_fixed n =
@@ -185,44 +229,45 @@ let backpatch l nz =
   (* replace icode with backpatced icode *)
   !icode <- newicode
 
+
+
+(* Quads produced by expressions *)
+
+(* how many quads have been produced, due to expressions? *)
 let exprQuadLen = ref 0
 
+(* reset counter. called after "reading" !exprQuadLen *)
 let resetExprQuadLen () =
   !exprQuadLen <- 0
 
+(* increase counter *)
 let incExprQuadLen () =
   !exprQuadLen <- !exprQuadLen + 1
 
+
+
+(* Quads produced by lvalue *)
+
+(* how many quads have been produced, due to lvalue? *)
 let lvalQuadLen = ref 0
 
+(* reset counter. called after "reading" !lvalQuadLen *)
 let resetLvalQuadLen () =
   !lvalQuadLen <- 0
 
+(* increase counter *)
 let incLvalQuadLen () =
   !lvalQuadLen <- !lvalQuadLen + 1
 
-(* convert SemQuad.quad_op_t to Symbol.const_val *)
-let const_of_quad = function
-    | Q_int q -> CONST_int q
-    | Q_real q -> CONST_REAL q
-    | Q_bool q -> CONST_bool q
-    | Q_char q -> CONST_char q
-    | _ -> CONST_none
-
-(* convert Symbol.const_val to SemQuad.quad_op_t *)
-let quad_of_const = function
-    | CONST_int c -> Q_int c
-    | CONST_REAL c -> Q_real c
-    | CONST_bool c -> Q_bool c 
-    | CONST_char c -> Q_char c
-    | _ -> Q_none
 
 
+(* Lemonida's error handling *)
+
+(*
 (* Simple Function to get Expression Position *)
 let get_binop_pos () =
     (rhs_start_pos 1, rhs_start_pos 3)
 
-(*
 (* print an error message *)
 let print_binop_type_error op_name t1 t2 exp_t sp ep =
     error
@@ -236,21 +281,7 @@ let print_binop_type_error op_name t1 t2 exp_t sp ep =
     (string_of_typ t1) (string_of_typ t2)
     (sp.pos_lnum) (sp.pos_cnum - sp.pos_bol)
     (ep.pos_lnum) (ep.pos_cnum - ep.pos_bol)
-*)
 
-(* Print an error message *)
-let binop_error a op b x y =
-  error
-  "Binary Operator \"%s\" Error : \
-  Line %d Position %d through Line %d Position %d\n\
-  Operands Type Mismatch : \
-  Can't apply \"%s\" to \"%s\" and \"%s\"\n"
-  op
-  x.pos_lnum (x.pos_cnum - x.pos_bol)
-  y.pos_lnum (y.pos_cnum - y.pos_bol)
-  op (string_of_typ a) (string_of_typ b)
-
-(*
 (* print an error message *)
 let print_unary_type_error op_name t pos =
     error 
@@ -262,6 +293,10 @@ let print_unary_type_error op_name t pos =
     (string_of_typ t)
     (pos.pos_lnum) (pos.pos_cnum - pos.pos_bol)
 *)
+
+
+
+(* Error Handling *)
 
 (* Print an error message *)
 let unop_error op a x y =
@@ -275,146 +310,21 @@ let unop_error op a x y =
   y.pos_lnum (y.pos_cnum - y.pos_bol)
   op (string_of_typ a)
 
-let cond_of_expr e =
-  let tr = [!quadNext] in
-  let q1 = Q_ifb (e.e_place, Q_backpatch) in
-  addNewQuad q1;
-  let fa = [!quadNext] in
-  let q2 = Q_jump (Q_backpatch) in
-  addNewQuad q2;
-  let c = {
-    c_true = tr;
-    c_false = fa
-  } in (c,2)
+(* Print an error message *)
+let binop_error a op b x y =
+  error
+  "Binary Operator \"%s\" Error : \
+  Line %d Position %d through Line %d Position %d\n\
+  Operands Type Mismatch : \
+  Can't apply \"%s\" to \"%s\" and \"%s\"\n"
+  op
+  x.pos_lnum (x.pos_cnum - x.pos_bol)
+  y.pos_lnum (y.pos_cnum - y.pos_bol)
+  op (string_of_typ a) (string_of_typ b)
 
-let expr_of_cond c =
-  let e = newTemporary TYPE_bool in
-  backpatch c.c_true (Q_int !quadNext);
-  let q = Q_assign ( Q_bool true, Q_entry e) in
-  addNewQuad q;
-  incExprQuadLen ();
-  let foo = !quadNext + 2 in
-  let q = Q_jump ( Q_int foo ) in
-  addNewQuad q;
-  incExprQuadLen ();
-  backpatch c.c_false (Q_int !quadNext);
-  let q = Q_assign ( Q_bool false, Q_entry e) in
-  addNewQuad q;
-  incExprQuadLen ();
-  let esv = {
-    e_place = Q_entry e;
-    e_typ = TYPE_bool
-  } in esv
 
-(* DEPRECATED *)
-(*
-type sem_quad_t = {
-  place : quad_op_t;
-  typ : Types.typ;
-  mutable q_next : int list;
-  mutable q_true : int list;
-  mutable q_false : int list
-}
-*)
 
-(* DEPRECATED *)
-(* Semantic Value of parameters *)
-(*
-type semv_par = {
-  p_name : Identifier.id;
-  p_typ : Types.typ;
-  p_mode : Symbol.pass_mode
-}
-*)
-
-(* Semantically check binary expression operand types
- * and find return type according to compatibility *)
-let what_bin_type a op b =
-    match op with
-    | "+"
-    | "-"
-    | "*"
-    | "/" ->
-      begin
-      match (a.e_typ, b.e_typ) with
-      | (TYPE_int, TYPE_int)
-      | (TYPE_int, TYPE_char)
-      | (TYPE_char, TYPE_int)
-      | (TYPE_char, TYPE_char) ->
-        TYPE_int
-      | (TYPE_int, TYPE_REAL)
-      | (TYPE_char, TYPE_REAL)
-      | (TYPE_REAL, TYPE_int)
-      | (TYPE_REAL, TYPE_char)
-      | (TYPE_REAL, TYPE_REAL) ->
-        TYPE_REAL
-      | (_,_) ->
-        TYPE_none
-      end
-    | "%" ->
-      begin
-      match (a.e_typ, b.e_typ) with
-      | (TYPE_int, TYPE_int)
-      | (TYPE_int, TYPE_char)
-      | (TYPE_char, TYPE_int)
-      | (TYPE_char, TYPE_char) ->
-        TYPE_int
-      | (_,_) ->
-        TYPE_none
-      end
-    | "=="
-    | "!="
-    | "<"
-    | ">"
-    | "<="
-    | ">=" ->
-      begin
-      match (a.e_typ, b.e_typ) with
-      | (TYPE_int, TYPE_int)
-      | (TYPE_int, TYPE_char)
-      | (TYPE_char, TYPE_int)
-      | (TYPE_char, TYPE_char)
-      | (TYPE_int, TYPE_REAL)
-      | (TYPE_char, TYPE_REAL)
-      | (TYPE_REAL, TYPE_int)
-      | (TYPE_REAL, TYPE_char)
-      | (TYPE_REAL, TYPE_REAL) ->
-        TYPE_bool
-      | (_,_) ->
-        TYPE_none
-      end
-    | "&&"
-    | "||" ->
-      begin
-      match (a.e_typ, b.e_typ) with
-      | (TYPE_bool, TYPE_bool) ->
-        TYPE_bool
-      | (_,_) ->
-        TYPE_none
-      end
-    | _ ->
-      TYPE_none
-
-(* Semantically check unary expression operand type and find return type *)
-let what_un_type op a =
-    match op with
-    | "+"
-    | "-" ->
-      begin
-      match a.e_typ with
-      | TYPE_int -> TYPE_int
-      | TYPE_char -> TYPE_char
-      | TYPE_REAL -> TYPE_REAL
-      | _ -> TYPE_none
-      end
-    | "!" ->
-      begin
-      match a.e_typ with
-      | TYPE_bool -> TYPE_bool
-      | _ -> TYPE_none
-      end
-    | _ ->
-      TYPE_none
+(* Some kind of Optimization for constants *)
 
 (* Apply a binary operator to constant operands *)
 let const_binop = function
@@ -534,6 +444,148 @@ let const_binop = function
     (* anything else *)
     | _ -> Q_none
 
+
+
+(* Semantic Actions and Icode generation *)
+
+(* Semantic-Quad actions for constant definiton *)
+let sq_cdef name typ value =
+  try
+    (* Lookup the Symbol Table. not_found is not handled *)
+    let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
+      (* if found, name is already taken *)
+      error "Const name %s is already taken" name;
+      ignore(e)
+  with Not_found ->
+    (* if not found, check types *)
+    if equalType typ value.e_typ then
+      (* if match, find the constant value which must be known at compile-time *)
+      match const_of_quad value.e_place with
+      | CONST_none ->
+        (* not really a const *)
+        error "%s is not really a const!" name
+      | const_value ->
+        (* register the new Constant *)
+        ignore (newConstant (id_make name) typ const_value false)
+    else
+      (* const def type mismatch *)
+      error "constant definition type mismatch"
+
+
+(* Semantically check unary expression operand type and find return type *)
+let what_un_type op a =
+    match op with
+    | "+"
+    | "-" ->
+      begin
+      match a.e_typ with
+      | TYPE_int -> TYPE_int
+      | TYPE_char -> TYPE_char
+      | TYPE_REAL -> TYPE_REAL
+      | _ -> TYPE_none
+      end
+    | "!" ->
+      begin
+      match a.e_typ with
+      | TYPE_bool -> TYPE_bool
+      | _ -> TYPE_none
+      end
+    | _ ->
+      TYPE_none
+
+(* Semantic-Quad actions for unary operators *)
+let sq_unop op a x y =
+    let typ = what_un_type op a in
+    match typ with
+    | TYPE_none ->
+      (* if TYPE_none we have an error *)
+      unop_error op a.e_typ x y;
+      esv_err
+    | _ ->
+      (* FIXME operation on constants? *)
+      (* make new temporary *)
+      let e = newTemporary typ in
+      (* generate quad *)
+      let q = Q_op (op, a.e_place, Q_dash, Q_entry e) in
+      (* return expression semantic value *)
+      let esv = {
+        e_place = (Q_entry e);
+        e_typ = typ
+      } in
+      addNewQuad q;
+      (* a quad has been added to icode, due to expression *)
+      incExprQuadLen ();
+      esv
+
+
+(* Semantically check binary expression operand types
+ * and find return type according to compatibility *)
+let what_bin_type a op b =
+    match op with
+    | "+"
+    | "-"
+    | "*"
+    | "/" ->
+      begin
+      match (a.e_typ, b.e_typ) with
+      | (TYPE_int, TYPE_int)
+      | (TYPE_int, TYPE_char)
+      | (TYPE_char, TYPE_int)
+      | (TYPE_char, TYPE_char) ->
+        TYPE_int
+      | (TYPE_int, TYPE_REAL)
+      | (TYPE_char, TYPE_REAL)
+      | (TYPE_REAL, TYPE_int)
+      | (TYPE_REAL, TYPE_char)
+      | (TYPE_REAL, TYPE_REAL) ->
+        TYPE_REAL
+      | (_,_) ->
+        TYPE_none
+      end
+    | "%" ->
+      begin
+      match (a.e_typ, b.e_typ) with
+      | (TYPE_int, TYPE_int)
+      | (TYPE_int, TYPE_char)
+      | (TYPE_char, TYPE_int)
+      | (TYPE_char, TYPE_char) ->
+        TYPE_int
+      | (_,_) ->
+        TYPE_none
+      end
+    | "=="
+    | "!="
+    | "<"
+    | ">"
+    | "<="
+    | ">=" ->
+      begin
+      match (a.e_typ, b.e_typ) with
+      | (TYPE_int, TYPE_int)
+      | (TYPE_int, TYPE_char)
+      | (TYPE_char, TYPE_int)
+      | (TYPE_char, TYPE_char)
+      | (TYPE_int, TYPE_REAL)
+      | (TYPE_char, TYPE_REAL)
+      | (TYPE_REAL, TYPE_int)
+      | (TYPE_REAL, TYPE_char)
+      | (TYPE_REAL, TYPE_REAL) ->
+        TYPE_bool
+      | (_,_) ->
+        TYPE_none
+      end
+    | "&&"
+    | "||" ->
+      begin
+      match (a.e_typ, b.e_typ) with
+      | (TYPE_bool, TYPE_bool) ->
+        TYPE_bool
+      | (_,_) ->
+        TYPE_none
+      end
+    | _ ->
+      TYPE_none
+
 (* Semantic-Quad actions for binary operators *)
 let sq_binop a op b x y =
     (* TODO: division by zero check *)
@@ -545,29 +597,76 @@ let sq_binop a op b x y =
       esv_err
     | _ ->
       (* Check if Constants *)
-      (* TODO add bool param for this *)
       let c1 = const_of_quad a.e_place in
       let c2 = const_of_quad b.e_place in
       match c1,c2 with
       | CONST_none, _
       | _, CONST_none ->
-         (* No constant *)
-         let e = newTemporary typ in
-         let q = Q_op (op, a.e_place, b.e_place, Q_entry e) in
-         let esv = {
-           e_place = (Q_entry e);
-           e_typ = typ
-         } in
-         addNewQuad q;
-         incExprQuadLen ();
-         esv
+        (* No constant *)
+        (* make new temporary *)
+        let e = newTemporary typ in
+        (* generate quad *)
+        let q = Q_op (op, a.e_place, b.e_place, Q_entry e) in
+        (* return expression semantic value *)
+        let esv = {
+          e_place = (Q_entry e);
+          e_typ = typ
+        } in
+        addNewQuad q;
+        (* a quad has been added to icode, due to expression *)
+        incExprQuadLen ();
+        esv
       | _ ->
-         (* Constant *)
-         let plc = const_binop (op, typ, c1, c2) in
-         let esv = {
-           e_place = plc;
-           e_typ = typ
-         } in esv
+        (* Constant *)
+        let plc = const_binop (op, typ, c1, c2) in
+        let esv = {
+          e_place = plc;
+          e_typ = typ
+        } in esv
+
+(* make a condition out of an expression *)
+let cond_of_expr e =
+  (* list of "true" quads; to be backpatched *)
+  let tr = [!quadNext] in
+  let q1 = Q_ifb (e.e_place, Q_backpatch) in
+  addNewQuad q1;
+  (* list of "false" quads; to be backpatched *)
+  let fa = [!quadNext] in
+  let q2 = Q_jump (Q_backpatch) in
+  addNewQuad q2;
+  (* return the condition *)
+  let c = {
+    c_true = tr;
+    c_false = fa
+  } in c
+
+(* make an expression out of a condition *)
+let expr_of_cond c =
+  (* make a new bool temporary to hold condition's value *)
+  let e = newTemporary TYPE_bool in
+  (* start to make the "true" quads *)
+  backpatch c.c_true (Q_int !quadNext);
+  let q = Q_assign ( Q_bool true, Q_entry e) in
+  addNewQuad q;
+  (* a quad has been added to icode due to an expression *)
+  incExprQuadLen ();
+  (* generate the *fly-over-the-false-part* quad *)
+  let foo = !quadNext + 2 in
+  let q = Q_jump ( Q_int foo ) in
+  addNewQuad q;
+  (* a quad has been added to icode due to an expression *)
+  incExprQuadLen ();
+  (* start to make the "false" quads *)
+  backpatch c.c_false (Q_int !quadNext);
+  let q = Q_assign ( Q_bool false, Q_entry e) in
+  addNewQuad q;
+  (* a quad has been added to icode due to an expression *)
+  incExprQuadLen ();
+  (* return the expression semantic value *)
+  let esv = {
+    e_place = Q_entry e;
+    e_typ = TYPE_bool
+  } in esv
 
 (* Semantic-Quad actions for relop operators *)
 let sq_relop a op b x y =
@@ -578,62 +677,28 @@ let sq_relop a op b x y =
       binop_error a.e_typ op b.e_typ x y;
       esv_err
     | _ ->
+      (* list of "true" quads; to be backpatched *)
       let tr = [!quadNext] in
       let q = Q_relop (op, a.e_place, b.e_place, Q_backpatch) in
       addNewQuad q;
+      (* a quad has been added to icode due to an expression *)
       incExprQuadLen ();
+      (* list of "false" quads; to be backpatched *)
       let fa = [!quadNext] in
       let q = Q_jump ( Q_backpatch ) in
       addNewQuad q;
+      (* a quad has been added to icode due to an expression *)
       incExprQuadLen ();
+      (* make the condition... *)
       let csv = {
         c_true = tr;
         c_false = fa
       } in
+      (* ...and generate an expression out of it *)
       let e = expr_of_cond csv in
+      (* return an expression *)
       e
 
-(* Semantic-Quad actions for unary operators *)
-let sq_unop op a x y =
-    let typ = what_un_type op a in
-    match typ with
-    | TYPE_none ->
-      (* if TYPE_none we have an error *)
-      unop_error op a.e_typ x y;
-      esv_err
-    | _ ->
-      let e = newTemporary typ in
-      let q = Q_op (op, a.e_place, Q_dash, Q_entry e) in
-      let esv = {
-        e_place = (Q_entry e);
-        e_typ = typ
-      } in
-      addNewQuad q;
-      incExprQuadLen ();
-      esv
-
-(* Semantic-Quad actions for constant definiton *)
-let sq_cdef n t v =
-  try
-    (* Lookup the Symbol Table. not_found is not handled *)
-    let e = lookupEntry (id_make n) LOOKUP_CURRENT_SCOPE false in
-      (* if found, name is already taken *)
-      error "Const name %s is already taken" n;
-      ignore(e)
-  with Not_found ->
-    (* if not found, check types *)
-    if equalType t v.e_typ then
-      (* if match, find the constant value which must be known at compile-time *)
-      match const_of_quad v.e_place with
-      | CONST_none ->
-        (* not really a const *)
-        error "%s is not really a const!" n
-      | cv ->
-        (* register the new Constant *)
-        ignore (newConstant (id_make n) t cv false)
-    else
-      (* const def type mismatch *)
-      error "constant definition type mismatch"
 
 (* Semantic-Quad actions for lvalue *)
 let sq_lvalue name idxs =
@@ -873,20 +938,6 @@ let breakQuad = ref []
 let addBreakQuad l =
   !breakQuad <- !breakQuad @ l
 
-let rmQuad lis n =
-  let rec seekAndDestroy a b which =
-    match b with
-    | h::t ->
-      if ( h = which ) then
-        begin
-        !lis <- a@t
-        end
-      else
-        seekAndDestroy (a@[h]) t which
-    | _ -> internal "quad asked to be removed does not exist!"
-  in
-  seekAndDestroy [] !lis n
-
 let resetBreakQuad () =
   !breakQuad <- []
 
@@ -959,13 +1010,14 @@ let sq_for_control i a b c =
     c_false = fa
   } in
   let e = expr_of_cond csv in
-  let (cond,qs) = cond_of_expr e in
+  let cond = cond_of_expr e in
+  let cqs = 2 in
   let l1 = !exprQuadLen in
   resetExprQuadLen ();
   let l2 = !lvalQuadLen in
   resetLvalQuadLen ();
-  printf "\tafter check, quads = %d\n" (qs+l1+l2);
-  let len = len0 + qs + l1 + l2 in
+  printf "\tafter check, quads = %d\n" (cqs+l1+l2);
+  let len = len0 + cqs + l1 + l2 in
   let e = newTemporary TYPE_int in
   let q4 = Q_op ("+", ie.e_place, c, Q_entry e) in
   let q5 = Q_assign (Q_entry e, ie.e_place) in
@@ -1017,3 +1069,25 @@ let sq_for i range stmt =
       error "loop iterator '%s' is not a variable in the global scope!" i
 *)
 
+let sq_format (x, w, d) =
+  if (w.e_typ != TYPE_int) then
+    begin
+    error "Printable characters number is not an int";
+    (x,w,d)
+    end
+  else if (d.e_typ != TYPE_int) then
+    begin
+    error "Printable decimals number is not an int";
+    (x,w,d)
+    end
+  else
+    match d.e_place, x.e_typ with
+    | Q_int a, TYPE_REAL ->
+        if (a = 1) then
+          begin
+          error "Printable decimals setting is present, but expression to be printed isn't of type REAL";
+          (x,w,d)
+          end
+        else
+          (x,w,d)
+    | _ -> (x,w,d)

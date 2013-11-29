@@ -1,5 +1,9 @@
 (* Semantic Quad datatypes and functions *)
 
+
+
+(* Datatypes *)
+
 (* Quadruples operands datatype *)
 type quad_op_t = Q_none                           (* Error Handling *)
                | Q_int of int                     (* Constant Integer *)
@@ -11,10 +15,10 @@ type quad_op_t = Q_none                           (* Error Handling *)
                | Q_funct_res                      (* Function result: $$ *)
                | Q_deref of Symbol.entry          (* Dereference: [x] *)
                | Q_addr                           (* Address: {x} *)
-               | Q_label of int                   (* label *)
+               | Q_lbl of int                     (* label *)
                | Q_pass_mode of quad_pass_mode    (* Pass mode: V, R, RET *)
-               | Q_dash                           (* Dash : - *)
-               | Q_backpatch                      (* Backpatch : * *)
+               | Q_dash                           (* Dash: -- *)
+               | Q_backpatch                      (* Backpatch: * *)
 
 and quad_pass_mode = V | R | RET
 
@@ -24,6 +28,7 @@ type semv_expr = {
   e_typ : Types.typ     (* Maybe not needed, since place can tell *)
 }
 
+(* Used for errors *)
 val esv_err : semv_expr
 
 (* Semantic Value of cond *)
@@ -32,6 +37,7 @@ type semv_cond = {
   c_false : int list
 }
 
+(* Used for errors *)
 val csv_err : semv_cond
 
 (* Semantic Value of stmt *)
@@ -41,11 +47,8 @@ type semv_stmt = {
   s_len : int
 }
 
+(* Used for simple cases *)
 val ssv_empty : semv_stmt
-
-val quad_of_passmode : Symbol.pass_mode -> quad_pass_mode
-
-val string_of_quad_op : quad_op_t -> string
 
 (* Quadruples datatype *)
 type quad_t = Q_empty
@@ -58,22 +61,46 @@ type quad_t = Q_empty
             | Q_ifb of quad_op_t * quad_op_t
             | Q_jump of quad_op_t
             | Q_label of quad_op_t
-            | Q_jl of quad_op_t
+            | Q_jumpl of quad_op_t
             | Q_call of quad_op_t
             | Q_par of quad_op_t * quad_op_t
             | Q_ret
+
+
+
+(* Conversions *)
+
+val quad_of_passmode : Symbol.pass_mode -> quad_pass_mode
+
+val const_of_quad : quad_op_t -> Symbol.const_val
+
+val quad_of_const : Symbol.const_val -> quad_op_t
+
+val string_of_quad_op : quad_op_t -> string
 
 val concat4 : string -> quad_op_t -> quad_op_t -> quad_op_t -> string
 
 val string_of_quad : quad_t -> string
 
+
+
+(* Intermediate Code Representation *)
+
+val icode : (int * quad_t) list ref
+
 val addNewQuad : quad_t -> unit
 
 val rmLastQuad : unit -> unit
 
+val rmQuad : int list ref -> int -> unit
+
 val printIntermediateCode : unit -> unit
 
 val backpatch : int list -> quad_op_t -> unit
+
+
+
+(* Quads produced by expressions *)
 
 val exprQuadLen : int ref
 
@@ -81,34 +108,53 @@ val resetExprQuadLen : unit -> unit
 
 val incExprQuadLen : unit  -> unit
 
+
+
+(* Quads produced by lvalue *)
+
 val lvalQuadLen : int ref
 
 val resetLvalQuadLen : unit -> unit
 
 val incLvalQuadLen : unit -> unit
 
-val const_of_quad : quad_op_t -> Symbol.const_val
-
-val quad_of_const : Symbol.const_val -> quad_op_t
-
+(*
 val get_binop_pos : unit -> Lexing.position * Lexing.position
+*)
 
-val binop_error : Types.typ -> string -> Types.typ -> Lexing.position -> Lexing.position -> unit
+
+
+(* Error Handling *)
 
 val unop_error : string -> Types.typ -> Lexing.position -> Lexing.position -> unit
 
-(* val cond_of_expr : semv_expr -> semv_cond *)
-val cond_of_expr : semv_expr -> semv_cond * int
+val binop_error : Types.typ -> string -> Types.typ -> Lexing.position -> Lexing.position -> unit
 
-val expr_of_cond : semv_cond -> semv_expr
 
-val sq_binop : semv_expr -> string -> semv_expr -> Lexing.position -> Lexing.position -> semv_expr
 
-val sq_relop : semv_expr -> string -> semv_expr -> Lexing.position -> Lexing.position -> semv_expr
+(* A simple optimization *)
+
+val const_binop : string * Types.typ * Symbol.const_val * Symbol.const_val -> quad_op_t
+
+
+
+(* Semantic Actions and Icode generation *)
+
+val sq_cdef : string -> Types.typ -> semv_expr -> unit
+
+val what_un_type : string -> semv_expr -> Types.typ
 
 val sq_unop : string -> semv_expr -> Lexing.position -> Lexing.position -> semv_expr
 
-val sq_cdef : string -> Types.typ -> semv_expr -> unit
+val what_bin_type : semv_expr -> string -> semv_expr -> Types.typ
+
+val sq_binop : semv_expr -> string -> semv_expr -> Lexing.position -> Lexing.position -> semv_expr
+
+val cond_of_expr : semv_expr -> semv_cond
+
+val expr_of_cond : semv_cond -> semv_expr
+
+val sq_relop : semv_expr -> string -> semv_expr -> Lexing.position -> Lexing.position -> semv_expr
 
 val sq_lvalue : string -> semv_expr list -> semv_expr
 
@@ -127,8 +173,6 @@ val sq_minus_minus : semv_expr -> quad_t list
 val breakQuad : int list ref
 
 val addBreakQuad : int list -> unit
-
-val rmQuad : int list ref -> int -> unit
 
 val resetBreakQuad : unit -> unit
 
@@ -149,3 +193,5 @@ val sq_for_control : string -> quad_op_t -> quad_op_t -> quad_op_t -> int * semv
 (*
 val sq_for : string -> quad_op_t * quad_op_t * quad_op_t -> semv_stmt -> unit
 *)
+
+val sq_format : semv_expr * semv_expr * semv_expr -> semv_expr * semv_expr * semv_expr
