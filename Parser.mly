@@ -105,21 +105,22 @@ let epilogue () =
 
 %%
 
-pazprog : /*(* empty *)*/ { }
+pazprog : /*(* empty *)*/                           { }
         | dummy_non_terminal declaration_list T_EOF { epilogue ()  }
 		;
 
 dummy_non_terminal : /*(* empty, used only for semantic actions *)*/ { prologue () }
+                   ;
 
-declaration_list : declaration { }
+declaration_list : declaration                  { }
                  | declaration_list declaration { }
                  ;
 
 declaration : const_def { }
-            | var_def { }
-            | routine { }
-            | program { }
-            | error { }
+            | var_def   { }
+            | routine   { }
+            | program   { }
+            | error     { }
             ;
 
 const_def :	T_const paztype T_id T_assign const_expr T_sem_col {
@@ -146,28 +147,9 @@ const_def2 : T_comma T_id T_assign const_expr               { [($2, $4)] }
            ;
 
 var_def : paztype var_init T_sem_col {
-                  (*
-                  let l = sq_vardef $1 $2 in
-                  l
-                  *)
-                  (*
-                  let qs = sq_vardef $1 $2 in
-                  List.iter addNewQuad qs
-                  *)
                   sq_vardef $1 $2
                 }
         | paztype var_init var_def2 T_sem_col {
-                  (*
-                  let l1 = sq_vardef $1 $2 in
-                  let l2 = List.fold_left (+) 0 (List.iter (sq_vardef $1) $3) in
-                  l1 + l2
-                  *)
-                  (*
-                  let first = (sq_vardef $1 $2) in
-                  let rest = List.map (sq_vardef $1) $3 in
-                  let all = first @ (List.concat rest) in
-                  List.iter addNewQuad all
-                  *)
                   sq_vardef $1 $2;
                   List.iter (sq_vardef $1) $3
                 }
@@ -256,8 +238,8 @@ routine : routine_header T_sem_col {
               (* we've seen the header and the block *)
               printSymbolTable ();
               closeScope ();
-              let q = Q_endu (Q_entry $1)
-              in addNewQuad q
+              let q = Q_endu (Q_entry $1) in
+              addNewQuad q
             }
         ;
 
@@ -412,8 +394,11 @@ block2 : local_def          {
             }
        ;
 
-local_def :	const_def   { ssv_empty }
-          | var_def     {
+local_def :	const_def {
+              (* no quads produced *)
+              ssv_empty
+            }
+          | var_def {
               let l1 = !exprQuadLen in
               resetExprQuadLen ();
               let ssv = {
@@ -427,26 +412,24 @@ cond : expr {
           (* cond is expr *)
           let c = cond_of_expr $1 in
           let qs = 2 in
-          (*
-          let foo = Q_empty in
-          (c,[foo]@[foo]@[foo]@[foo]@[foo]@qs)
-          *)
+          (* collect quads generated due to expression *)
           let l1 = !exprQuadLen in
           resetExprQuadLen ();
+          (* collect quads generated due to lvalue *)
           let l2 = !lvalQuadLen in
           resetLvalQuadLen ();
+          (* compute total length *)
           let len = qs + l1 + l2 in
           printf "cond of expr is %d+%d+%d quads long\n" qs l1 l2;
           (c,len)
         }
      ;
 
-fly : /* empty */ {
-          (* dummy! *)
+fly : /*(* empty *)*/ {
+          (* just add a jump! *)
           let l = [!quadNext] in
           let q = Q_jump ( Q_backpatch )
           in addNewQuad q;
-          (* (l,[q]) *)
           (l,1)
         }
     ;
