@@ -158,7 +158,7 @@ val sq_relop : semv_expr -> string -> semv_expr -> Lexing.position -> Lexing.pos
 
 val sq_lvalue : string -> semv_expr list -> semv_expr
 
-val sq_assign : semv_expr -> string -> semv_expr -> int
+val sq_assign : semv_expr -> string -> semv_expr -> unit
 
 val sq_vardef : Types.typ -> string * quad_op_t list * semv_expr -> unit
 
@@ -166,9 +166,13 @@ val sq_rout_head : string -> Types.typ -> (Types.typ * (string * Symbol.pass_mod
 
 val sq_rout_call : string -> semv_expr list -> semv_expr
 
-val sq_plus_plus : semv_expr -> quad_t list
+val sq_plus_plus : semv_expr -> unit
 
-val sq_minus_minus : semv_expr -> quad_t list
+val sq_minus_minus : semv_expr -> unit
+
+
+
+(* Break *)
 
 val breakQuad : int list ref
 
@@ -178,6 +182,10 @@ val resetBreakQuad : unit -> unit
 
 val collectMyBreaks : int -> int -> unit
 
+
+
+(* Continue *)
+
 val contQuad : int list ref
 
 val addContQuad : int list -> unit
@@ -186,12 +194,12 @@ val resetContQuad : unit -> unit
 
 val collectMyConts : int -> int -> unit
 
+
+
+(* FOR loop *)
+
 val sq_range : semv_expr -> semv_expr -> semv_expr -> quad_op_t * quad_op_t * quad_op_t
 
 val sq_for_control : string -> quad_op_t -> quad_op_t -> quad_op_t -> int * semv_cond * int * quad_t list
-
-(*
-val sq_for : string -> quad_op_t * quad_op_t * quad_op_t -> semv_stmt -> unit
-*)
 
 val sq_format : semv_expr * semv_expr * semv_expr -> semv_expr * semv_expr * semv_expr

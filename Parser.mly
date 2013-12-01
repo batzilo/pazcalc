@@ -444,43 +444,36 @@ for_control : T_id T_comma range {
 stmt : T_sem_col { ssv_empty }
      | block { $1 }
      | l_value assign expr T_sem_col {
-          let l1 = sq_assign $1 $2 $3 in
+          sq_assign $1 $2 $3;
+          let l1 = !exprQuadLen in
+          resetExprQuadLen ();
           let l2 = !lvalQuadLen in
           resetLvalQuadLen ();
-          let l3 = !exprQuadLen in
-          resetExprQuadLen ();
           let ssv = {
             s_next = [];
-            (* s_code = qs *)
-            s_len = l1 + l2 + l3
+            s_len = l1 + l2
           } in ssv
         }
      | l_value T_plus_plus T_sem_col {
-          let qs = sq_plus_plus $1 in
-          List.iter addNewQuad qs;
-          let l1 = List.length qs in
-          let l2 = !lvalQuadLen in
+          sq_plus_plus $1;
+          let l1 = !lvalQuadLen in
           resetLvalQuadLen ();
-          let l3 = !exprQuadLen in
+          let l2 = !exprQuadLen in
           resetExprQuadLen ();
           let ssv = {
             s_next = [];
-            (* s_code = qs *)
-            s_len = l1 + l2 + l3
+            s_len = l1 + l2
           } in ssv
         }
      | l_value T_minus_minus T_sem_col {
-          let qs = sq_minus_minus $1 in
-          List.iter addNewQuad qs;
-          let l1 = List.length qs in
-          let l2 = !lvalQuadLen in
+          sq_minus_minus $1;
+          let l1 = !lvalQuadLen in
           resetLvalQuadLen ();
-          let l3 = !exprQuadLen in
+          let l2 = !exprQuadLen in
           resetExprQuadLen ();
           let ssv = {
             s_next = [];
-            (* s_code = qs *)
-            s_len = l1 + l2 + l3
+            s_len = l1 + l2
           } in ssv
         }
      | call T_sem_col { ssv_empty }
