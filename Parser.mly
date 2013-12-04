@@ -20,6 +20,9 @@ open Symbol
 open Symbtest
 open Types
 
+(* change to true for parser output *)
+let debug = false;;
+
 (* Called by the parser function on error *)
 (*
 let parse_error s = 
@@ -29,7 +32,7 @@ let parse_error s =
 
 (* first steps *)
 let prologue () =
-  printf "Start parsing!\n";
+  if (debug) then printf "Start parsing!\n";
   (* initialize the Symbol Table *)
   initSymbolTable 256;
   (* open the global scope *)
@@ -37,10 +40,11 @@ let prologue () =
 
 (* last steps *)
 let epilogue () =
-  printf "End parsing!\n";
-  (* printSymbolTable () *)
+  if (debug) then printf "End parsing!\n";
   (* close the global scope *)
   closeScope();
+  let code = !icode in
+  !icode <- List.rev code;
   printIntermediateCode ()
 
 %}
@@ -236,7 +240,7 @@ routine : routine_header T_sem_col {
             }
         | routine_header block {
               (* we've seen the header and the block *)
-              printSymbolTable ();
+              if (debug) then printSymbolTable ();
               closeScope ();
               let q = Q_endu (Q_entry $1) in
               addNewQuad q
@@ -249,7 +253,7 @@ program_header : T_PROGRAM T_id T_lparen T_rparen   { sq_rout_head $2 TYPE_proc 
 program : program_header block {
               (* we've seen the header and the block *)
               backpatch $2.s_next (Q_int !quadNext);
-              printSymbolTable ();
+              if (debug) then printSymbolTable ();
               closeScope ();
               let q = Q_endu (Q_entry $1)
               in addNewQuad q
@@ -358,80 +362,20 @@ block : T_lbrace T_rbrace           { ssv_empty }
       | T_lbrace error T_rbrace     { printf "A syntax error occured inside the block\n"; ssv_empty }
       ;
 
-block2 : local_def          {
-              (* backpatch $1.s_next (Q_int !quadNext); *)
-              let ssv = {
-                s_next = $1.s_next;
-                (* s_code = $1.s_code *)
-                s_len = $1.s_len
-              } in ssv
-            }
-       | stmt               {
-              (* backpatch $1.s_next (Q_int !quadNext); *)
-              let ssv = {
-                s_next = $1.s_next;
-                (* s_code = $1.s_code *)
-                s_len = $1.s_len
-              } in ssv
-            }
-       | block2 local_def   {
-              backpatch $1.s_next (Q_int (!quadNext - $2.s_len));
-              (* backpatch $2.s_next (Q_int !quadNext); *)
-              let ssv = {
-                s_next = $2.s_next;
-                (* s_code = $1.s_code @ $2.s_code *)
-                s_len = $1.s_len + $2.s_len
-              } in ssv
-            }
-       | block2 stmt        {
-              backpatch $1.s_next (Q_int (!quadNext - $2.s_len));
-              (* backpatch $2.s_next (Q_int !quadNext); *)
-              let ssv = {
-                s_next = $2.s_next;
-                (* s_code = $1.s_code @ $2.s_code *)
-                s_len = $1.s_len + $2.s_len
-              } in ssv
-            }
+block2 : local_def          { $1 }
+       | stmt               { $1 }
+       | block2 local_def   { st_block $1 $2 }
+       | block2 stmt        { st_block $1 $2 }
        ;
 
-local_def :	const_def {
-              (* no quads produced *)
-              ssv_empty
-            }
-          | var_def {
-              let l1 = !exprQuadLen in
-              resetExprQuadLen ();
-              let ssv = {
-                s_next = [];
-                s_len = l1
-              } in ssv
-            }
+local_def :	const_def   { st_constdef () }
+          | var_def     { st_vardef () }
           ;
 
-cond : expr {
-          (* cond is expr *)
-          let c = cond_of_expr $1 in
-          let qs = 2 in
-          (* collect quads generated due to expression *)
-          let l1 = !exprQuadLen in
-          resetExprQuadLen ();
-          (* collect quads generated due to lvalue *)
-          let l2 = !lvalQuadLen in
-          resetLvalQuadLen ();
-          (* compute total length *)
-          let len = qs + l1 + l2 in
-          printf "cond of expr is %d+%d+%d quads long\n" qs l1 l2;
-          (c,len)
-        }
+cond : expr { (* cond is expr *) st_cond_of_expr $1 }
      ;
 
-fly : /*(* empty *)*/ {
-          (* just add a jump! *)
-          let l = [!quadNext] in
-          let q = Q_jump ( Q_backpatch )
-          in addNewQuad q;
-          (l,1)
-        }
+fly : /*(* empty *)*/ { (* just add a jump! *) st_fly () }
     ;
 
 for_control : T_id T_comma range {
@@ -443,39 +387,9 @@ for_control : T_id T_comma range {
 
 stmt : T_sem_col { ssv_empty }
      | block { $1 }
-     | l_value assign expr T_sem_col {
-          sq_assign $1 $2 $3;
-          let l1 = !exprQuadLen in
-          resetExprQuadLen ();
-          let l2 = !lvalQuadLen in
-          resetLvalQuadLen ();
-          let ssv = {
-            s_next = [];
-            s_len = l1 + l2
-          } in ssv
-        }
-     | l_value T_plus_plus T_sem_col {
-          sq_plus_plus $1;
-          let l1 = !lvalQuadLen in
-          resetLvalQuadLen ();
-          let l2 = !exprQuadLen in
-          resetExprQuadLen ();
-          let ssv = {
-            s_next = [];
-            s_len = l1 + l2
-          } in ssv
-        }
-     | l_value T_minus_minus T_sem_col {
-          sq_minus_minus $1;
-          let l1 = !lvalQuadLen in
-          resetLvalQuadLen ();
-          let l2 = !exprQuadLen in
-          resetExprQuadLen ();
-          let ssv = {
-            s_next = [];
-            s_len = l1 + l2
-          } in ssv
-        }
+     | l_value assign expr T_sem_col { st_assign $1 $2 $3 }
+     | l_value T_plus_plus T_sem_col { st_plusplus $1 }
+     | l_value T_minus_minus T_sem_col { st_minusminus $1 }
      | call T_sem_col { ssv_empty }
      | T_if T_lparen cond T_rparen stmt	%prec NOELSE {
           (* handle if then *)

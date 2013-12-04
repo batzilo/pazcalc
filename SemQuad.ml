@@ -326,6 +326,21 @@ let binop_error a op b x y =
 
 (* Some kind of Optimization for constants *)
 
+let const_unop = function
+  (* add *)
+  | "+", TYPE_int, CONST_int x -> Q_int x
+  | "+", TYPE_int, CONST_char x -> Q_int (int_of_char x)
+  | "+", TYPE_REAL, CONST_REAL x -> Q_real x
+  (* sub *)
+  | "-", TYPE_int, CONST_int x -> Q_int (-x)
+  | "-", TYPE_int, CONST_char x -> Q_int (-(int_of_char x))
+  | "-", TYPE_REAL, CONST_REAL x -> Q_real (-.x)
+  (* not *)
+  | "!", TYPE_bool, CONST_bool x -> Q_bool (not x)
+  (* anything else *)
+  | _ -> Q_none
+  
+
 (* Apply a binary operator to constant operands *)
 let const_binop = function
     (* int add *)
@@ -502,20 +517,31 @@ let sq_unop op a x y =
       unop_error op a.e_typ x y;
       esv_err
     | _ ->
-      (* FIXME operation on constants? *)
-      (* make new temporary *)
-      let e = newTemporary typ in
-      (* generate quad *)
-      let q = Q_op (op, a.e_place, Q_dash, Q_entry e) in
-      (* return expression semantic value *)
-      let esv = {
-        e_place = (Q_entry e);
-        e_typ = typ
-      } in
-      addNewQuad q;
-      (* a quad has been added to icode, due to expression *)
-      incExprQuadLen ();
-      esv
+      (* Check if Constants *)
+      let c1 = const_of_quad a.e_place in
+      match c1 with
+      | CONST_none ->
+        (* No constant *)
+        (* make new temporary *)
+        let e = newTemporary typ in
+        (* generate quad *)
+        let q = Q_op (op, a.e_place, Q_dash, Q_entry e) in
+        (* return expression semantic value *)
+        let esv = {
+          e_place = (Q_entry e);
+          e_typ = typ
+        } in
+        addNewQuad q;
+        (* a quad has been added to icode, due to expression *)
+        incExprQuadLen ();
+        esv
+      | _ ->
+        (* Constant *)
+        let plc = const_unop (op, typ, c1) in
+        let esv = {
+          e_place = plc;
+          e_typ = typ
+        } in esv
 
 
 (* Semantically check binary expression operand types
@@ -1061,3 +1087,79 @@ let sq_format (x, w, d) =
         else
           (x,w,d)
     | _ -> (x,w,d)
+
+
+
+(* Statements *)
+
+let st_block stmt1 stmt2 =
+  (* make block's statement semantic value *)
+  backpatch stmt1.s_next (Q_int (!quadNext - stmt2.s_len));
+  let ssv = {
+    s_next = stmt2.s_next;
+    s_len = stmt1.s_len + stmt2.s_len
+  } in ssv
+
+let st_constdef () =
+  ssv_empty
+
+let st_vardef () =
+  let l1 = !exprQuadLen in
+  resetExprQuadLen ();
+  let ssv = {
+    s_next = [];
+    s_len = l1
+  } in ssv
+
+let st_cond_of_expr e =
+  let c = cond_of_expr e in
+  let qs = 2 in
+  (* collect quads generated due to expression *)
+  let l1 = !exprQuadLen in
+  resetExprQuadLen ();
+  (* collect quads generated due to lvalue *)
+  let l2 = !lvalQuadLen in
+  resetLvalQuadLen ();
+  (* compute total length *)
+  let len = qs + l1 + l2 in
+  printf "cond of expr is %d+%d+%d quads long\n" qs l1 l2;
+  (c,len)
+
+let st_fly () =
+  let l = [!quadNext] in
+  let q = Q_jump ( Q_backpatch ) in
+  addNewQuad q;
+  (l,1)
+
+let st_assign lval op exp =
+  sq_assign lval op exp;
+  let l1 = !exprQuadLen in
+  resetExprQuadLen ();
+  let l2 = !lvalQuadLen in
+  resetLvalQuadLen ();
+  let ssv = {
+    s_next = [];
+    s_len = l1 + l2
+  } in ssv
+
+let st_plusplus lval =
+  sq_plus_plus lval;
+  let l1 = !lvalQuadLen in
+  resetLvalQuadLen ();
+  let l2 = !exprQuadLen in
+  resetExprQuadLen ();
+  let ssv = {
+    s_next = [];
+    s_len = l1 + l2
+  } in ssv
+
+let st_minusminus lval =
+  sq_minus_minus lval;
+  let l1 = !lvalQuadLen in
+  resetLvalQuadLen ();
+  let l2 = !exprQuadLen in
+  resetExprQuadLen ();
+  let ssv = {
+    s_next = [];
+    s_len = l1 + l2
+  } in ssv

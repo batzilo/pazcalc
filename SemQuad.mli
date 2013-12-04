@@ -134,6 +134,8 @@ val binop_error : Types.typ -> string -> Types.typ -> Lexing.position -> Lexing.
 
 (* A simple optimization *)
 
+val const_unop : string * Types.typ * Symbol.const_val -> quad_op_t
+
 val const_binop : string * Types.typ * Symbol.const_val * Symbol.const_val -> quad_op_t
 
 
@@ -203,3 +205,24 @@ val sq_range : semv_expr -> semv_expr -> semv_expr -> quad_op_t * quad_op_t * qu
 val sq_for_control : string -> quad_op_t -> quad_op_t -> quad_op_t -> int * semv_cond * int * quad_t list
 
 val sq_format : semv_expr * semv_expr * semv_expr -> semv_expr * semv_expr * semv_expr
+
+
+
+
+(* Statements *)
+
+val st_block : semv_stmt -> semv_stmt -> semv_stmt
+
+val st_constdef : unit -> semv_stmt
+
+val st_vardef : unit -> semv_stmt
+
+val st_cond_of_expr : semv_expr -> semv_cond * int
+
+val st_fly : unit -> int list * int
+
+val st_assign : semv_expr -> string -> semv_expr -> semv_stmt
+
+val st_plusplus : semv_expr -> semv_stmt
+
+val st_minusminus : semv_expr -> semv_stmt
