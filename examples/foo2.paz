@@ -1,0 +1,22 @@
+FUNC int foo ( int a ) {
+    return a*a - a;
+}
+
+FUNC int bar ( int x, int y ) {
+    return x*x - 2*x*y + y*y;
+}
+
+PROGRAM baz ( ) {
+    int a,b,c;
+    bool d;
+    if ( d ) {
+        while ( a < b ) {
+            foo(c);
+        }
+    }
+    else
+        do
+            bar(a, b);
+        while ( c > 0 );  
+    return;
+}

@@ -118,13 +118,13 @@ dummy_non_terminal : /*(* empty, used only for semantic actions *)*/ { prologue 
 
 declaration_list : declaration                  { }
                  | declaration_list declaration { }
+                 | error                        { fatal "Global scope declaration error" }
                  ;
 
 declaration : const_def { }
             | var_def   { }
             | routine   { }
             | program   { }
-            | error     { }
             ;
 
 const_def :	T_const paztype T_id T_assign const_expr T_sem_col {
@@ -234,7 +234,7 @@ routine : routine_header T_sem_col {
               (* we've seen the header, and no block exists
                * so set function to be forwarded *)
               forwardFunction $1;
-              printf "This is a forwarded function\n\n";
+              if (debug) then printf "This is a forwarded function\n\n";
               closeScope ();
               rmLastQuad ()
             }
@@ -248,6 +248,7 @@ routine : routine_header T_sem_col {
         ;
 
 program_header : T_PROGRAM T_id T_lparen T_rparen   { sq_rout_head $2 TYPE_proc [] }
+               | error { fatal "main program header is invalid"; sq_rout_head "" TYPE_none [] }
                ;
 
 program : program_header block {
@@ -406,7 +407,7 @@ stmt : T_sem_col                                            { ssv_empty }
      /* error recovery */
      | error T_sem_col {
           (* error *)
-          printf "A syntax error occured in this statement";
+          printf "A syntax error occured in this statement\n";
           ssv_empty
         }
      ;

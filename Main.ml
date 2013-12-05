@@ -31,7 +31,7 @@ let main () =
       try
         Parser.pazprog Lexer.pazcal lexbuf
       with Parsing.Parse_error ->
-        printf "\n\tSyntax error!\n\n";
+        printf "\n\tA Syntax Error Occured!\n\n";
         exit 0
 
 let _ = main ()
