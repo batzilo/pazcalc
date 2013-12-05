@@ -390,7 +390,7 @@ stmt : T_sem_col                                            { ssv_empty }
      | l_value assign expr T_sem_col                        { st_assign $1 $2 $3 }
      | l_value T_plus_plus T_sem_col                        { st_plusplus $1 }
      | l_value T_minus_minus T_sem_col                      { st_minusminus $1 }
-     | call T_sem_col                                       { ssv_empty }
+     | call T_sem_col                                       { st_call () }
      | T_if T_lparen cond T_rparen stmt	%prec NOELSE        { st_if_then $3 $5 }
      | T_if T_lparen cond T_rparen stmt T_else fly stmt     { st_if_then_else $3 $5 $7 $8 }
      | T_while T_lparen cond T_rparen stmt                  { st_while $3 $5 }

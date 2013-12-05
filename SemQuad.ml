@@ -261,6 +261,19 @@ let incLvalQuadLen () =
 
 
 
+(* Quads produced by routines *)
+
+(* how many quads have been produced, due to routines? *)
+let routQuadLen = ref 0
+
+(* reset counter. called after "reading" !lvalQuadLen *)
+let resetRoutQuadLen () =
+  !routQuadLen <- 0
+
+(* increase counter *)
+let incRoutQuadLen () =
+  !routQuadLen <- !routQuadLen + 1
+
 (* Lemonida's error handling *)
 
 (*
@@ -891,6 +904,8 @@ let sq_rout_call name pars =
                    else
                      let q = Q_par (ah.e_place, Q_pass_mode (quad_of_passmode inf.parameter_mode)) in
                      addNewQuad q;
+                     (* a quad has beed added to icode due to routine *)
+                     incRoutQuadLen ();
                      parmatch (ft,at)
                 | _ ->
                    error "what the hell? this ain't no parameter!";
@@ -911,6 +926,8 @@ let sq_rout_call name pars =
                (* routine is a PROCEDURE, no result is expected to be returned, so just call *)
                let q = Q_call (Q_entry e) in
                addNewQuad q;
+               (* a quad has beed added to icode due to routine *)
+               incRoutQuadLen ();
                let esv = {
                   e_place = Q_none;
                   e_typ = TYPE_proc
@@ -921,8 +938,12 @@ let sq_rout_call name pars =
                let etemp = newTemporary t in
                let q = Q_par (Q_entry etemp, Q_pass_mode RET) in
                addNewQuad q;
+               (* a quad has beed added to icode due to routine *)
+               incRoutQuadLen ();
                let q = Q_call (Q_entry e) in
                addNewQuad q;
+               (* a quad has beed added to icode due to routine *)
+               incRoutQuadLen ();
                let esv = {
                  e_place = (Q_entry etemp);
                  e_typ = t
@@ -1162,6 +1183,21 @@ let st_minusminus lval =
   let ssv = {
     s_next = [];
     s_len = l1 + l2
+  } in ssv
+
+
+let st_call () =
+  let l1 = !lvalQuadLen in
+  resetLvalQuadLen ();
+  let l2 = !exprQuadLen in
+  resetExprQuadLen ();
+  let l3 = !routQuadLen in
+  let len = l1 + l2 + l3 in
+  printf "Call is %d long\n" len;
+  resetRoutQuadLen ();
+  let ssv = {
+    s_next = [];
+    s_len = len
   } in ssv
 
 

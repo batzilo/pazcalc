@@ -118,6 +118,16 @@ val resetLvalQuadLen : unit -> unit
 
 val incLvalQuadLen : unit -> unit
 
+
+
+(* Quads produced by routines *)
+
+val routQuadLen : int ref
+
+val resetRoutQuadLen : unit -> unit
+
+val incRoutQuadLen : unit -> unit
+
 (*
 val get_binop_pos : unit -> Lexing.position * Lexing.position
 *)
@@ -226,6 +236,8 @@ val st_assign : semv_expr -> string -> semv_expr -> semv_stmt
 val st_plusplus : semv_expr -> semv_stmt
 
 val st_minusminus : semv_expr -> semv_stmt
+
+val st_call : unit -> semv_stmt
 
 val st_if_then : semv_cond * int -> semv_stmt -> semv_stmt
 

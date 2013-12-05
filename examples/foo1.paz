@@ -1,0 +1,14 @@
+FUNC int foo ( int a ) {
+    return 7+a;
+}
+
+PROGRAM bar ( ) {
+    int x;
+    x = 5;
+    if ( x > 0 ) foo(x);
+    else {
+        foo(x+1);
+        foo(x+2);
+    }
+    return;
+}
