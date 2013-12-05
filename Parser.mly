@@ -20,9 +20,6 @@ open Symbol
 open Symbtest
 open Types
 
-(* change to true for parser output *)
-let debug = false;;
-
 (* Called by the parser function on error *)
 (*
 let parse_error s = 

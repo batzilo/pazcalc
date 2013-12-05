@@ -5,6 +5,7 @@
  *
  *)
 
+val debug : bool
 
 (* type definition for parameter passing *)
 type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE

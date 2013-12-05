@@ -20,6 +20,11 @@ module H = Hashtbl.Make (
   end
 )
 
+
+(* change to true for parser output *)
+let debug = false;;
+
+
 (* type definition for parameter passing *)
 type pass_mode = PASS_BY_VALUE | PASS_BY_REFERENCE
 

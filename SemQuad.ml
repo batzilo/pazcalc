@@ -1114,26 +1114,32 @@ let sq_format (x, w, d) =
 (* Statements *)
 
 let st_block stmt1 stmt2 =
-  (* make block's statement semantic value *)
+  (* first statement's next is second statement's beginning *)
   backpatch stmt1.s_next (Q_int (!quadNext - stmt2.s_len));
+  (* return a statement semantic value *)
   let ssv = {
     s_next = stmt2.s_next;
     s_len = stmt1.s_len + stmt2.s_len
   } in ssv
 
 let st_constdef () =
+  (* no quads are generated for constant definition *)
   ssv_empty
 
 let st_vardef () =
+  (* some quads may have been added due to variable initialization *)
   let l1 = !exprQuadLen in
   resetExprQuadLen ();
+  (* return a statement semantic value *)
   let ssv = {
     s_next = [];
     s_len = l1
   } in ssv
 
 let st_cond_of_expr e =
+  (* Convert an expression to a condition *)
   let c = cond_of_expr e in
+  (* "if something jump there, else jump there" is 2 quads long *)
   let qs = 2 in
   (* collect quads generated due to expression *)
   let l1 = !exprQuadLen in
@@ -1143,20 +1149,24 @@ let st_cond_of_expr e =
   resetLvalQuadLen ();
   (* compute total length *)
   let len = qs + l1 + l2 in
-  printf "conversion of condition to expression is %d quads long\n" len;
+  if (debug) then printf "conversion of expression to condition is %d quads long\n" len;
   (c,len)
 
 let st_fly () =
+  (* just add a jump quad to fly over the "else" part *)
   let l = [!quadNext] in
   let q = Q_jump ( Q_backpatch ) in
   addNewQuad q;
   (l,1)
 
 let st_assign lval op exp =
+  (* generate the assignment quads *)
   sq_assign lval op exp;
   let l1 = !exprQuadLen in
+  (* collect quads generated due to expression *)
   resetExprQuadLen ();
   let l2 = !lvalQuadLen in
+  (* collect quads generated due to lvalue *)
   resetLvalQuadLen ();
   let ssv = {
     s_next = [];
@@ -1164,10 +1174,13 @@ let st_assign lval op exp =
   } in ssv
 
 let st_plusplus lval =
+  (* generate the assignment quads *)
   sq_plus_plus lval;
   let l1 = !lvalQuadLen in
+  (* collect quads generated due to lvalue *)
   resetLvalQuadLen ();
   let l2 = !exprQuadLen in
+  (* collect quads generated due to expression *)
   resetExprQuadLen ();
   let ssv = {
     s_next = [];
@@ -1175,26 +1188,31 @@ let st_plusplus lval =
   } in ssv
 
 let st_minusminus lval =
+  (* generate the assignment quads *)
   sq_minus_minus lval;
   let l1 = !lvalQuadLen in
+  (* collect quads generated due to lvalue *)
   resetLvalQuadLen ();
   let l2 = !exprQuadLen in
+  (* collect quads generated due to expression *)
   resetExprQuadLen ();
   let ssv = {
     s_next = [];
     s_len = l1 + l2
   } in ssv
 
-
 let st_call () =
   let l1 = !lvalQuadLen in
+  (* collect quads generated due to lvalue *)
   resetLvalQuadLen ();
   let l2 = !exprQuadLen in
+  (* collect quads generated due to expression *)
   resetExprQuadLen ();
   let l3 = !routQuadLen in
-  let len = l1 + l2 + l3 in
-  printf "Call is %d long\n" len;
+  (* collect quads generated due to routine *)
   resetRoutQuadLen ();
+  let len = l1 + l2 + l3 in
+  if (debug) then printf "Call is %d long\n" len;
   let ssv = {
     s_next = [];
     s_len = len
@@ -1204,14 +1222,15 @@ let st_call () =
 let st_if_then cond stmt =
   (* handle if then *)
   let (c,qs) = cond in
-  printf "if-then->cond is %d quad long\n" qs;
-  printf "if-then->stmt is %d quad long\n" stmt.s_len;
-  (* backpatch c.c_true (Q_int (!quadNext - (List.length $5.s_code))); *)
+  if (debug) then printf "if-then->cond is %d quad long\n" qs;
+  if (debug) then printf "if-then->stmt is %d quad long\n" stmt.s_len;
+  (* if condition is true, jump to the statement *)
   backpatch c.c_true (Q_int (!quadNext - stmt.s_len));
+  (* merge cond.false and stmt.next as if_then.next *)
   let l1 = c.c_false in
   let l = List.merge compare l1 stmt.s_next in
   let len = qs + stmt.s_len in
-  printf "if-then is %d quad long\n" len;
+  if (debug) then printf "if-then is %d quad long\n" len;
   let ssv = {
     s_next = l;
     s_len = len
@@ -1221,14 +1240,18 @@ let st_if_then_else cond stmt1 fly stmt2 =
   (* handle if then else *)
   let (c,qs) = cond in
   let (fly_back, fly_q) = fly in
-  (* backpatch c.c_true (Q_int (!quadNext -(List.length $8.s_code) -1 -(List.length $5.s_code))); *)
+  if (debug) then printf "if-then-else->cond is %d quad long\n" qs;
+  if (debug) then printf "if-then-else->stmt1 is %d quad long\n" stmt1.s_len;
+  if (debug) then printf "if-then-else->stmt2 is %d quad long\n" stmt2.s_len;
+  (* if condition is true, jump to first statement *)
   backpatch c.c_true (Q_int (!quadNext -stmt2.s_len -1 -stmt1.s_len));
- (* backpatch c.c_false (Q_int (!quadNext - (List.length $8.s_code))); *)
+  (* if condition is false, jump to the second statement *)
   backpatch c.c_false (Q_int (!quadNext - stmt2.s_len));
+  (* merge stmt1.next, fly and stmt2.next as if_then_else.next *)
   let l2 = List.merge compare fly_back stmt1.s_next in
   let l = List.merge compare l2 stmt2.s_next in
-  (* let code = qs @ $5.s_code @ fly_q @ $8.s_code in *)
   let len = qs + stmt2.s_len + fly_q + stmt2.s_len in
+  if (debug) then printf "if-then-else is %d quad long\n" len;
   let ssv = {
     s_next = l;
     s_len = len
@@ -1237,15 +1260,18 @@ let st_if_then_else cond stmt1 fly stmt2 =
 let st_while cond stmt =
   (* handle while loop *)
   let (c,qs) = cond in
-  printf "while stmt is %d quads long\n" stmt.s_len;
+  if (debug) then printf "while->stmt is %d quads long\n" stmt.s_len;
   let stmt_start = !quadNext - stmt.s_len in
+  (* if condition is true jump to statement *)
   backpatch c.c_true (Q_int stmt_start);
+  (* set stmt.next to be the jump_to_condition quad *)
   backpatch stmt.s_next (Q_int (stmt_start - qs));
-  (* backpatch $5.s_next (Q_int !quadNext); *)
-  (* FIXME break, continue *)
+  (* FIXME maybe -> backpatch $5.s_next (Q_int !quadNext); *)
   let q = Q_jump (Q_int (stmt_start - qs)) in
   addNewQuad q;
+  (* find and fix any breaks associated with this while loop *)
   collectMyBreaks (stmt_start - qs) (!quadNext);
+  (* find and fix any continues associated with this while loop *)
   collectMyConts (stmt_start - qs) (!quadNext);
   let ssv = {
     s_next = c.c_false;
@@ -1254,23 +1280,22 @@ let st_while cond stmt =
 
 let st_for control stmt =
   (* handle for loop *)
+  (* FIXME what about messing with the iterator? *)
   let (init, c, qs, stepqs) = control in
-  printf "\tqs = %d quads\n" qs;
   let stmt_start = !quadNext - stmt.s_len in
-  printf "\tstmt_start = %d\n" stmt_start;
+  (* if condition is true, jump to the statement *)
   backpatch c.c_true (Q_int stmt_start);
-  printf "\tbackpatch c.c_true with %d\n" stmt_start;
-  (* backpatch $5.s_next (Q_int (stmt_start - qs)); *)
+  (* set stmt.next to be the step quads *)
   backpatch stmt.s_next (Q_int !quadNext);
-  printf "\tbackpatch stmt.s_next with %d\n" !quadNext;
+  (* NOW is the time to add the step quads *)
   List.iter addNewQuad stepqs;
   let steplen = List.length stepqs in
-  printf "\tsteplen = %d\n" steplen;
+  (* jump to condition *)
   let q = Q_jump (Q_int (stmt_start - qs + init)) in
   addNewQuad q;
-  printf "\tFOR len = %d\n" (qs + stmt.s_len + steplen + 1);
-  (* FIXME *)
+  (* find and fix any breaks associated with this for loop *)
   collectMyBreaks (stmt_start - qs) (!quadNext);
+  (* find and fix any continues associated with this for loop *)
   collectMyConts (stmt_start - qs + init) (!quadNext);
   let ssv = {
     s_next = c.c_false;
@@ -1281,9 +1306,13 @@ let st_do_while stmt cond =
   (* handle do-while *)
   let (c,qs) = cond in
   let stmt_start = !quadNext -stmt.s_len -qs in
+  (* if condition is true, jump back to the statement *)
   backpatch c.c_true (Q_int stmt_start);
+  (* set stmt.next to be the condition *)
   backpatch stmt.s_next (Q_int (stmt_start + stmt.s_len));
+  (* find and fix any breaks associated with this do-while loop *)
   collectMyBreaks (stmt_start - qs) (!quadNext);
+  (* find and fix any continues associated with this do-while loop *)
   collectMyConts (stmt_start) (!quadNext);
   let ssv = {
     s_next = c.c_false;
@@ -1295,6 +1324,7 @@ let st_break () =
   let brk = [!quadNext] in
   let q = Q_jump (Q_backpatch) in
   addNewQuad q;
+  (* register the break *)
   addBreakQuad brk;
   let ssv = {
     s_next = [];
@@ -1306,6 +1336,7 @@ let st_continue () =
   let cnt = [!quadNext] in
   let q = Q_jump (Q_backpatch) in
   addNewQuad q;
+  (* register the continue *)
   addContQuad cnt;
   let ssv = {
     s_next = [];
