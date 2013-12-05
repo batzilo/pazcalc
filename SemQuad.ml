@@ -1163,3 +1163,134 @@ let st_minusminus lval =
     s_next = [];
     s_len = l1 + l2
   } in ssv
+
+
+let st_if_then cond stmt =
+  (* handle if then *)
+  let (c,qs) = cond in
+  printf "if-then cond is %d quad long\n" qs;
+  printf "if-then stmt is %d quad long\n" stmt.s_len;
+  (* backpatch c.c_true (Q_int (!quadNext - (List.length $5.s_code))); *)
+  backpatch c.c_true (Q_int (!quadNext - stmt.s_len));
+  let l1 = c.c_false in
+  let l = List.merge compare l1 stmt.s_next in
+  let len = qs + stmt.s_len in
+  printf "whole if-then stmt is %d quad long\n" len;
+  let ssv = {
+    s_next = l;
+    s_len = len
+  } in ssv
+
+let st_if_then_else cond stmt1 fly stmt2 =
+  (* handle if then else *)
+  let (c,qs) = cond in
+  let (fly_back, fly_q) = fly in
+  (* backpatch c.c_true (Q_int (!quadNext -(List.length $8.s_code) -1 -(List.length $5.s_code))); *)
+  backpatch c.c_true (Q_int (!quadNext -stmt2.s_len -1 -stmt1.s_len));
+ (* backpatch c.c_false (Q_int (!quadNext - (List.length $8.s_code))); *)
+  backpatch c.c_false (Q_int (!quadNext - stmt2.s_len));
+  let l2 = List.merge compare fly_back stmt1.s_next in
+  let l = List.merge compare l2 stmt2.s_next in
+  (* let code = qs @ $5.s_code @ fly_q @ $8.s_code in *)
+  let len = qs + stmt2.s_len + fly_q + stmt2.s_len in
+  let ssv = {
+    s_next = l;
+    s_len = len
+  } in ssv
+
+let st_while cond stmt =
+  (* handle while loop *)
+  let (c,qs) = cond in
+  printf "while stmt is %d quads long\n" stmt.s_len;
+  let stmt_start = !quadNext - stmt.s_len in
+  backpatch c.c_true (Q_int stmt_start);
+  backpatch stmt.s_next (Q_int (stmt_start - qs));
+  (* backpatch $5.s_next (Q_int !quadNext); *)
+  (* FIXME break, continue *)
+  let q = Q_jump (Q_int (stmt_start - qs)) in
+  addNewQuad q;
+  collectMyBreaks (stmt_start - qs) (!quadNext);
+  collectMyConts (stmt_start - qs) (!quadNext);
+  let ssv = {
+    s_next = c.c_false;
+    s_len = qs + stmt.s_len + 1
+  } in ssv
+
+let st_for control stmt =
+  (* handle for loop *)
+  let (init, c, qs, stepqs) = control in
+  printf "\tqs = %d quads\n" qs;
+  let stmt_start = !quadNext - stmt.s_len in
+  printf "\tstmt_start = %d\n" stmt_start;
+  backpatch c.c_true (Q_int stmt_start);
+  printf "\tbackpatch c.c_true with %d\n" stmt_start;
+  (* backpatch $5.s_next (Q_int (stmt_start - qs)); *)
+  backpatch stmt.s_next (Q_int !quadNext);
+  printf "\tbackpatch stmt.s_next with %d\n" !quadNext;
+  List.iter addNewQuad stepqs;
+  let steplen = List.length stepqs in
+  printf "\tsteplen = %d\n" steplen;
+  let q = Q_jump (Q_int (stmt_start - qs + init)) in
+  addNewQuad q;
+  printf "\tFOR len = %d\n" (qs + stmt.s_len + steplen + 1);
+  (* FIXME *)
+  collectMyBreaks (stmt_start - qs) (!quadNext);
+  collectMyConts (stmt_start - qs) (!quadNext);
+  let ssv = {
+    s_next = c.c_false;
+    s_len = qs + stmt.s_len + steplen + 1
+  } in ssv
+
+let st_do_while stmt cond =
+  (* handle do-while *)
+  let (c,qs) = cond in
+  let stmt_start = !quadNext -stmt.s_len -qs in
+  backpatch c.c_true (Q_int stmt_start);
+  backpatch stmt.s_next (Q_int (stmt_start + stmt.s_len));
+  (* FIXME break, continue *)
+  let ssv = {
+    s_next = c.c_false;
+    s_len = stmt.s_len + qs
+  } in ssv
+
+let st_break () =
+  (* break *)
+  let brk = [!quadNext] in
+  let q = Q_jump (Q_backpatch) in
+  addNewQuad q;
+  addBreakQuad brk;
+  let ssv = {
+    s_next = [];
+    s_len = 1
+  } in ssv
+
+let st_continue () =
+  (* continue *)
+  let cnt = [!quadNext] in
+  let q = Q_jump (Q_backpatch) in
+  addNewQuad q;
+  addContQuad cnt;
+  let ssv = {
+    s_next = [];
+    s_len = 1
+  } in ssv
+
+let st_return_simple () =
+  (* handle return *)
+  let q = Q_ret in
+  addNewQuad q;
+  let ssv = {
+    s_next = [];
+    s_len = 1
+  } in ssv
+
+let st_return e =
+  (* handle return *)
+  let q1 = Q_assign (e.e_place , Q_funct_res) in
+  let q2 = Q_ret in
+  addNewQuad q1;
+  addNewQuad q2;
+  let ssv = {
+    s_next = [];
+    s_len = 2
+  } in ssv

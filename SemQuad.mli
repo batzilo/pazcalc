@@ -226,3 +226,21 @@ val st_assign : semv_expr -> string -> semv_expr -> semv_stmt
 val st_plusplus : semv_expr -> semv_stmt
 
 val st_minusminus : semv_expr -> semv_stmt
+
+val st_if_then : semv_cond * int -> semv_stmt -> semv_stmt
+
+val st_if_then_else : semv_cond * int -> semv_stmt -> int list * int -> semv_stmt -> semv_stmt
+
+val st_while : semv_cond * int -> semv_stmt -> semv_stmt
+
+val st_for : int * semv_cond * int * quad_t list -> semv_stmt -> semv_stmt
+
+val st_do_while : semv_stmt -> semv_cond * int -> semv_stmt
+
+val st_break : unit -> semv_stmt
+
+val st_continue : unit -> semv_stmt
+
+val st_return_simple : unit -> semv_stmt
+
+val st_return : semv_expr -> semv_stmt
