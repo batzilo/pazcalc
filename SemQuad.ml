@@ -1271,7 +1271,7 @@ let st_for control stmt =
   printf "\tFOR len = %d\n" (qs + stmt.s_len + steplen + 1);
   (* FIXME *)
   collectMyBreaks (stmt_start - qs) (!quadNext);
-  collectMyConts (stmt_start - qs) (!quadNext);
+  collectMyConts (stmt_start - qs + init) (!quadNext);
   let ssv = {
     s_next = c.c_false;
     s_len = qs + stmt.s_len + steplen + 1

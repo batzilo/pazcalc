@@ -1,0 +1,8 @@
+PROGRAM bar ( ) {
+    int a;
+    FOR (a, 1 TO 10) {
+        a++;   
+        if ( a == 5 ) continue;
+    }
+    return;
+}
