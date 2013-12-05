@@ -1,0 +1,8 @@
+PROGRAM foo ( ) {
+int a;
+do {
+a++;
+if ( a == 5 ) break;
+} while ( a > 0 );
+return;
+}

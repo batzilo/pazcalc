@@ -118,7 +118,9 @@ dummy_non_terminal : /*(* empty, used only for semantic actions *)*/ { prologue 
 
 declaration_list : declaration                  { }
                  | declaration_list declaration { }
+                 /*
                  | error                        { fatal "Global scope declaration error" }
+                 */
                  ;
 
 declaration : const_def { }
@@ -248,7 +250,9 @@ routine : routine_header T_sem_col {
         ;
 
 program_header : T_PROGRAM T_id T_lparen T_rparen   { sq_rout_head $2 TYPE_proc [] }
-               | error { fatal "main program header is invalid"; sq_rout_head "" TYPE_none [] }
+               /*
+               | T_PROGRAM error { fatal "main program header is invalid"; sq_rout_head "" TYPE_none [] }
+               */
                ;
 
 program : program_header block {

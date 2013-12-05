@@ -1143,7 +1143,7 @@ let st_cond_of_expr e =
   resetLvalQuadLen ();
   (* compute total length *)
   let len = qs + l1 + l2 in
-  printf "cond of expr is %d+%d+%d quads long\n" qs l1 l2;
+  printf "conversion of condition to expression is %d quads long\n" len;
   (c,len)
 
 let st_fly () =
@@ -1204,14 +1204,14 @@ let st_call () =
 let st_if_then cond stmt =
   (* handle if then *)
   let (c,qs) = cond in
-  printf "if-then cond is %d quad long\n" qs;
-  printf "if-then stmt is %d quad long\n" stmt.s_len;
+  printf "if-then->cond is %d quad long\n" qs;
+  printf "if-then->stmt is %d quad long\n" stmt.s_len;
   (* backpatch c.c_true (Q_int (!quadNext - (List.length $5.s_code))); *)
   backpatch c.c_true (Q_int (!quadNext - stmt.s_len));
   let l1 = c.c_false in
   let l = List.merge compare l1 stmt.s_next in
   let len = qs + stmt.s_len in
-  printf "whole if-then stmt is %d quad long\n" len;
+  printf "if-then is %d quad long\n" len;
   let ssv = {
     s_next = l;
     s_len = len
@@ -1283,7 +1283,8 @@ let st_do_while stmt cond =
   let stmt_start = !quadNext -stmt.s_len -qs in
   backpatch c.c_true (Q_int stmt_start);
   backpatch stmt.s_next (Q_int (stmt_start + stmt.s_len));
-  (* FIXME break, continue *)
+  collectMyBreaks (stmt_start - qs) (!quadNext);
+  collectMyConts (stmt_start) (!quadNext);
   let ssv = {
     s_next = c.c_false;
     s_len = stmt.s_len + qs
