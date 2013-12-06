@@ -105,7 +105,7 @@ let epilogue () =
 
 pazprog : /*(* empty *)*/                           { }
         | dummy_non_terminal declaration_list T_EOF { epilogue ()  }
-		;
+        ;
 
 dummy_non_terminal : /*(* empty, used only for semantic actions *)*/ { prologue () }
                    ;
@@ -123,7 +123,7 @@ declaration : const_def { }
             | program   { }
             ;
 
-const_def :	T_const paztype T_id T_assign const_expr T_sem_col {
+const_def : T_const paztype T_id T_assign const_expr T_sem_col {
                 (* Semantic-Quads actions for constant definition. name, type, value *)
                 sq_cdef $3 $2 $5
                 }
@@ -153,7 +153,7 @@ var_def : paztype var_init T_sem_col {
                   sq_vardef $1 $2;
                   List.iter (sq_vardef $1) $3
                 }
-		;
+        ;
 
 var_def2 : T_comma var_init             { [$2] }
          | var_def2 T_comma var_init    { $1 @ [$3] }
@@ -177,21 +177,21 @@ matrix_var_init2 : T_lbrack const_expr T_rbrack                     { [$2.e_plac
                  ;
 
 routine_header : T_PROC T_id T_lparen T_rparen {
-                        (* i.e PROC foo() *)
-                        sq_rout_head $2 TYPE_proc []
-                        }
+                      (* i.e PROC foo() *)
+                      sq_rout_head $2 TYPE_proc []
+                    }
                | T_PROC T_id T_lparen routine_header2 T_rparen {
-                        (* i.e PROC foo( int a, char b, REAL c, bool d ) *)
-                        sq_rout_head $2 TYPE_proc $4
-                        }
+                      (* i.e PROC foo( int a, char b, REAL c, bool d ) *)
+                      sq_rout_head $2 TYPE_proc $4
+                    }
                | T_FUNC paztype T_id T_lparen T_rparen {
-                        (* i.e FUNC int foo() *)
-                        sq_rout_head $3 $2 []
-                        }
+                      (* i.e FUNC int foo() *)
+                      sq_rout_head $3 $2 []
+                    }
                | T_FUNC paztype T_id T_lparen routine_header2 T_rparen {
-                        (* i.e FUNC int foo( int a, char b, REAL c, bool d ) *)
-                        sq_rout_head $3 $2 $5
-                        }
+                      (* i.e FUNC int foo( int a, char b, REAL c, bool d ) *)
+                      sq_rout_head $3 $2 $5
+                    }
                ;
 
 /*(* return a list of tuples (type, (name, mode, dims)) *)*/
@@ -266,15 +266,15 @@ paztype : T_int     { TYPE_int }
         ;
 
 const_expr : expr {
-                  (* make sure it's really a const *)
-                  let cv = const_of_quad $1.e_place in
-                  match cv with
-                  | CONST_none ->
-                     error "const expr isn't really a constant!";
-                     esv_err
-                  | _ ->
-                    $1
-                }
+              (* make sure it's really a const *)
+              let cv = const_of_quad $1.e_place in
+              match cv with
+              | CONST_none ->
+                error "const expr isn't really a constant!";
+                esv_err
+              | _ ->
+                $1
+            }
            ;
 
 expr : T_int_const {
@@ -293,9 +293,7 @@ expr : T_int_const {
             let esv = {
               e_place = (Q_char $1);
               e_typ = TYPE_char;
-            } in
-            printf "THIS IS ME! %c %C\n" $1 $1;
-            esv
+            } in esv
         }
      | T_string_literal {
             let esv = {
@@ -342,7 +340,7 @@ expr : T_int_const {
 
 l_value : T_id              { sq_lvalue $1 [] }
         | T_id l_value2     { sq_lvalue $1 $2 }
-		;
+        ;
 
 l_value2 : T_lbrack expr T_rbrack           { [$2] }
          | l_value2 T_lbrack expr T_rbrack  { $1 @ [$3] }
@@ -369,11 +367,11 @@ block2 : local_def          { $1 }
        | block2 stmt        { st_block $1 $2 }
        ;
 
-local_def :	const_def   { st_constdef () }
+local_def : const_def   { st_constdef () }
           | var_def     { st_vardef () }
           ;
 
-cond : expr { (* cond is expr *) st_cond_of_expr $1 }
+cond : expr { st_cond_of_expr $1 }
      ;
 
 fly : /*(* empty *)*/ { (* just adds a jump! *) st_fly () }
@@ -392,7 +390,7 @@ stmt : T_sem_col                                            { ssv_empty }
      | l_value T_plus_plus T_sem_col                        { st_plusplus $1 }
      | l_value T_minus_minus T_sem_col                      { st_minusminus $1 }
      | call T_sem_col                                       { st_call () }
-     | T_if T_lparen cond T_rparen stmt	%prec NOELSE        { st_if_then $3 $5 }
+     | T_if T_lparen cond T_rparen stmt %prec NOELSE        { st_if_then $3 $5 }
      | T_if T_lparen cond T_rparen stmt T_else fly stmt     { st_if_then_else $3 $5 $7 $8 }
      | T_while T_lparen cond T_rparen stmt                  { st_while $3 $5 }
      | T_FOR T_lparen for_control T_rparen stmt             { st_for $3 $5 }
@@ -451,7 +449,7 @@ range : expr T_TO expr {
         }
       ;
 
-/* clause */
+/* clause ? */
 
 write : T_WRITE     { 0 }
       | T_WRITESP   { 1 }
