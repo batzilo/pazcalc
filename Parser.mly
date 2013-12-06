@@ -98,9 +98,6 @@ let epilogue () =
  * Because we're generating an LALR(1) parser,
  * left-recursive grammar rules are good!
  *
- * TODO: Do not put any identation to semantic brackets until we know it runs smoothly
- * TODO: Location Tracking
- *
  *)
  */
 
@@ -296,7 +293,9 @@ expr : T_int_const {
             let esv = {
               e_place = (Q_char $1);
               e_typ = TYPE_char;
-            } in esv
+            } in
+            printf "THIS IS ME! %c %C\n" $1 $1;
+            esv
         }
      | T_string_literal {
             let esv = {
@@ -377,7 +376,7 @@ local_def :	const_def   { st_constdef () }
 cond : expr { (* cond is expr *) st_cond_of_expr $1 }
      ;
 
-fly : /*(* empty *)*/ { (* just add a jump! *) st_fly () }
+fly : /*(* empty *)*/ { (* just adds a jump! *) st_fly () }
     ;
 
 for_control : T_id T_comma range {
@@ -403,8 +402,8 @@ stmt : T_sem_col                                            { ssv_empty }
      | T_continue T_sem_col                                 { st_continue () }
      | T_return T_sem_col                                   { st_return_simple () }
      | T_return expr T_sem_col                              { st_return $2 }
-     | write T_lparen T_rparen T_sem_col                    { (* FIXME *) ssv_empty }
-     | write T_lparen stmt2 T_rparen T_sem_col              { (* FIXME *) ssv_empty }
+     | write T_lparen T_rparen T_sem_col                    { st_write $1 [] }
+     | write T_lparen stmt2 T_rparen T_sem_col              { st_write $1 $3 }
      /* error recovery */
      | error T_sem_col {
           (* error *)
@@ -413,8 +412,9 @@ stmt : T_sem_col                                            { ssv_empty }
         }
      ;
 
-stmt2 : frmt { }
-      | stmt2 T_comma frmt { }
+/*(* return a list *)*/
+stmt2 : frmt                { [$1] }
+      | stmt2 T_comma frmt  { $1 @ [$3] }
       ;
 
 assign : T_assign           { "=" }
@@ -453,41 +453,31 @@ range : expr T_TO expr {
 
 /* clause */
 
-write : T_WRITE     { "WRITE"     }
-      | T_WRITELN   { "WRITELN"   }
-      | T_WRITESP   { "WRITESP"   }
-      | T_WRITESPLN { "WRITESPLN" }
+write : T_WRITE     { 0 }
+      | T_WRITESP   { 1 }
+      | T_WRITELN   { 2 }
+      | T_WRITESPLN { 3 }
       ;
 
 frmt : expr {
           (* a *)
-          (*
-          let zero = {
-            e_place = Q_int 0;
+          let nothing = {
+            e_place = Q_none;
             e_typ = TYPE_int
           } in
-          let minusone = {
-            e_place = Q_int (-1);
-            e_typ = TYPE_int
-          } in
-          sq_format ($1, zero, minusone)
-          *)
+          sq_format ($1, nothing, nothing)
         }
      | T_FORM T_lparen expr T_comma expr T_rparen {
           (* FORM(a,5) *)
-          (*
-          let minusone = {
-            e_place = Q_int (-1);
+          let nothing = {
+            e_place = Q_none;
             e_typ = TYPE_int
           } in
-          sq_format ($3, $5, minusone)
-          *)
+          sq_format ($3, $5, nothing)
         }
      | T_FORM T_lparen expr T_comma expr T_comma expr T_rparen  {
           (* FORM(a,5,5) *)
-          (*
           sq_format ($3, $5, $7)
-          *)
         }
      ;
 

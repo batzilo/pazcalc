@@ -12,13 +12,13 @@
   (* open Parser for tokens type *)
   open Parser
 
+  (* Lexer debugging *)
+  let debug = true;;
+
   let create_hashtable size init =
     let tbl = Hashtbl.create size in
       List.iter (fun (key, data) -> Hashtbl.add tbl key data) init;
       tbl
-
-  (* change to true for lexer output *)
-  let debug = false;;
 
 (* 
   type token =
@@ -91,7 +91,8 @@
   let digit = ['0'-'9']
 
   (* common characters are every printable character except for single and double quotes and backslash *)
-  let common = [^ ''' '"' '\\']
+  (* FIXME should i add '\n' since negated sets will match a new line? *)
+  let common = [^ ''' '"' '\\' (* ? *) ]
 
   (* escape sequences are made of a backslash '\' and one character from 'n', 't', 'r', '0', '\', ''', '"' *)
   let escape = '\\'['n' 't' 'r' '0' '\\' ''' '"']
@@ -147,13 +148,13 @@
       }
 
     (* char constants except for '\n' *)
-    (* TODO: why not common # '\n' ? *)
     | '''(common|escape)''' as cc {
       if (debug) then printf "[Lexer.ml]char constant: %s\n" cc;
       T_char_const (lexeme_char lexbuf 1)
       }
 
     (* string constants - can't exceed one line of code *)
+    (* TODO: why not common # '\n' ? *)
     | '"'((common # '\n') | escape)*'"' as sc {
       if (debug) then printf "[Lexer.ml]string literal: %s\n" sc;
       T_string_literal sc
@@ -213,7 +214,7 @@
 
     (* eof *)
     | eof {
-      (* raise End_of_file *)
+      (* raise End_of_file; *)
       T_EOF
       }
 
@@ -254,8 +255,10 @@
 {
   let rec parse lexbuf = 
     let token = pazcal lexbuf in
-    (* do nothing in this example *)
-    parse lexbuf
+      (* do nothing in this example *)
+      match token with
+      | T_EOF -> exit 0
+      | _ -> parse lexbuf
 
   let main () = 
     let cin = 
@@ -264,9 +267,13 @@
        else stdin
     in
     let lexbuf = Lexing.from_channel cin in
+    parse lexbuf
+    (*
       try parse lexbuf
-      with End_of_file -> ()
+      with End_of_file -> T_EOF
+    *)
     
   let _ = Printexc.print main ()
+
 }
 *)

@@ -1,0 +1,7 @@
+PROGRAM bar ( ) {
+WRITE('c');
+WRITE('\n');
+WRITE("c");
+WRITE("\n");
+return;
+}

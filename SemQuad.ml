@@ -112,11 +112,11 @@ let quad_of_const = function
 
 (* convert SemQuad.quad_op_t to string *)
 let string_of_quad_op = function
-  | Q_none -> ""
+  | Q_none -> "<none>"
   | Q_int i -> string_of_int i
   | Q_real r -> string_of_float r
   | Q_bool b -> string_of_bool b
-  | Q_char c -> Char.escaped c
+  | Q_char c -> sprintf "%C" c (* Char.escaped c *)
   | Q_string s -> s
   | Q_entry e -> id_name e.entry_id
   | Q_funct_res -> "$$"
@@ -1087,19 +1087,23 @@ let sq_for_control i a b c =
   (len0, cond, len, incquads)
 
 let sq_format (x, w, d) =
-  if (w.e_typ != TYPE_int) then
-    begin
-    error "Printable characters number is not an int";
-    (x,w,d)
-    end
-  else if (d.e_typ != TYPE_int) then
-    begin
-    error "Printable decimals number is not an int";
-    (x,w,d)
-    end
-  else
-    match d.e_place, x.e_typ with
-    | Q_int a, TYPE_REAL ->
+  let check () =
+    if (w.e_typ != TYPE_int) then
+      begin
+      error "Printable characters number is not an int";
+      false
+      end
+    else if (d.e_typ != TYPE_int) then
+      begin
+      error "Printable decimals number is not an int";
+      false
+      end
+    else
+      match d.e_place, x.e_typ with
+      | Q_none, _ -> true
+      | a, TYPE_REAL -> true
+      | _ -> false
+      (*
         if (a = 1) then
           begin
           error "Printable decimals setting is present, but expression to be printed isn't of type REAL";
@@ -1108,6 +1112,15 @@ let sq_format (x, w, d) =
         else
           (x,w,d)
     | _ -> (x,w,d)
+    *)
+  in
+  if ( check () ) then
+    (x.e_place, w.e_place, d.e_place)
+  else
+    begin
+    error "FORMAT error";
+    (Q_none, Q_none, Q_none)
+    end
 
 
 
@@ -1217,7 +1230,6 @@ let st_call () =
     s_next = [];
     s_len = len
   } in ssv
-
 
 let st_if_then cond stmt =
   (* handle if then *)
@@ -1361,4 +1373,78 @@ let st_return e =
   let ssv = {
     s_next = [];
     s_len = 2
+  } in ssv
+
+let st_write w l =
+(*
+    | "WRITE" -> 0 (* do nothing *)
+    | "WRITESP" -> 1 (* add spaces *)
+    | "WRITELN" -> 2 (* add a new line @ the end *)
+    | "WRITESPLN" -> 3 (* add both spaces and a new line @ the end *)
+*)
+  let gen_quads a b c =
+    (* do something!!! *)
+    match a with
+    | Q_int i ->
+      (* call writeInteger *)
+      addNewQuad (Q_par (a, Q_pass_mode V));
+      addNewQuad (Q_call (Q_string "writeInteger"));
+      2
+    | Q_char c ->
+      (* call writeChar *)
+      addNewQuad (Q_par (a, Q_pass_mode V));
+      addNewQuad (Q_call (Q_string "writeChar"));
+      2
+    | Q_string s ->
+      (* call writeString *)
+      addNewQuad (Q_par (a, Q_pass_mode R));
+      addNewQuad (Q_call (Q_string "writeString"));
+      2
+    | _ ->
+      0
+  in
+  let gen_sp () =
+    if (w = 1 || w = 3) then
+      begin
+      addNewQuad (Q_par (Q_char ' ', Q_pass_mode V));
+      addNewQuad (Q_call (Q_string "writeChar"));
+      2
+      end
+    else
+      0
+  in
+  let rm_last_sp () =
+    if (w = 1 || w = 3) then
+      begin
+      rmLastQuad ();
+      rmLastQuad ();
+      end
+  in
+  let gen_nl () =
+    if (w = 2 || w = 3) then
+      begin
+      addNewQuad (Q_par (Q_char '\n', Q_pass_mode V));
+      addNewQuad (Q_call (Q_string "writeChar"));
+      2
+      end
+    else
+      0
+  in
+  let rec gen_code = function
+  | (a,b,c)::t ->
+    let l1 = gen_quads a b c in
+    let l2 = gen_sp () in
+    l1 + l2 + gen_code t
+  | [] ->
+    rm_last_sp ();
+    let l1 = gen_nl () in
+    l1
+  in
+  let count =
+    gen_code l
+    (* List.fold_left (+) 0 (List.map gen_code l) *)
+  in
+  let ssv = {
+    s_next = [];
+    s_len = count
   } in ssv
