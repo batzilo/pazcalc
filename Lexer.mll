@@ -91,8 +91,8 @@
   let digit = ['0'-'9']
 
   (* common characters are every printable character except for single and double quotes and backslash *)
-  (* FIXME should i add '\n' since negated sets will match a new line? *)
-  let common = [^ ''' '"' '\\' (* ? *) ]
+  (* FIXME should I add '\n' since negated sets will match even a new line? *)
+  let common = [^ ''' '"' '\\' (* '\n' *) ]
 
   (* escape sequences are made of a backslash '\' and one character from 'n', 't', 'r', '0', '\', ''', '"' *)
   let escape = '\\'['n' 't' 'r' '0' '\\' ''' '"']
@@ -148,13 +148,31 @@
       }
 
     (* char constants except for '\n' *)
+    (* TODO: why not common # '\n' ? *)
     | '''(common|escape)''' as cc {
       if (debug) then printf "[Lexer.ml]char constant: %s\n" cc;
-      T_char_const (lexeme_char lexbuf 1)
+      match String.length cc with
+      | 3 ->
+        (* a simple character, return it *)
+        T_char_const (lexeme_char lexbuf 1)
+      | 4 ->
+        begin
+        (* an escaped character, "find" which is and return it *)
+        let c = cc.[2] in
+        match c with
+        | 'n' -> T_char_const '\n'
+        | 't' -> T_char_const '\t'
+        | 'r' -> T_char_const '\r'
+        | '0' -> T_char_const '\000'
+        | '\\' -> T_char_const '\\'
+        | '\'' -> T_char_const '\''
+        | '"' -> T_char_const '"'
+        | _ -> T_char_const (lexeme_char lexbuf 1)
+        end
+      | _ -> T_EOF (* shouldn't ever reach *)
       }
 
     (* string constants - can't exceed one line of code *)
-    (* TODO: why not common # '\n' ? *)
     | '"'((common # '\n') | escape)*'"' as sc {
       if (debug) then printf "[Lexer.ml]string literal: %s\n" sc;
       T_string_literal sc
