@@ -1,0 +1,13 @@
+PROGRAM bar ( ) {
+putchar('c');
+puts("Hello world!");
+puts("Hello world!\n");
+WRITE_INT(0);
+Error: There are too many or not enough arguments when calling 'WRITE_INT'
+WRITE_INT(0, 5);
+WRITE_BOOL(true, 7);
+WRITE_CHAR('\n', 1000);
+WRITE_REAL(3.14, 5, 5);
+WRITE_STRING("hello world!\n", 42);
+return;
+}

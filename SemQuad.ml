@@ -820,6 +820,7 @@ let sq_assign a op b =
       (* a quad has been added to icode, due to expression *)
       incExprQuadLen ()
   else
+    error "type mismatch when assigning a value to '%s'" (string_of_quad_op a.e_place);
     ()
 
 (* Semantic-Quads actions for variable definition *)
@@ -1470,13 +1471,286 @@ let st_write w l =
 
 let register_runtime_library () =
   (* Register Writes *)
-  ignore ( sq_rout_head "writeInteger"  TYPE_proc   [ (TYPE_int, ("i", PASS_BY_VALUE, [])) ]  );
+  ignore (
+    sq_rout_head
+    "writeInteger"
+    TYPE_proc
+    [ (TYPE_int, ("i", PASS_BY_VALUE, [])) ]
+    );
   rmLastQuad ();
-  ignore ( sq_rout_head "writeChar"     TYPE_proc   [ (TYPE_char, ("c", PASS_BY_VALUE, [])) ] );
+
+  ignore (
+    sq_rout_head
+    "writeChar"
+    TYPE_proc
+    [ (TYPE_char, ("c", PASS_BY_VALUE, [])) ]
+    );
   rmLastQuad ();
-  ignore ( sq_rout_head "writeBoolean"  TYPE_proc   [ (TYPE_bool, ("b", PASS_BY_VALUE, [])) ] );
+
+  ignore (
+    sq_rout_head
+    "writeBoolean"
+    TYPE_proc
+    [ (TYPE_bool, ("b", PASS_BY_VALUE, [])) ]
+    );
   rmLastQuad ();
-  ignore ( sq_rout_head "writeReal"     TYPE_proc   [ (TYPE_REAL, ("r", PASS_BY_VALUE, [])) ] );
+
+  ignore (
+    sq_rout_head
+    "writeReal"
+    TYPE_proc
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, [])) ]
+    );
   rmLastQuad ();
-  ignore ( sq_rout_head "writeString"   TYPE_proc   [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ] );
+
+  ignore (
+    sq_rout_head
+    "writeString"
+    TYPE_proc
+    [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ]
+    );
+  rmLastQuad ();
+
+  (* Register STD OUT *)
+  ignore (
+    sq_rout_head
+    "putchar"
+    TYPE_proc
+    [ (TYPE_char, ("c", PASS_BY_VALUE, [])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "puts"
+    TYPE_proc
+    [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "WRITE_INT"
+    TYPE_proc
+    [ (TYPE_int, ("n", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "WRITE_BOOL"
+    TYPE_proc
+    [ (TYPE_bool, ("b", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "WRITE_CHAR"
+    TYPE_proc
+    [ (TYPE_char, ("c", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "WRITE_REAL"
+    TYPE_proc
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])); (TYPE_int, ("d", PASS_BY_VALUE, [])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "WRITE_STRING"
+    TYPE_proc
+    [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
+    );
+  rmLastQuad ();
+
+  (* Register STD IN *)
+  ignore (
+    sq_rout_head
+    "READ_INT"
+    TYPE_int
+    [ ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "READ_BOOL"
+    TYPE_bool
+    [ ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "getchar"
+    TYPE_int
+    [ ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "READ_REAL"
+    TYPE_REAL
+    [ ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "READ_STRING"
+    TYPE_proc
+    [ (TYPE_int, ("size", PASS_BY_VALUE, [])); TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])]
+    );
+  rmLastQuad ();
+
+  (* Register STD LIB *)
+  ignore (
+    sq_rout_head
+    "abs"
+    TYPE_int
+    [ (TYPE_int, ("n", PASS_BY_VALUE, [])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "fabs"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "sqrt"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "sin"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "cos"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "tan"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "arctan"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "exp"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "ln"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "pi"
+    TYPE_REAL
+    [ ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "trunc"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "round"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "TRUNC"
+    TYPE_int
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "ROUND"
+    TYPE_int
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "strlen"
+    TYPE_int
+    [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "strcmp"
+    TYPE_int
+    [ (TYPE_char, ("s1", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_char, ("s2", PASS_BY_REFERENCE, [Q_int 0])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "strcpy"
+    TYPE_proc
+    [ (TYPE_char, ("trg", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_char, ("src", PASS_BY_REFERENCE, [Q_int 0])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "strcat"
+    TYPE_proc
+    [ (TYPE_char, ("trg", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_char, ("src", PASS_BY_REFERENCE, [Q_int 0])) ]
+    );
   rmLastQuad ()
+

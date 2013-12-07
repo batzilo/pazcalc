@@ -1,0 +1,13 @@
+PROGRAM bar ( ) {
+int a;
+a = READ_INT();
+bool b;
+b = READ_BOOL();
+char c;
+c = getchar();
+REAL d;
+d = READ_REAL();
+char e[10];
+READ_STRING(8,e);
+return;
+}
