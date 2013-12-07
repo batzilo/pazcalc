@@ -873,7 +873,6 @@ let sq_rout_head name typ pars =
 
 (* Semantic-Quads actions for routine call *)
 let sq_rout_call name pars =
-  (* FIXME add how many quads does it take to call the function *)
   (* Lookup the Symbol Table, and handle the not_found case *)
   let e = lookupEntry (id_make name) LOOKUP_ALL_SCOPES true in
     match e.entry_info with
@@ -896,7 +895,7 @@ let sq_rout_call name pars =
                 begin
                 match fh.entry_info with
                 | ENTRY_parameter inf ->
-                   if (not (equalType inf.parameter_type ah.e_typ) || not (dimmatch inf.parameter_type ah.e_typ)) then
+                   if ( (not (equalType inf.parameter_type ah.e_typ)) || (not (dimmatch inf.parameter_type ah.e_typ)) ) then
                      begin
                      error "Parameter type mismatch when calling '%s'" name;
                      false
@@ -1115,11 +1114,13 @@ let sq_format (x, w, d) =
     *)
   in
   if ( check () ) then
-    (x.e_place, w.e_place, d.e_place)
+    (* (x.e_place, w.e_place, d.e_place) *)
+    (x,w,d)
   else
     begin
     error "FORMAT error";
-    (Q_none, Q_none, Q_none)
+    (* (Q_none, Q_none, Q_none) *)
+    (esv_err, esv_err, esv_err)
     end
 
 
@@ -1383,23 +1384,37 @@ let st_write w l =
     | "WRITESPLN" -> 3 (* add both spaces and a new line @ the end *)
 *)
   let gen_quads a b c =
-    (* do something!!! *)
-    match a with
+    match a.e_place with
     | Q_int i ->
-      (* call writeInteger *)
-      addNewQuad (Q_par (a, Q_pass_mode V));
-      addNewQuad (Q_call (Q_string "writeInteger"));
-      2
+      (* integer constant *)
+      ignore (sq_rout_call "writeInteger" [a]);
+      let l1 = !routQuadLen in
+      resetRoutQuadLen ();
+      l1
     | Q_char c ->
-      (* call writeChar *)
-      addNewQuad (Q_par (a, Q_pass_mode V));
-      addNewQuad (Q_call (Q_string "writeChar"));
-      2
+      (* character constant *)
+      ignore (sq_rout_call "writeChar" [a]);
+      let l1 = !routQuadLen in
+      resetRoutQuadLen ();
+      l1
+    | Q_bool b ->
+      (* boolean constant *)
+      ignore (sq_rout_call "writeBoolean" [a]);
+      let l1 = !routQuadLen in
+      resetRoutQuadLen ();
+      l1
+    | Q_real r ->
+      (* REAL constant *)
+      ignore (sq_rout_call "writeReal" [a]);
+      let l1 = !routQuadLen in
+      resetRoutQuadLen ();
+      l1
     | Q_string s ->
-      (* call writeString *)
-      addNewQuad (Q_par (a, Q_pass_mode R));
-      addNewQuad (Q_call (Q_string "writeString"));
-      2
+      (* string constant *)
+      ignore (sq_rout_call "writeString" [a]);
+      let l1 = !routQuadLen in
+      resetRoutQuadLen ();
+      l1
     | _ ->
       0
   in
@@ -1448,3 +1463,20 @@ let st_write w l =
     s_next = [];
     s_len = count
   } in ssv
+
+
+
+(* Runtime Library *)
+
+let register_runtime_library () =
+  (* Register Writes *)
+  ignore ( sq_rout_head "writeInteger"  TYPE_proc   [ (TYPE_int, ("i", PASS_BY_VALUE, [])) ]  );
+  rmLastQuad ();
+  ignore ( sq_rout_head "writeChar"     TYPE_proc   [ (TYPE_char, ("c", PASS_BY_VALUE, [])) ] );
+  rmLastQuad ();
+  ignore ( sq_rout_head "writeBoolean"  TYPE_proc   [ (TYPE_bool, ("b", PASS_BY_VALUE, [])) ] );
+  rmLastQuad ();
+  ignore ( sq_rout_head "writeReal"     TYPE_proc   [ (TYPE_REAL, ("r", PASS_BY_VALUE, [])) ] );
+  rmLastQuad ();
+  ignore ( sq_rout_head "writeString"   TYPE_proc   [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ] );
+  rmLastQuad ()

@@ -214,7 +214,7 @@ val sq_range : semv_expr -> semv_expr -> semv_expr -> quad_op_t * quad_op_t * qu
 
 val sq_for_control : string -> quad_op_t -> quad_op_t -> quad_op_t -> int * semv_cond * int * quad_t list
 
-val sq_format : semv_expr * semv_expr * semv_expr -> quad_op_t * quad_op_t * quad_op_t
+val sq_format : semv_expr * semv_expr * semv_expr -> semv_expr * semv_expr * semv_expr
 
 
 
@@ -257,4 +257,10 @@ val st_return_simple : unit -> semv_stmt
 
 val st_return : semv_expr -> semv_stmt
 
-val st_write : int -> (quad_op_t * quad_op_t * quad_op_t) list -> semv_stmt
+val st_write : int -> (semv_expr * semv_expr * semv_expr) list -> semv_stmt
+
+
+
+(* Runtime Library *)
+
+val register_runtime_library : unit -> unit
