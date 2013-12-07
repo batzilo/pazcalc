@@ -1057,7 +1057,7 @@ let sq_for_control i a b c =
   incExprQuadLen ();
   let len0 = !exprQuadLen in
   resetExprQuadLen ();
-  printf "\tafter init, quads = %d\n" len0;
+  if (debug) then printf "\tafter init, quads = %d\n" len0;
   let cmp = if ( a <= b ) then "<" else ">" in
   let tr = [!quadNext] in
   let q2 = Q_relop (cmp, ie.e_place, b, Q_backpatch) in
@@ -1078,7 +1078,7 @@ let sq_for_control i a b c =
   resetExprQuadLen ();
   let l2 = !lvalQuadLen in
   resetLvalQuadLen ();
-  printf "\tafter check, quads = %d\n" (cqs+l1+l2);
+  if (debug) then printf "\tafter check, quads = %d\n" (cqs+l1+l2);
   let len = len0 + cqs + l1 + l2 in
   let e = newTemporary TYPE_int in
   let q4 = Q_op ("+", ie.e_place, c, Q_entry e) in
@@ -1416,15 +1416,61 @@ let st_write w l =
       let l1 = !routQuadLen in
       resetRoutQuadLen ();
       l1
+    | Q_entry e ->
+      begin
+      let typ = match e.entry_info with
+      | ENTRY_variable inf -> inf.variable_type
+      | ENTRY_parameter inf -> inf.parameter_type
+      | ENTRY_constant inf -> inf.constant_type
+      | _ -> TYPE_none
+      in
+      match typ with
+      | TYPE_int ->
+        (* integer *)
+        ignore (sq_rout_call "writeInteger" [a]);
+        let l1 = !routQuadLen in
+        resetRoutQuadLen ();
+        l1
+      | TYPE_char ->
+        (* character constant *)
+        ignore (sq_rout_call "writeChar" [a]);
+        let l1 = !routQuadLen in
+        resetRoutQuadLen ();
+        l1
+      | TYPE_bool ->
+        (* boolean constant *)
+        ignore (sq_rout_call "writeBoolean" [a]);
+        let l1 = !routQuadLen in
+        resetRoutQuadLen ();
+        l1
+      | TYPE_REAL ->
+        (* REAL constant *)
+        ignore (sq_rout_call "writeReal" [a]);
+        let l1 = !routQuadLen in
+        resetRoutQuadLen ();
+        l1
+      | TYPE_array(TYPE_char, _) ->
+        (* string constant *)
+        ignore (sq_rout_call "writeString" [a]);
+        let l1 = !routQuadLen in
+        resetRoutQuadLen ();
+        l1
+      | _ -> 0
+      end
     | _ ->
       0
   in
   let gen_sp () =
     if (w = 1 || w = 3) then
       begin
-      addNewQuad (Q_par (Q_char ' ', Q_pass_mode V));
-      addNewQuad (Q_call (Q_string "writeChar"));
-      2
+      let space = {
+        e_place = Q_char ' ';
+        e_typ = TYPE_char
+      } in
+      ignore (sq_rout_call "writeChar" [space]);
+      let l1 = !routQuadLen in
+      resetRoutQuadLen ();
+      l1
       end
     else
       0
@@ -1439,9 +1485,14 @@ let st_write w l =
   let gen_nl () =
     if (w = 2 || w = 3) then
       begin
-      addNewQuad (Q_par (Q_char '\n', Q_pass_mode V));
-      addNewQuad (Q_call (Q_string "writeChar"));
-      2
+      let space = {
+        e_place = Q_char '\n';
+        e_typ = TYPE_char
+      } in
+      ignore (sq_rout_call "writeChar" [space]);
+      let l1 = !routQuadLen in
+      resetRoutQuadLen ();
+      l1
       end
     else
       0

@@ -13,7 +13,7 @@
   open Parser
 
   (* Lexer debugging *)
-  let debug = true;;
+  let debug = false;;
 
   let create_hashtable size init =
     let tbl = Hashtbl.create size in
