@@ -1,0 +1,109 @@
+__dispose.........dispose           __new.............new
+_abs..............abs               _arctan...........arctan
+_chr..............chr               _cos..............cos
+_exit.............exit              _exp..............exp
+_fabs.............fabs              _formatInteger....formati
+_formatReal.......formatr           _ln...............ln
+_ord..............ord               _parseInteger.....parsei
+_parseReal........parser            _pi...............pi
+_readBoolean......readb             _readChar.........readc
+_readInteger......readi             _readReal.........readr
+_readString.......reads             _round............round
+_sin..............sin               _sqrt.............sqrt
+_tan..............tan               _trunc............trunc
+_writeBoolean.....printb            _writeChar........printc
+_writeInteger.....printi            _writeReal........printr
+_writeString......prints            
+
+printi            Offset: 00000010H  Code and data size: 3cH
+  _writeInteger   
+
+readi             Offset: 000000f0H  Code and data size: 136H
+  _readInteger    
+
+printc            Offset: 000001d0H  Code and data size: 1dH
+  _writeChar      
+
+readc             Offset: 00000260H  Code and data size: 14H
+  _readChar       
+
+printb            Offset: 000002e0H  Code and data size: 29H
+  _writeBoolean   
+
+readb             Offset: 00000390H  Code and data size: 13aH
+  _readBoolean    
+
+printr            Offset: 00000460H  Code and data size: 93H
+  _writeReal      
+
+readr             Offset: 00000560H  Code and data size: 136H
+  _readReal       
+
+prints            Offset: 00000640H  Code and data size: 22H
+  _writeString    
+
+reads             Offset: 000006d0H  Code and data size: 74H
+  _readString     
+
+abs               Offset: 000007b0H  Code and data size: 13H
+  _abs            
+
+fabs              Offset: 00000820H  Code and data size: 12H
+  _fabs           
+
+sqrt              Offset: 00000890H  Code and data size: 12H
+  _sqrt           
+
+sin               Offset: 00000900H  Code and data size: 2bH
+  _sin            
+
+cos               Offset: 00000990H  Code and data size: 31H
+  _cos            
+
+tan               Offset: 00000a30H  Code and data size: 18H
+  _tan            
+
+arctan            Offset: 00000ab0H  Code and data size: 15H
+  _arctan         
+
+exp               Offset: 00000b30H  Code and data size: 1eH
+  _exp            
+
+ln                Offset: 00000bb0H  Code and data size: 1bH
+  _ln             
+
+pi                Offset: 00000c30H  Code and data size: eH
+  _pi             
+
+trunc             Offset: 00000ca0H  Code and data size: 27H
+  _trunc          
+
+round             Offset: 00000d50H  Code and data size: 51H
+  _round          
+
+ord               Offset: 00000e40H  Code and data size: fH
+  _ord            
+
+chr               Offset: 00000eb0H  Code and data size: dH
+  _chr            
+
+exit              Offset: 00000f20H  Code and data size: aH
+  _exit           
+
+new               Offset: 00000f90H  Code and data size: 17H
+  __new           
+
+dispose           Offset: 00001020H  Code and data size: 1H
+  __dispose       
+
+formati           Offset: 00001090H  Code and data size: 16bH
+  _formatInteger  
+
+formatr           Offset: 000012a0H  Code and data size: 738H
+  _formatReal     
+
+parsei            Offset: 00001b50H  Code and data size: b9H
+  _parseInteger   
+
+parser            Offset: 00001c80H  Code and data size: 1f9H
+  _parseReal      
