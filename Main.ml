@@ -29,7 +29,9 @@ let main () =
   let cin = if Array.length Sys.argv > 1 then open_in Sys.argv.(1) else stdin in
     let lexbuf = Lexing.from_channel cin in
       try
-        Parser.pazprog Lexer.pazcal lexbuf
+        Parser.pazprog Lexer.pazcal lexbuf;
+        let code = Final.header "program" ^ Final.footer in
+        printf "%s\n" code
       with Parsing.Parse_error ->
         printf "\n\tA Syntax Error Occured!\n\n";
         exit 0
