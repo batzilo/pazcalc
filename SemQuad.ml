@@ -1661,6 +1661,7 @@ let register_runtime_library () =
   rmLastQuad ();
 
   (* Register STD LIB *)
+  (* math *)
   ignore (
     sq_rout_head
     "abs"
@@ -1671,23 +1672,7 @@ let register_runtime_library () =
 
   ignore (
     sq_rout_head
-    "fabs"
-    TYPE_REAL
-    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
-    );
-  rmLastQuad ();
-
-  ignore (
-    sq_rout_head
-    "sqrt"
-    TYPE_REAL
-    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
-    );
-  rmLastQuad ();
-
-  ignore (
-    sq_rout_head
-    "sin"
+    "arctan"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     );
@@ -1703,23 +1688,15 @@ let register_runtime_library () =
 
   ignore (
     sq_rout_head
-    "tan"
-    TYPE_REAL
-    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
-    );
-  rmLastQuad ();
-
-  ignore (
-    sq_rout_head
-    "arctan"
-    TYPE_REAL
-    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
-    );
-  rmLastQuad ();
-
-  ignore (
-    sq_rout_head
     "exp"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "fabs"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     );
@@ -1738,6 +1715,30 @@ let register_runtime_library () =
     "pi"
     TYPE_REAL
     [ ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "sin"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "sqrt"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "tan"
+    TYPE_REAL
+    [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     );
   rmLastQuad ();
 
