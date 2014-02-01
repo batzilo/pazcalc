@@ -1,7 +1,0 @@
-PROGRAM Hello()
-{
-    int x;
-    +;
-    x = 5;
-    WRITELN(x);
-}

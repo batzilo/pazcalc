@@ -197,7 +197,7 @@ let printIntermediateCode () =
   let pr (n,quad) =
     printf "%3d: %s\n" n (string_of_quad quad)
   in
-    printf "\n\nIntermediate code:\n";
+    printf "Intermediate code:\n";
     List.iter pr !icode;
     printf "\n"
 
@@ -760,7 +760,7 @@ let sq_lvalue name idxs =
          e_typ = typ
        } in esv
     | _ ->
-       error "lvalue %s error!" name;
+       error "lvalue '%s' error!" name;
        esv_err
   in
   try
@@ -822,35 +822,6 @@ let sq_assign a op b =
   else
     error "type mismatch when assigning a value to '%s'" (string_of_quad_op a.e_place);
     ()
-
-(* Semantic-Quads actions for variable definition *)
-let sq_vardef typ (name, dims, init) =
-  try
-    (* Lookup the Symbol Table, do not handle the not_found case *)
-    let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
-      (* if found in Current Scope, name is already taken *)
-      error "Var name '%s' is already taken" name;
-      ignore e
-  with Not_found ->
-    (* if not found, name is available *)
-    match init.e_place with
-    | Q_none ->
-      (* no initialization OR array *)
-      (* ft is a function that produces the full type of an array *)
-      let rec ft = function
-      | (Q_int h)::t -> TYPE_array ( (ft t), h )
-      | [] -> typ
-      | _ -> error "Array dimension isn't int const"; TYPE_none
-      in
-      ignore ( newVariable (id_make name) (ft dims) false )
-    | _ ->
-      (* initialization is present *)
-      let n = newVariable (id_make name) typ false in
-      let var = {
-        e_place = Q_entry n;
-        e_typ = typ
-      } in
-      sq_assign var "=" init
 
 (* Semantic-Quads actions for routine header *)
 let sq_rout_head name typ pars =
@@ -962,6 +933,73 @@ let sq_rout_call name pars =
     | _ ->
         error "Cannot call %s, is not a function" name;
         esv_err
+
+(* Semantic-Quads actions for variable definition *)
+let sq_vardef typ (name, dims, init) =
+  try
+    (* Lookup the Symbol Table, do not handle the not_found case *)
+    let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
+      (* if found in Current Scope, name is already taken *)
+      error "Var name '%s' is already taken" name;
+      ignore e
+  with Not_found ->
+    (* if not found, name is available *)
+    match init.e_place with
+    | Q_none ->
+      begin
+      match dims with
+      | [] ->
+        (* simple var def w/o init *)
+        ignore ( newVariable (id_make name) typ false )
+      | _ ->
+        begin
+        (* FIXME temporary disabled call to "new" *)
+
+        (* AFTER *)
+        (* ft is a function that produces the full type of an array *)
+        let rec ft = function
+        | (Q_int h)::t -> TYPE_array ( (ft t), h )
+        | [] -> typ
+        | _ -> error "Array dimension isn't int const"; TYPE_none
+        in
+        ignore ( newVariable (id_make name) (ft dims) false )
+
+        (* BEFORE *)
+        (*
+        (* matrix var def *)
+        let n = newVariable (id_make name) TYPE_int false in
+        let var = {
+          e_place = Q_entry n;
+          e_typ = TYPE_int
+        } in
+        (* ft is a function that produces the full type of an array *)
+        let rec ft = function
+        | (Q_int h)::t -> TYPE_array ( (ft t), h )
+        | [] -> typ
+        | _ -> error "Array dimension isn't int const"; TYPE_none
+        in
+        (* compute the full size *)
+        let t = (ft dims) in
+        let size = sizeOfType t in
+        let sz = {
+          e_place = Q_int size;
+          e_typ = TYPE_int
+        } in
+        (* call new *)
+        let matr = sq_rout_call "new" [sz] in
+        sq_assign var "=" matr
+        *)
+
+        end
+      end
+    | _ ->
+      (* simple var def w/ init *)
+      let n = newVariable (id_make name) typ false in
+      let var = {
+        e_place = Q_entry n;
+        e_typ = typ
+      } in
+      sq_assign var "=" init
 
 let sq_plus_plus id =
   let one = {
@@ -1145,10 +1183,13 @@ let st_vardef () =
   (* some quads may have been added due to variable initialization *)
   let l1 = !exprQuadLen in
   resetExprQuadLen ();
+  let l2 = !routQuadLen in
+  (* collect quads generated due to routine *)
+  resetRoutQuadLen ();
   (* return a statement semantic value *)
   let ssv = {
     s_next = [];
-    s_len = l1
+    s_len = l1 + l2
   } in ssv
 
 let st_cond_of_expr e =
@@ -1803,6 +1844,14 @@ let register_runtime_library () =
     "strcat"
     TYPE_proc
     [ (TYPE_char, ("trg", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_char, ("src", PASS_BY_REFERENCE, [Q_int 0])) ]
+    );
+  rmLastQuad ();
+
+  ignore (
+    sq_rout_head
+    "new"
+    TYPE_int
+    [ (TYPE_int, ("size", PASS_BY_VALUE, []))]
     );
   rmLastQuad ()
 

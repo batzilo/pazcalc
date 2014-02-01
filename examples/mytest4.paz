@@ -1,12 +1,10 @@
-//skatoules
-
 FUNC int foo ( int a, int b );
 
 PROGRAM bar ( ) {
-int a = foo(6, 7);
-return;
+    int a = foo(6, 7);
+    return;
 }
 
 FUNC int foo ( int a, int b ) {
-return a * b;
+    return a * b;
 }

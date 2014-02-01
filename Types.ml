@@ -11,13 +11,14 @@ type typ = TYPE_none        (* no type (used for errors)            *)
          | TYPE_proc        (* Procedure type                       *)
 
 let rec sizeOfType t =
-   match t with
-   | TYPE_int            -> 4 (* 32-bit *)
-   | TYPE_bool           -> 1
-   | TYPE_char           -> 1
-   | TYPE_REAL           -> 10 (* IEEE 754 repr. *)
-   | TYPE_array (et, sz) -> sz * sizeOfType et
-   | _                   -> 0
+  (* in bytes *)
+  match t with
+  | TYPE_int            -> 4 (* 32-bit *)
+  | TYPE_bool           -> 1
+  | TYPE_char           -> 1
+  | TYPE_REAL           -> 10 (* IEEE 754 repr. *)
+  | TYPE_array (et, sz) -> sz * sizeOfType et
+  | _                   -> 0
 
 let rec equalType t1 t2 =
    match t1, t2 with

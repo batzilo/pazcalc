@@ -1,5 +1,6 @@
-FUNC int foo ( int a ) {
-    return 7+a;
+PROC foo ( int a ) {
+    a = a * a + a;
+    return;
 }
 
 PROGRAM bar ( ) {

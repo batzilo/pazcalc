@@ -1,0 +1,12 @@
+PROGRAM bar ( ) {
+    int a,b,c=0;
+    a = 7;
+    b = 8;
+    if ( a < 5 ) {
+        if ( b > 10 ) {
+            b = 1;
+        }
+        else c = -1;
+    }
+    return;
+}

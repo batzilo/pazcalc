@@ -1,5 +1,3 @@
-// sdfasdf
-
 FUNC int foo ( int a[][5] );
 
 FUNC int bar ( int a, int b );
@@ -9,7 +7,8 @@ PROGRAM prog ( ) {
     int y;
     y = foo(x);
     int z = x[1][1];
-    z = bar(y, z);
+    int w;
+    w = bar(y, z);
     return;
 }
 

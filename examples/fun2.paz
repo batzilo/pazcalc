@@ -7,16 +7,16 @@ FUNC int bar ( int x, int y ) {
 }
 
 PROGRAM baz ( ) {
-    int a,b,c;
+    int a,b,c = 0;
     bool d;
     if ( d ) {
         while ( a < b ) {
-            foo(c);
+            c += foo(c);
         }
     }
     else
         do
-            bar(a, b);
-        while ( c > 0 );  
+            c += bar(a, b);
+        while ( c < 100 );
     return;
 }

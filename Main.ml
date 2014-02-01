@@ -31,7 +31,8 @@ let main () =
       try
         Parser.pazprog Lexer.pazcal lexbuf;
         let code = Final.header "program" ^ Final.footer in
-        printf "%s\n" code
+        ignore code
+        (* printf "%s\n" code *)
       with Parsing.Parse_error ->
         printf "\n\tA Syntax Error Occured!\n\n";
         exit 0
