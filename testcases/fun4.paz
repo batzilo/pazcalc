@@ -1,0 +1,16 @@
+FUNC int foo ( int a, int b, int c, int d ) {
+    return a;
+}
+
+PROGRAM bar ( ) {
+    int a, b;
+    bool c, d;
+    if ( c ) {
+        do {
+            a = foo(a, b, a, a);
+            b = foo(b, a, b, b);
+        } while (d);
+    }
+    return;
+}
+

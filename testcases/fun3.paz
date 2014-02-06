@@ -1,0 +1,18 @@
+FUNC int foo ( int a ) {
+    return a;
+}
+
+PROGRAM bar ( ) {
+    int a,b;
+    bool c, d;
+    if ( c ) {
+        do {
+            a++;
+            b++;
+            a = foo ( b - a );
+        }
+        while ( d );
+    }
+    return;
+}
+

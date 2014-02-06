@@ -1,9 +1,15 @@
 #!/bin/bash
 
-# doie.sh do intermediate code examples
+# do.sh - Run Compiler with testcases
 
-cp pazcalc examples
-cd examples
+if ! test -f pazcalc
+then
+    make
+    make clean
+fi
+
+cp pazcalc testcases
+cd testcases
 
 for f in *.paz
 do

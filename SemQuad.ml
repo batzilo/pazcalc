@@ -1224,9 +1224,12 @@ let st_assign lval op exp =
   let l2 = !lvalQuadLen in
   (* collect quads generated due to lvalue *)
   resetLvalQuadLen ();
+  let l3 = !routQuadLen in
+  (* collect quads generated due to routine *)
+  resetRoutQuadLen ();
   let ssv = {
     s_next = [];
-    s_len = l1 + l2
+    s_len = l1 + l2 + l3
   } in ssv
 
 let st_plusplus lval =
