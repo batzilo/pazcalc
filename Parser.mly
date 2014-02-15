@@ -33,8 +33,8 @@ let prologue () =
   (* initialize the Symbol Table *)
   initSymbolTable 256;
   (* open the global scope *)
-  openScope ();
-  register_runtime_library ()
+  openScope ()
+  (* ;register_runtime_library () *)
 
 (* last steps *)
 let epilogue () =
@@ -43,7 +43,8 @@ let epilogue () =
   closeScope();
   let code = !icode in
   !icode <- List.rev code;
-  printIntermediateCode ()
+  printIntermediateCode ();
+  !icode
 
 %}
 
@@ -86,8 +87,8 @@ let epilogue () =
 %left UNARY
 
 %start pazprog
-%type <unit> pazprog
-/*(* %type <Semquad.quad_t list> pazprog *)*/
+/*%type <unit> pazprog*/
+%type <(int * SemQuad.quad_t) list> pazprog
 %type <semv_expr> expr
 %type <Types.typ> paztype
 
@@ -104,7 +105,7 @@ let epilogue () =
 
 %%
 
-pazprog : /*(* empty *)*/                           { }
+pazprog : /*(* empty *)*/                           { [] }
         | dummy_non_terminal declaration_list T_EOF { epilogue ()  }
         ;
 
@@ -237,6 +238,11 @@ routine : routine_header T_sem_col {
             }
         | routine_header block {
               (* we've seen the header and the block *)
+              begin
+              match $1.entry_info with
+              | ENTRY_function inf -> inf.function_scope <- Some !currentScope
+              | _ -> internal "kiss my ass"
+              end;
               if (debug) then printSymbolTable ();
               closeScope ();
               let q = Q_endu (Q_entry $1) in
@@ -253,10 +259,15 @@ program_header : T_PROGRAM T_id T_lparen T_rparen   { sq_rout_head $2 TYPE_proc 
 program : program_header block {
               (* we've seen the header and the block *)
               backpatch $2.s_next (Q_int !quadNext);
+              begin
+              match $1.entry_info with
+              | ENTRY_function inf -> inf.function_scope <- Some !currentScope
+              | _ -> internal "kiss my ass"
+              end;
               if (debug) then printSymbolTable ();
               closeScope ();
-              let q = Q_endu (Q_entry $1)
-              in addNewQuad q
+              let q = Q_endu (Q_entry $1) in
+              addNewQuad q
             }
         ;
 

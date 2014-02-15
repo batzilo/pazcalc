@@ -20,13 +20,11 @@ let rec pretty_typ ppf typ =
   | TYPE_REAL ->
       fprintf ppf "REAL"
   | TYPE_array (et, sz) ->
-      begin
+      pretty_typ ppf et;
       if sz > 0 then
         fprintf ppf "[%d]" sz
       else
         fprintf ppf "[]"
-      end;
-      pretty_typ ppf et
   | TYPE_proc ->
       fprintf ppf "PROC"
 
@@ -109,7 +107,14 @@ let printSymbolTable () =
             (* print every parameter *)
             fprintf ppf "(%a) : %a"
               params inf.function_paramlist
-              pretty_typ inf.function_result
+              pretty_typ inf.function_result;
+            begin
+            match inf.function_scope with
+            | Some sco ->
+                fprintf ppf " size : %d" (-sco.sco_negofs)
+            | _ ->
+                fprintf ppf " size : -1"
+            end
         | ENTRY_parameter inf ->
             fprintf ppf ":%a " pretty_typ inf.parameter_type;
             if show_offsets then

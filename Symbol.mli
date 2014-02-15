@@ -43,7 +43,8 @@ and function_info = {                         (******* Συνάρτηση ******
   mutable function_redeflist : entry list;    (* Λίστα παραμέτρων (2η) *)
   mutable function_result    : Types.typ;     (* Τύπος αποτελέσματος   *)
   mutable function_pstatus   : param_status;  (* Κατάσταση παραμέτρων  *)
-  mutable function_initquad  : int            (* Αρχική τετράδα        *)
+  mutable function_initquad  : int;           (* Αρχική τετράδα        *)
+  mutable function_scope     : scope option   (* Εμβέλεια              *)
 }
 
 and parameter_info = {                        (****** Παράμετρος *******)

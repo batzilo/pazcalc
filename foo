@@ -1,0 +1,11 @@
+/*
+PROC baz ( ) {
+}
+*/
+
+PROGRAM bar ( ) {
+int a,b,c;
+c = 0;
+c = a + b;
+return;
+}
