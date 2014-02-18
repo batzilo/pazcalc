@@ -62,7 +62,8 @@ and function_info = {                         (******* Συνάρτηση ******
   mutable function_result    : Types.typ;     (* Τύπος αποτελέσματος   *)
   mutable function_pstatus   : param_status;  (* Κατάσταση παραμέτρων  *)
   mutable function_initquad  : int;           (* Αρχική τετράδα        *)
-  mutable function_scope     : scope option   (* Εμβέλεια συνάρτησης   *)
+  mutable function_scope     : scope option;  (* Εμβέλεια συνάρτησης   *)
+  mutable function_label     : int option     (* Ετικέτα Τελικού Κώδ.  *)
 }
 
 and parameter_info = {                        (****** Παράμετρος *******)
@@ -296,7 +297,8 @@ let newFunction id err =
       function_result = TYPE_none;
       function_pstatus = PARDEF_DEFINE;
       function_initquad = 0;
-      function_scope = None
+      function_scope = None;
+      function_label = None
     } in
     (* register a new function entry in the Symbol Table *)
     newEntry id (ENTRY_function inf) false

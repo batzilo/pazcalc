@@ -1,11 +1,14 @@
-/*
 PROC baz ( ) {
+    return;
 }
-*/
+
+FUNC int foo ( ) {
+    return 0;
+}
 
 PROGRAM bar ( ) {
 int a,b,c;
-c = 0;
+c = foo();
 c = a + b;
 return;
 }

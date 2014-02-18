@@ -2,6 +2,7 @@ open Identifier
 open Printf
 open SemQuad
 open Symbol
+open Types
 
 let header prog_name = 
     sprintf "xseg\tsegment\tpublic 'code'\n\
@@ -22,10 +23,19 @@ let incnat () =
     !nat <- !nat + 1
 
 (* produces a unique assembly label for procedure p *)
-let name p =
-    let num = !nat in
-    incnat ();
-    "_" ^ id_name p ^ "_" ^ string_of_int num
+let name e =
+    match e.entry_info with
+    | ENTRY_function inf ->
+        begin
+        match inf.function_label with
+        | Some c ->
+            "_" ^ id_name e.entry_id ^ "_" ^ string_of_int c
+        | None ->
+            incnat ();
+            inf.function_label <- Some !nat;
+            "_" ^ id_name e.entry_id ^ "_" ^ string_of_int !nat
+        end
+    | _ -> "entry info not a function!"
 
 let size x =
     match x.entry_info with
@@ -39,6 +49,18 @@ let size x =
         end
     | _ -> "-1"
 
+let sub_if_proc e =
+    match e.entry_info with
+    | ENTRY_function inf ->
+        begin
+        match inf.function_result with
+        | TYPE_proc -> "\tsub sp, 2\n"
+        | _ -> ""
+        end
+    | _ -> "entry is not a function!"
+
+let updateAL () = "\tpush word ptr[bp+4]\n"
+
 let endof p =
     "@" ^ id_name p ^ "_" ^ string_of_int !nat
 
@@ -51,7 +73,7 @@ let transform (i,quad) =
         begin
         match u with
         | Q_entry e ->
-            name e.entry_id ^ "\
+            name e ^ "\
             \tproc near\n\
             \tpush bp\n\
             \tmov bp, sp\n\
@@ -63,11 +85,11 @@ let transform (i,quad) =
         begin
         match u with
         | Q_entry e ->
-            endof e.entry_id ^ ": \
+            endof e.entry_id ^ ":\
             \tmov sp, bp\n\
             \tpop bp\n\
             \tret\n" ^
-            name e.entry_id ^
+            name e ^
             "\tendp\n"
         | _ ->
             "<error>"
@@ -89,7 +111,16 @@ let transform (i,quad) =
     | Q_jumpl l ->
         ""
     | Q_call u ->
-        ""
+        begin
+        match u with
+        | Q_entry e ->
+            sub_if_proc e ^
+            updateAL () ^
+            "\tcall near ptr " ^ name e ^
+            "\n\tadd sp, " ^ string_of_int (int_of_string (size e) + 4) ^ "\n"
+        | _ ->
+            "<error>"
+        end
     | Q_par (x,m) ->
         ""
     | Q_ret ->
