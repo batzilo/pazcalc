@@ -13,10 +13,10 @@ type typ = TYPE_none        (* no type (used for errors)            *)
 let rec sizeOfType t =
   (* in bytes *)
   match t with
-  | TYPE_int            -> 4 (* 32-bit *)
+  | TYPE_int            -> 2    (* 16-bit *)
   | TYPE_bool           -> 1
   | TYPE_char           -> 1
-  | TYPE_REAL           -> 10 (* IEEE 754 repr. *)
+  | TYPE_REAL           -> 10   (* IEEE 754 repr. *)
   | TYPE_array (et, sz) -> sz * sizeOfType et
   | _                   -> 0
 
