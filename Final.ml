@@ -56,7 +56,7 @@ let rec load r a =
     | Q_deref e ->  load "di" (Q_entry e) ^ "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [di]\n"
     | Q_entry e ->
         begin
-            if e.entry_scope = !currentScope then
+            if e.entry_scope.sco_nesting = 1 then
                 (* local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
@@ -73,13 +73,115 @@ let rec load r a =
                     "<error>"
             else
                 (* non-local operand *)
-            "<<entry>>\n"
+                match e.entry_info with
+                | ENTRY_variable inf ->
+                    getAR () ^ 
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.variable_offset ^ "]\n"
+                | ENTRY_parameter inf ->
+                    if inf.parameter_mode = PASS_BY_VALUE then
+                        getAR () ^
+                        "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                    else
+                        getAR () ^
+                        "\tmov si, word ptr [si + " ^ string_of_int inf.parameter_offset ^ "]\n" ^
+                        "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si]\n"
+                | ENTRY_temporary inf ->
+                    getAR () ^
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.temporary_offset ^ "]\n"
+                | _ ->
+                    "<error>"
         end
-    | _ ->          "<oops>\n"
+    | _ -> "<oops>\n"
 
-let loadAddr () = ""
+let loadAddr r a =
+    match a with
+    | Q_string s -> "\tlea " ^ r ^ "byte ptr " ^ s
+    | Q_deref x -> load r (Q_entry x)
+    | Q_entry e ->
+        begin
+            if e.entry_scope.sco_nesting = 1 then
+                (* local operand *)
+                match e.entry_info with
+                (* FIXME why not?
+                | ENTRY_variable inf ->
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.variable_offset ^ "]\n"
+                *)
+                | ENTRY_parameter inf ->
+                    if inf.parameter_mode = PASS_BY_VALUE then
+                        "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                    else
+                        "\tmov " ^ r ^ ", word ptr [bp + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                | ENTRY_temporary inf ->
+                    "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.temporary_offset ^ "]\n"
+                | _ ->
+                    "<error>"
+            else
+                (* non-local operand *)
+                match e.entry_info with
+                (*
+                | ENTRY_variable inf ->
+                    getAR () ^ 
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.variable_offset ^ "]\n"
+                *)
+                | ENTRY_parameter inf ->
+                    if inf.parameter_mode = PASS_BY_VALUE then
+                        getAR () ^
+                        "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                    else
+                        getAR () ^
+                        "\tmov " ^ r ^ ", word ptr [si + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                | ENTRY_temporary inf ->
+                    getAR () ^
+                    "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.temporary_offset ^ "]\n"
+                | _ ->
+                    "<error>"
+        end
+    | _ -> "<oops>\n"
 
-let store () = ""
+let store r a =
+    match a with
+    | Q_funct_res -> "\tmov word ptr [bp + 6], " ^ r ^ "\n"
+    | Q_deref e ->  load "di" (Q_entry e) ^ "\tmov " ^ operand_size e ^ " ptr [di], " ^ r ^ "\n" 
+    | Q_entry e ->
+        begin
+            if e.entry_scope.sco_nesting = 1 then
+                (* local operand *)
+                match e.entry_info with
+                (*
+                | ENTRY_variable inf ->
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.variable_offset ^ "]\n"
+                *)
+                | ENTRY_parameter inf ->
+                    if inf.parameter_mode = PASS_BY_VALUE then
+                        "\tmov " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.parameter_offset ^ "], " ^ r ^ "\n"
+                    else
+                        "\tmov si, word ptr [bp + " ^ string_of_int inf.parameter_offset ^ "]\n" ^
+                        "\tmov " ^ operand_size e ^ " ptr [si], " ^ r ^ "\n"
+                | ENTRY_temporary inf ->
+                    "\tmov " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.temporary_offset ^ "], " ^ r ^ "\n"
+                | _ ->
+                    "<error>"
+            else
+                (* non-local operand *)
+                match e.entry_info with
+                | ENTRY_variable inf ->
+                    getAR () ^ 
+                    "\tmov " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.variable_offset ^ "], " ^ r ^ "\n"
+                | ENTRY_parameter inf ->
+                    if inf.parameter_mode = PASS_BY_VALUE then
+                        getAR () ^
+                        "\tmov " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.parameter_offset ^ "], " ^ r ^ "\n"
+                    else
+                        getAR () ^
+                        "\tmov si, word ptr [si + " ^ string_of_int inf.parameter_offset ^ "]\n" ^
+                        "\tmov " ^ operand_size e ^ " ptr [si], " ^ r ^ "\n"
+                | ENTRY_temporary inf ->
+                    getAR () ^ 
+                    "\tmov " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.temporary_offset ^ "], " ^ r ^ "\n"
+                | _ ->
+                    "<error>"
+        end
+    | _ -> "<oops>\n"
 
 (* produce a unique assembly label for the beginning of procedure p *)
 let name e =
@@ -175,7 +277,38 @@ let transform (i,quad) =
     | Q_op (op,x,y,z) ->
         ""
     | Q_assign (x,z) ->
-        ""
+        begin
+        (*
+        match x,z with
+        | Q_entry x1, Q_entry z1 ->
+            let sz =
+                match z1.entry_info with
+                | ENTRY_variable inf -> sizeOfType inf.variable_type
+                | ENTRY_parameter inf -> sizeOfType inf.parameter_type
+                | ENTRY_temporary inf -> sizeOfType inf.temporary_type
+                | _ -> 2
+            in 
+            if (sz = 1)
+                then (load "al" x) ^ (store "al" z)
+                else (load "ax" x) ^ (store "ax" z)
+        | _ -> "<error>"
+        *)
+        match z with
+        | Q_entry z1 ->
+            let sz =
+                match z1.entry_info with
+                | ENTRY_variable inf -> sizeOfType inf.variable_type
+                | ENTRY_parameter inf -> sizeOfType inf.parameter_type
+                | ENTRY_temporary inf -> sizeOfType inf.temporary_type
+                | _ -> 2
+            in 
+            if (sz = 1)
+                then (load "al" x) ^ (store "al" z)
+                else (load "ax" x) ^ (store "ax" z)
+        | Q_funct_res ->
+            load "ax" x ^ store "ax" z
+        | _ -> "<error>"
+        end
     | Q_array (x,y,z) ->
         ""
     | Q_relop (op,x,y,z) ->

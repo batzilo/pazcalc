@@ -1,0 +1,18 @@
+FUNC int f ( int n ) {
+    int s;
+    s = 0;
+    int i;
+    i = 0;
+    while ( i <= n ) {
+        s = s + i;
+        i = i + 1;
+    }
+    return s;
+}
+
+PROGRAM sum ( ) {
+    int x;
+    x = 5;
+    x = f(x) + f(f(3));
+    return;
+}

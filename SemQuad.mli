@@ -106,7 +106,7 @@ val exprQuadLen : int ref
 
 val resetExprQuadLen : unit -> unit
 
-val incExprQuadLen : unit  -> unit
+val incExprQuadLen : unit -> unit
 
 
 
