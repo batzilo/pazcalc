@@ -1,0 +1,10 @@
+PROGRAM bar () {
+    int a[10];
+    while ( a[0] > 5 ) {
+        a[0]--;
+        a[1] = 42;
+        if (a[3] > a[4]) a[9] = 9; 
+    }
+    return;
+}
+

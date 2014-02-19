@@ -19,14 +19,15 @@ do
         echo "Working with file $f"
         echo
         #cat $f
-        echo
+        #echo
         ./pazcalc < $f > temp.out
         cat temp.out | grep "<error>"
-        echo
-        echo
-        echo
+        #echo
+        #echo
+        #echo
     fi
 done
 
+rm temp.out
 rm pazcalc
 cd ..

@@ -100,7 +100,7 @@ let rec load r a =
 
 let loadAddr r a =
     match a with
-    | Q_string s -> "\tlea " ^ r ^ "byte ptr " ^ s
+    | Q_string s -> "\tlea " ^ r ^ " byte ptr " ^ s ^ "\n"
     | Q_deref x -> load r (Q_entry x)
     | Q_entry e ->
         begin
@@ -187,11 +187,13 @@ let name e =
     match e.entry_info with
     | ENTRY_function inf ->
         begin
+        (*
         begin
         match inf.function_scope with
         | Some sco -> currentScope := sco
         | None -> internal "dafuq?"
         end;
+        *)
         match inf.function_label with
         | Some c ->
             "_" ^ id_name e.entry_id ^ "_" ^ string_of_int c
@@ -277,26 +279,26 @@ let transform (i,quad) =
         begin
         match op with
         | "+" ->
-            begin
+            (*
             match x, y, z with
-            | Q_entry x1, Q_entry y1, Q_entry z1 ->
-                load "ax" x ^
-                load "dx" y ^
-                "\tadd ax, dx\n" ^
-                store "ax" z
-            | Q_entry x1, Q_int y1, Q_entry z1 ->
-                load "ax" x ^
-                load "dx" y ^
-                "\tadd ax, dx\n" ^
-                store "ax" z
+            | Q_entry x1, Q_entry y1, Q_entry z1
+            | Q_entry x1, Q_int y1, Q_entry z1
             | Q_int x1, Q_entry y1, Q_entry z1 ->
-                load "ax" x ^
-                load "dx" y ^
-                "\tadd ax, dx\n" ^
-                store "ax" z
-            | _ -> "<error>\n"
-            end
+                (x, y, z)
+            | Q_deref x1, Q_entry y1, Q_entry z1
+            | Q_deref x1, Q_int y1, Q_entry z1 ->
+                (x1, y, z)
+            | Q_entry x1, Q_deref y1, Q_entry z1
+            | Q_int x1, Q_deref y1, Q_entry z1 ->
+                (x, y1, z)
+            | _ -> (Q_none, Q_none, Q_none)
+            *)
+            load "ax" x ^
+            load "dx" y ^
+            "\tadd ax, dx\n" ^
+            store "ax" z
         | "-" ->
+            (*
             begin
             match x, y, z with
             | Q_entry x1, Q_entry y1, Q_entry z1 ->
@@ -316,6 +318,11 @@ let transform (i,quad) =
                 store "ax" z
             | _ -> "<error>\n"
             end
+            *)
+            load "ax" x ^
+            load "dx" y ^
+            "\tsub ax, dx\n" ^
+            store "ax" z
         | "*" ->
             begin
             match x, y, z with
@@ -382,12 +389,37 @@ let transform (i,quad) =
                 store "dx" z
             | _ -> "<error>\n"
             end
+        | "&&" ->
+            begin
+                load "al" x ^
+                load "dl" y ^
+                "\tand al, dl\n" ^
+                store "al" z
+            end
+        | "||" ->
+            begin
+                load "al" x ^
+                load "dl" y ^
+                "\tor al, dl\n" ^
+                store "al" z
+            end
         | _ -> "<error>\n"
         end
     | Q_assign (x,z) ->
         begin
         match z with
         | Q_entry z1 ->
+            let sz =
+                match z1.entry_info with
+                | ENTRY_variable inf -> sizeOfType inf.variable_type
+                | ENTRY_parameter inf -> sizeOfType inf.parameter_type
+                | ENTRY_temporary inf -> sizeOfType inf.temporary_type
+                | _ -> 2
+            in 
+            if (sz = 1)
+                then (load "al" x) ^ (store "al" z)
+                else (load "ax" x) ^ (store "ax" z)
+        | Q_deref z1 ->
             let sz =
                 match z1.entry_info with
                 | ENTRY_variable inf -> sizeOfType inf.variable_type
@@ -434,7 +466,7 @@ let transform (i,quad) =
         let instr = 
             match op with
             | "==" -> "je"
-            | "<>" -> "jne"
+            | "!=" -> "jne"
             | "<" -> "jg"
             | ">" -> "jl"
             | "<=" -> "jge"
@@ -446,9 +478,24 @@ let transform (i,quad) =
         | Q_entry x1, Q_entry y1, Q_int z1 ->
             load "ax" x ^
             load "dx" y ^
-            "\t cmp ax, dx\n" ^
+            "\tcmp ax, dx\n" ^
             "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
         | Q_entry x1, Q_int y1, Q_int z1 ->
+            load "ax" x ^
+            load "dx" y ^
+            "\tcmp ax, dx\n" ^
+            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
+        | Q_deref x1, Q_entry y1, Q_int z1 ->
+            load "ax" (Q_entry x1) ^
+            load "dx" y ^
+            "\t cmp ax, dx\n" ^
+            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
+        | Q_deref x1, Q_int y1, Q_int z1 ->
+            load "ax" x ^
+            load "dx" y ^
+            "\tcmp ax, dx\n" ^
+            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
+        | Q_deref x1, Q_deref y1, Q_int z1 ->
             load "ax" x ^
             load "dx" y ^
             "\tcmp ax, dx\n" ^
@@ -507,6 +554,10 @@ let transform (i,quad) =
             "\tsub sp, 1\n" ^
             "\tmov si, bp\n" ^
             "\tmov byte ptr [si], al\n"
+        | Q_string s, Q_pass_mode mode ->
+            loadAddr "si" x ^
+            "\tpush si\n"
+        | Q_deref x1, Q_pass_mode mode
         | Q_entry x1, Q_pass_mode mode ->
             begin
             match mode with
