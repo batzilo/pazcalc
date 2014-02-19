@@ -33,8 +33,8 @@ let prologue () =
   (* initialize the Symbol Table *)
   initSymbolTable 256;
   (* open the global scope *)
-  openScope ()
-  (* ;register_runtime_library () *)
+  openScope ();
+  register_runtime_library ()
 
 (* last steps *)
 let epilogue () =

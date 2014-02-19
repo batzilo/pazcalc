@@ -107,10 +107,8 @@ let loadAddr r a =
             if e.entry_scope.sco_nesting = 1 then
                 (* local operand *)
                 match e.entry_info with
-                (* FIXME why not?
                 | ENTRY_variable inf ->
                     "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.variable_offset ^ "]\n"
-                *)
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
                         "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.parameter_offset ^ "]\n"
@@ -123,11 +121,9 @@ let loadAddr r a =
             else
                 (* non-local operand *)
                 match e.entry_info with
-                (*
                 | ENTRY_variable inf ->
                     getAR () ^ 
                     "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si " ^ fix_offset inf.variable_offset ^ "]\n"
-                *)
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
                         getAR () ^
@@ -152,10 +148,8 @@ let store r a =
             if e.entry_scope.sco_nesting = 1 then
                 (* local operand *)
                 match e.entry_info with
-                (*
                 | ENTRY_variable inf ->
                     "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.variable_offset ^ "]\n"
-                *)
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
                         "\tmov " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.parameter_offset ^ "], " ^ r ^ "\n"
@@ -290,6 +284,16 @@ let transform (i,quad) =
                 load "dx" y ^
                 "\tadd ax, dx\n" ^
                 store "ax" z
+            | Q_entry x1, Q_int y1, Q_entry z1 ->
+                load "ax" x ^
+                load "dx" y ^
+                "\tadd ax, dx\n" ^
+                store "ax" z
+            | Q_int x1, Q_entry y1, Q_entry z1 ->
+                load "ax" x ^
+                load "dx" y ^
+                "\tadd ax, dx\n" ^
+                store "ax" z
             | _ -> "<error>\n"
             end
         | "-" ->
@@ -300,12 +304,32 @@ let transform (i,quad) =
                 load "dx" y ^
                 "\tsub ax, dx\n" ^
                 store "ax" z
+            | Q_entry x1, Q_int y1, Q_entry z1 ->
+                load "ax" x ^
+                load "dx" y ^
+                "\tsub ax, dx\n" ^
+                store "ax" z
+            | Q_int x1, Q_entry y1, Q_entry z1 ->
+                load "ax" x ^
+                load "dx" y ^
+                "\tsub ax, dx\n" ^
+                store "ax" z
             | _ -> "<error>\n"
             end
         | "*" ->
             begin
             match x, y, z with
             | Q_entry x1, Q_entry y1, Q_entry z1 ->
+                load "ax" x ^
+                load "cx" y ^
+                "\timul cx\n" ^
+                store "ax" z
+            | Q_entry x1, Q_int y1, Q_entry z1 ->
+                load "ax" x ^
+                load "cx" y ^
+                "\timul cx\n" ^
+                store "ax" z
+            | Q_int x1, Q_entry y1, Q_entry z1 ->
                 load "ax" x ^
                 load "cx" y ^
                 "\timul cx\n" ^
@@ -321,12 +345,36 @@ let transform (i,quad) =
                 load "cx" y ^
                 "\tidiv cx\n" ^
                 store "ax" z
+            | Q_entry x1, Q_int y1, Q_entry z1 ->
+                load "ax" x ^
+                "\tcwd\n" ^
+                load "cx" y ^
+                "\tidiv cx\n" ^
+                store "ax" z
+            | Q_int x1, Q_entry y1, Q_entry z1 ->
+                load "ax" x ^
+                "\tcwd\n" ^
+                load "cx" y ^
+                "\tidiv cx\n" ^
+                store "ax" z
             | _ -> "<error>\n"
             end
         | "%" ->
             begin
             match x, y, z with
             | Q_entry x1, Q_entry y1, Q_entry z1 ->
+                load "ax" x ^
+                "\tcwd\n" ^
+                load "cx" y ^
+                "\tidiv cx\n" ^
+                store "dx" z
+            | Q_entry x1, Q_int y1, Q_entry z1 ->
+                load "ax" x ^
+                "\tcwd\n" ^
+                load "cx" y ^
+                "\tidiv cx\n" ^
+                store "dx" z
+            | Q_int x1, Q_entry y1, Q_entry z1 ->
                 load "ax" x ^
                 "\tcwd\n" ^
                 load "cx" y ^
@@ -364,6 +412,20 @@ let transform (i,quad) =
             loadAddr "cx" x ^
             "\tadd ax, cx\n" ^
             store "ax" z
+        | Q_entry x1, Q_int y1, Q_entry z1 ->
+            load "ax" y ^
+            "\tmov cx, " ^ operand_size x1 ^ "\n" ^
+            "\timul cx\n" ^
+            loadAddr "cx" x ^
+            "\tadd ax, cx\n" ^
+            store "ax" z
+        | Q_deref x1, Q_int y1, Q_entry z1 ->
+            load "ax" y ^
+            "\tmov cx, " ^ operand_size x1 ^ "\n" ^
+            "\timul cx\n" ^
+            loadAddr "cx" (Q_entry x1) ^
+            "\tadd ax, cx\n" ^
+            store "ax" z
         | _ ->
             "<error>\n"
         end
@@ -371,7 +433,7 @@ let transform (i,quad) =
         begin
         let instr = 
             match op with
-            | "=" -> "je"
+            | "==" -> "je"
             | "<>" -> "jne"
             | "<" -> "jg"
             | ">" -> "jl"
@@ -385,6 +447,11 @@ let transform (i,quad) =
             load "ax" x ^
             load "dx" y ^
             "\t cmp ax, dx\n" ^
+            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
+        | Q_entry x1, Q_int y1, Q_int z1 ->
+            load "ax" x ^
+            load "dx" y ^
+            "\tcmp ax, dx\n" ^
             "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
         | _ -> "<error>\n"
         end
@@ -425,6 +492,21 @@ let transform (i,quad) =
     | Q_par (x,m) ->
         begin
         match x, m with
+        | Q_int x1, Q_pass_mode mode ->
+            load "al" x ^
+            "\tsub sp, 1\n" ^
+            "\tmov si, bp\n" ^
+            "\tmov word ptr [si], al\n"
+        | Q_bool x1, Q_pass_mode mode ->
+            load "al" x ^
+            "\tsub sp, 1\n" ^
+            "\tmov si, bp\n" ^
+            "\tmov byte ptr [si], al\n"
+        | Q_char x1, Q_pass_mode mode ->
+            load "al" x ^
+            "\tsub sp, 1\n" ^
+            "\tmov si, bp\n" ^
+            "\tmov byte ptr [si], al\n"
         | Q_entry x1, Q_pass_mode mode ->
             begin
             match mode with
