@@ -22,7 +22,7 @@ module H = Hashtbl.Make (
 
 
 (* change to true for parser output *)
-let debug = true;;
+let debug = false;;
 
 
 (* type definition for parameter passing *)

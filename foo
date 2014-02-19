@@ -7,8 +7,8 @@ FUNC int foo ( ) {
 }
 
 PROGRAM bar ( ) {
-int a,b,c;
-c = foo();
-c = a + b;
-return;
+    int a,b,c;
+    c = foo();
+    c = a + b;
+    return;
 }

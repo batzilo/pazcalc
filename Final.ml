@@ -39,14 +39,19 @@ let curr = ref "";;
 let getAR () = "\tmov si, word ptr [bp + 4]\n"
 
 (* update Access Links *)
-let updateAL () = "\tpush word ptr [bp+4]\n"
+let updateAL () = "\tpush word ptr [bp + 4]\n"
 
 let operand_size e =
     match e.entry_info with
     | ENTRY_variable inf -> if sizeOfType inf.variable_type = 1 then "byte" else "word"
     | ENTRY_parameter inf -> if sizeOfType inf.parameter_type = 1 then "byte" else "word"
     | ENTRY_temporary inf -> if sizeOfType inf.temporary_type = 1 then "byte" else "word"
-    | _ -> "error"
+    | _ -> "<error>"
+
+let fix_offset a =
+    if a > 0
+        then "+ " ^ string_of_int a
+        else "- " ^ string_of_int (-a)
 
 let rec load r a =
     match a with
@@ -60,36 +65,36 @@ let rec load r a =
                 (* local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
-                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.variable_offset ^ "]\n"
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.variable_offset ^ "]\n"
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
-                        "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                        "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset  inf.parameter_offset ^ "]\n"
                     else
-                        "\tmov si, word ptr [bp + " ^ string_of_int inf.parameter_offset ^ "]\n" ^
+                        "\tmov si, word ptr [bp " ^ fix_offset inf.parameter_offset ^ "]\n" ^
                         "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si]\n"
                 | ENTRY_temporary inf ->
-                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.temporary_offset ^ "]\n"
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.temporary_offset ^ "]\n"
                 | _ ->
-                    "<error>"
+                    "<error>\n"
             else
                 (* non-local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
                     getAR () ^ 
-                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.variable_offset ^ "]\n"
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si " ^ fix_offset inf.variable_offset ^ "]\n"
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
                         getAR () ^
-                        "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                        "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si " ^ fix_offset inf.parameter_offset ^ "]\n"
                     else
                         getAR () ^
-                        "\tmov si, word ptr [si + " ^ string_of_int inf.parameter_offset ^ "]\n" ^
+                        "\tmov si, word ptr [si " ^ fix_offset inf.parameter_offset ^ "]\n" ^
                         "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si]\n"
                 | ENTRY_temporary inf ->
                     getAR () ^
-                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.temporary_offset ^ "]\n"
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.temporary_offset ^ "]\n"
                 | _ ->
-                    "<error>"
+                    "<error>\n"
         end
     | _ -> "<oops>\n"
 
@@ -104,37 +109,37 @@ let loadAddr r a =
                 match e.entry_info with
                 (* FIXME why not?
                 | ENTRY_variable inf ->
-                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.variable_offset ^ "]\n"
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.variable_offset ^ "]\n"
                 *)
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
-                        "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                        "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.parameter_offset ^ "]\n"
                     else
-                        "\tmov " ^ r ^ ", word ptr [bp + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                        "\tmov " ^ r ^ ", word ptr [bp " ^ fix_offset inf.parameter_offset ^ "]\n"
                 | ENTRY_temporary inf ->
-                    "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.temporary_offset ^ "]\n"
+                    "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.temporary_offset ^ "]\n"
                 | _ ->
-                    "<error>"
+                    "<error>\n"
             else
                 (* non-local operand *)
                 match e.entry_info with
                 (*
                 | ENTRY_variable inf ->
                     getAR () ^ 
-                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.variable_offset ^ "]\n"
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [si " ^ fix_offset inf.variable_offset ^ "]\n"
                 *)
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
                         getAR () ^
-                        "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                        "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [si " ^ fix_offset inf.parameter_offset ^ "]\n"
                     else
                         getAR () ^
-                        "\tmov " ^ r ^ ", word ptr [si + " ^ string_of_int inf.parameter_offset ^ "]\n"
+                        "\tmov " ^ r ^ ", word ptr [si " ^ fix_offset inf.parameter_offset ^ "]\n"
                 | ENTRY_temporary inf ->
                     getAR () ^
-                    "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.temporary_offset ^ "]\n"
+                    "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.temporary_offset ^ "]\n"
                 | _ ->
-                    "<error>"
+                    "<error>\n"
         end
     | _ -> "<oops>\n"
 
@@ -149,37 +154,37 @@ let store r a =
                 match e.entry_info with
                 (*
                 | ENTRY_variable inf ->
-                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.variable_offset ^ "]\n"
+                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.variable_offset ^ "]\n"
                 *)
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
-                        "\tmov " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.parameter_offset ^ "], " ^ r ^ "\n"
+                        "\tmov " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.parameter_offset ^ "], " ^ r ^ "\n"
                     else
-                        "\tmov si, word ptr [bp + " ^ string_of_int inf.parameter_offset ^ "]\n" ^
+                        "\tmov si, word ptr [bp " ^ fix_offset inf.parameter_offset ^ "]\n" ^
                         "\tmov " ^ operand_size e ^ " ptr [si], " ^ r ^ "\n"
                 | ENTRY_temporary inf ->
-                    "\tmov " ^ operand_size e ^ " ptr [bp + " ^ string_of_int inf.temporary_offset ^ "], " ^ r ^ "\n"
+                    "\tmov " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.temporary_offset ^ "], " ^ r ^ "\n"
                 | _ ->
-                    "<error>"
+                    "<error>\n"
             else
                 (* non-local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
                     getAR () ^ 
-                    "\tmov " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.variable_offset ^ "], " ^ r ^ "\n"
+                    "\tmov " ^ operand_size e ^ " ptr [si " ^ fix_offset inf.variable_offset ^ "], " ^ r ^ "\n"
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
                         getAR () ^
-                        "\tmov " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.parameter_offset ^ "], " ^ r ^ "\n"
+                        "\tmov " ^ operand_size e ^ " ptr [si " ^ fix_offset inf.parameter_offset ^ "], " ^ r ^ "\n"
                     else
                         getAR () ^
-                        "\tmov si, word ptr [si + " ^ string_of_int inf.parameter_offset ^ "]\n" ^
+                        "\tmov si, word ptr [si " ^ fix_offset inf.parameter_offset ^ "]\n" ^
                         "\tmov " ^ operand_size e ^ " ptr [si], " ^ r ^ "\n"
                 | ENTRY_temporary inf ->
                     getAR () ^ 
-                    "\tmov " ^ operand_size e ^ " ptr [si + " ^ string_of_int inf.temporary_offset ^ "], " ^ r ^ "\n"
+                    "\tmov " ^ operand_size e ^ " ptr [si " ^ fix_offset inf.temporary_offset ^ "], " ^ r ^ "\n"
                 | _ ->
-                    "<error>"
+                    "<error>\n"
         end
     | _ -> "<oops>\n"
 
@@ -259,7 +264,7 @@ let transform (i,quad) =
             \tmov bp, sp\n\
             \tsub sp, " ^ size e ^ "\n"
         | _ ->
-            "<error>"
+            "<error>\n"
         end
     | Q_endu u ->
         begin
@@ -272,27 +277,67 @@ let transform (i,quad) =
             name e ^
             "\tendp\n"
         | _ ->
-            "<error>"
+            "<error>\n"
         end
     | Q_op (op,x,y,z) ->
-        ""
+        begin
+        match op with
+        | "+" ->
+            begin
+            match x, y, z with
+            | Q_entry x1, Q_entry y1, Q_entry z1 ->
+                load "ax" x ^
+                load "dx" y ^
+                "\tadd ax, dx\n" ^
+                store "ax" z
+            | _ -> "<error>\n"
+            end
+        | "-" ->
+            begin
+            match x, y, z with
+            | Q_entry x1, Q_entry y1, Q_entry z1 ->
+                load "ax" x ^
+                load "dx" y ^
+                "\tsub ax, dx\n" ^
+                store "ax" z
+            | _ -> "<error>\n"
+            end
+        | "*" ->
+            begin
+            match x, y, z with
+            | Q_entry x1, Q_entry y1, Q_entry z1 ->
+                load "ax" x ^
+                load "cx" y ^
+                "\timul cx\n" ^
+                store "ax" z
+            | _ -> "<error>\n"
+            end
+        | "/" ->
+            begin
+            match x, y, z with
+            | Q_entry x1, Q_entry y1, Q_entry z1 ->
+                load "ax" x ^
+                "\tcwd\n" ^
+                load "cx" y ^
+                "\tidiv cx\n" ^
+                store "ax" z
+            | _ -> "<error>\n"
+            end
+        | "%" ->
+            begin
+            match x, y, z with
+            | Q_entry x1, Q_entry y1, Q_entry z1 ->
+                load "ax" x ^
+                "\tcwd\n" ^
+                load "cx" y ^
+                "\tidiv cx\n" ^
+                store "dx" z
+            | _ -> "<error>\n"
+            end
+        | _ -> "<error>\n"
+        end
     | Q_assign (x,z) ->
         begin
-        (*
-        match x,z with
-        | Q_entry x1, Q_entry z1 ->
-            let sz =
-                match z1.entry_info with
-                | ENTRY_variable inf -> sizeOfType inf.variable_type
-                | ENTRY_parameter inf -> sizeOfType inf.parameter_type
-                | ENTRY_temporary inf -> sizeOfType inf.temporary_type
-                | _ -> 2
-            in 
-            if (sz = 1)
-                then (load "al" x) ^ (store "al" z)
-                else (load "ax" x) ^ (store "ax" z)
-        | _ -> "<error>"
-        *)
         match z with
         | Q_entry z1 ->
             let sz =
@@ -307,21 +352,60 @@ let transform (i,quad) =
                 else (load "ax" x) ^ (store "ax" z)
         | Q_funct_res ->
             load "ax" x ^ store "ax" z
-        | _ -> "<error>"
+        | _ -> "<error>\n"
         end
     | Q_array (x,y,z) ->
-        ""
+        begin
+        match x, y, z with
+        | Q_entry x1, Q_entry y1, Q_entry z1 ->
+            load "ax" y ^
+            "\tmov cx, " ^ operand_size x1 ^ "\n" ^
+            "\timul cx\n" ^
+            loadAddr "cx" x ^
+            "\tadd ax, cx\n" ^
+            store "ax" z
+        | _ ->
+            "<error>\n"
+        end
     | Q_relop (op,x,y,z) ->
-        ""
+        begin
+        let instr = 
+            match op with
+            | "=" -> "je"
+            | "<>" -> "jne"
+            | "<" -> "jg"
+            | ">" -> "jl"
+            | "<=" -> "jge"
+            | ">=" -> "jle"
+            | _ -> "<error>"
+        in
+        begin
+        match x, y, z with
+        | Q_entry x1, Q_entry y1, Q_int z1 ->
+            load "ax" x ^
+            load "dx" y ^
+            "\t cmp ax, dx\n" ^
+            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
+        | _ -> "<error>\n"
+        end
+        end
     | Q_ifb (x,z) ->
-        ""
+        begin
+        match x, z with
+        | Q_entry x1, Q_int z1 ->
+            load "al" x ^
+            "\tor al, al\n" ^
+            "\tjnz @" ^ string_of_int z1 ^ "\n"
+        | _ ->
+            "<error>\n"
+        end
     | Q_jump z ->
         begin
         match z with
         | Q_int i ->
             "\tjmp @" ^ string_of_int i ^ "\n"
         | _ ->
-            "<jmp error>"
+            "<error>\n"
         end
     | Q_label l ->
         "< label unsupported by pazcal>"
@@ -336,10 +420,39 @@ let transform (i,quad) =
             "\tcall near ptr " ^ name e ^
             "\n\tadd sp, " ^ string_of_int (int_of_string (size e) + 4) ^ "\n"
         | _ ->
-            "<error>"
+            "<error>\n"
         end
     | Q_par (x,m) ->
-        ""
+        begin
+        match x, m with
+        | Q_entry x1, Q_pass_mode mode ->
+            begin
+            match mode with
+            | V -> 
+                let sz =
+                    match x1.entry_info with
+                    | ENTRY_variable inf -> sizeOfType inf.variable_type
+                    | ENTRY_parameter inf -> sizeOfType inf.parameter_type
+                    | ENTRY_temporary inf -> sizeOfType inf.temporary_type
+                    | _ -> 2
+                in 
+                if (sz = 1)
+                then
+                    load "al" x ^
+                    "\tsub sp, 1\n" ^
+                    "\tmov si, bp\n" ^
+                    "\tmov byte ptr [si], al\n"
+                else
+                    load "ax" x ^
+                    "\tpush ax\n"
+            | R
+            | RET ->
+                loadAddr "si" x ^
+                "\tpush si\n"
+            end
+        | _ ->
+            "<error>\n"
+        end
     | Q_ret ->
         "\tjmp " ^ !curr ^ "\n"
 
