@@ -3,12 +3,14 @@ PROC baz ( ) {
 }
 
 FUNC int foo ( ) {
-    return 0;
+    return 6;
 }
 
 PROGRAM bar ( ) {
     int a,b,c;
-    c = foo();
-    c = a + b;
+    a = foo();
+    b = a + 1;
+    c = a*b;
+    WRITE(c);
     return;
 }

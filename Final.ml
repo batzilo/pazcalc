@@ -5,6 +5,8 @@ open SemQuad
 open Symbol
 open Types
 
+let lib = ref "\n";;
+
 (* beggining *)
 let header prog_name = 
     sprintf "xseg\tsegment\tpublic 'code'\n\
@@ -18,7 +20,7 @@ let header prog_name =
     prog_name
 
 (* end *)
-let footer = "xseg\tends\n\tend\tmain";;
+let footer () = !lib ^ "\nxseg\tends\n\tend\tmain";;
 
 
 
@@ -194,13 +196,20 @@ let name e =
         | None -> internal "dafuq?"
         end;
         *)
-        match inf.function_label with
-        | Some c ->
-            "_" ^ id_name e.entry_id ^ "_" ^ string_of_int c
-        | None ->
-            incnat ();
-            inf.function_label <- Some !nat;
-            "_" ^ id_name e.entry_id ^ "_" ^ string_of_int !nat
+        if inf.function_isLibrary
+        then
+            begin
+            !lib <- !lib ^ "extrn _" ^ id_name e.entry_id ^ " : proc\n";
+            "_" ^ id_name e.entry_id
+            end
+        else
+            match inf.function_label with
+            | Some c ->
+                "_" ^ id_name e.entry_id ^ "_" ^ string_of_int c
+            | None ->
+                incnat ();
+                inf.function_label <- Some !nat;
+                "_" ^ id_name e.entry_id ^ "_" ^ string_of_int !nat
         end
     | _ -> "entry info not a function!"
 
@@ -540,10 +549,8 @@ let transform (i,quad) =
         begin
         match x, m with
         | Q_int x1, Q_pass_mode mode ->
-            load "al" x ^
-            "\tsub sp, 1\n" ^
-            "\tmov si, bp\n" ^
-            "\tmov word ptr [si], al\n"
+            load "ax" x ^
+            "\tpush ax\n"
         | Q_bool x1, Q_pass_mode mode ->
             load "al" x ^
             "\tsub sp, 1\n" ^
@@ -590,4 +597,6 @@ let transform (i,quad) =
         "\tjmp " ^ !curr ^ "\n"
 
 let generate name icode =
-    header name ^ List.fold_left (^) "" (List.map transform icode) ^ footer
+    let middle = List.fold_left (^) "" (List.map transform icode) in
+    let bottom = footer () in
+    header name ^ middle ^ bottom

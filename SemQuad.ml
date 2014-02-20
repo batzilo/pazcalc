@@ -824,9 +824,9 @@ let sq_assign a op b =
     ()
 
 (* Semantic-Quads actions for routine header *)
-let sq_rout_head name typ pars =
+let sq_rout_head name typ pars isLib =
   (* register a new function or find the forwarded function header *)
-  let e = newFunction (id_make name) true in
+  let e = newFunction (id_make name) true isLib in
   openScope ();
   (* add parameters *)
   let parameterAdd (param_type, (param_name, param_pass_mode, param_dimensions)) =
@@ -1593,6 +1593,7 @@ let register_runtime_library () =
     "writeInteger"
     TYPE_proc
     [ (TYPE_int, ("i", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1601,6 +1602,7 @@ let register_runtime_library () =
     "writeChar"
     TYPE_proc
     [ (TYPE_char, ("c", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1609,6 +1611,7 @@ let register_runtime_library () =
     "writeBoolean"
     TYPE_proc
     [ (TYPE_bool, ("b", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1617,6 +1620,7 @@ let register_runtime_library () =
     "writeReal"
     TYPE_proc
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1625,6 +1629,7 @@ let register_runtime_library () =
     "writeString"
     TYPE_proc
     [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1634,6 +1639,7 @@ let register_runtime_library () =
     "putchar"
     TYPE_proc
     [ (TYPE_char, ("c", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1642,6 +1648,7 @@ let register_runtime_library () =
     "puts"
     TYPE_proc
     [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1650,6 +1657,7 @@ let register_runtime_library () =
     "WRITE_INT"
     TYPE_proc
     [ (TYPE_int, ("n", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1658,6 +1666,7 @@ let register_runtime_library () =
     "WRITE_BOOL"
     TYPE_proc
     [ (TYPE_bool, ("b", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1666,6 +1675,7 @@ let register_runtime_library () =
     "WRITE_CHAR"
     TYPE_proc
     [ (TYPE_char, ("c", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1674,6 +1684,7 @@ let register_runtime_library () =
     "WRITE_REAL"
     TYPE_proc
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])); (TYPE_int, ("d", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1682,6 +1693,7 @@ let register_runtime_library () =
     "WRITE_STRING"
     TYPE_proc
     [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1691,6 +1703,7 @@ let register_runtime_library () =
     "READ_INT"
     TYPE_int
     [ ]
+    true
     );
   rmLastQuad ();
 
@@ -1699,6 +1712,7 @@ let register_runtime_library () =
     "READ_BOOL"
     TYPE_bool
     [ ]
+    true
     );
   rmLastQuad ();
 
@@ -1707,6 +1721,7 @@ let register_runtime_library () =
     "getchar"
     TYPE_int
     [ ]
+    true
     );
   rmLastQuad ();
 
@@ -1715,6 +1730,7 @@ let register_runtime_library () =
     "READ_REAL"
     TYPE_REAL
     [ ]
+    true
     );
   rmLastQuad ();
 
@@ -1723,6 +1739,7 @@ let register_runtime_library () =
     "READ_STRING"
     TYPE_proc
     [ (TYPE_int, ("size", PASS_BY_VALUE, [])); TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])]
+    true
     );
   rmLastQuad ();
 
@@ -1733,6 +1750,7 @@ let register_runtime_library () =
     "abs"
     TYPE_int
     [ (TYPE_int, ("n", PASS_BY_VALUE, [])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1741,6 +1759,7 @@ let register_runtime_library () =
     "arctan"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1749,6 +1768,7 @@ let register_runtime_library () =
     "cos"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1757,6 +1777,7 @@ let register_runtime_library () =
     "exp"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1765,6 +1786,7 @@ let register_runtime_library () =
     "fabs"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1773,6 +1795,7 @@ let register_runtime_library () =
     "ln"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1781,6 +1804,7 @@ let register_runtime_library () =
     "pi"
     TYPE_REAL
     [ ]
+    true
     );
   rmLastQuad ();
 
@@ -1789,6 +1813,7 @@ let register_runtime_library () =
     "sin"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1797,6 +1822,7 @@ let register_runtime_library () =
     "sqrt"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1805,6 +1831,7 @@ let register_runtime_library () =
     "tan"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1813,6 +1840,7 @@ let register_runtime_library () =
     "trunc"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1821,6 +1849,7 @@ let register_runtime_library () =
     "round"
     TYPE_REAL
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1829,6 +1858,7 @@ let register_runtime_library () =
     "TRUNC"
     TYPE_int
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1837,6 +1867,7 @@ let register_runtime_library () =
     "ROUND"
     TYPE_int
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ();
 
@@ -1845,6 +1876,7 @@ let register_runtime_library () =
     "strlen"
     TYPE_int
     [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1853,6 +1885,7 @@ let register_runtime_library () =
     "strcmp"
     TYPE_int
     [ (TYPE_char, ("s1", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_char, ("s2", PASS_BY_REFERENCE, [Q_int 0])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1861,6 +1894,7 @@ let register_runtime_library () =
     "strcpy"
     TYPE_proc
     [ (TYPE_char, ("trg", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_char, ("src", PASS_BY_REFERENCE, [Q_int 0])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1869,6 +1903,7 @@ let register_runtime_library () =
     "strcat"
     TYPE_proc
     [ (TYPE_char, ("trg", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_char, ("src", PASS_BY_REFERENCE, [Q_int 0])) ]
+    true
     );
   rmLastQuad ();
 
@@ -1877,6 +1912,7 @@ let register_runtime_library () =
     "new"
     TYPE_int
     [ (TYPE_int, ("size", PASS_BY_VALUE, []))]
+    true
     );
   rmLastQuad ()
 

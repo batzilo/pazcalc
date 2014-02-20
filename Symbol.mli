@@ -45,7 +45,9 @@ and function_info = {                         (******* Συνάρτηση ******
   mutable function_pstatus   : param_status;  (* Κατάσταση παραμέτρων  *)
   mutable function_initquad  : int;           (* Αρχική τετράδα        *)
   mutable function_scope     : scope option;  (* Εμβέλεια              *)
-  mutable function_label     : int option     (* Ετικέτα Τελικού Κωδ   *)
+  mutable function_label     : int option;    (* Ετικέτα Τελικού Κώδ.  *)
+  mutable function_isMain    : bool;          (* Main Συνάρτηση        *)
+  mutable function_isLibrary : bool           (* Συνάρτηση Βιβλιοθήκης *)
 }
 
 and parameter_info = {                        (****** Παράμετρος *******)
@@ -126,7 +128,7 @@ val newTemporary     : Types.typ -> entry
  * err should be true
  * if function not exists in ST then call newEntry
  * else if function was forwarded, start parameter checking *)
-val newFunction      : Identifier.id -> bool -> entry
+val newFunction      : Identifier.id -> bool -> bool -> entry
 
 (* Add a new function parameter
  * err should be true

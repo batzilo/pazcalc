@@ -172,7 +172,7 @@ val sq_lvalue : string -> semv_expr list -> semv_expr
 
 val sq_assign : semv_expr -> string -> semv_expr -> unit
 
-val sq_rout_head : string -> Types.typ -> (Types.typ * (string * Symbol.pass_mode * quad_op_t list)) list -> Symbol.entry
+val sq_rout_head : string -> Types.typ -> (Types.typ * (string * Symbol.pass_mode * quad_op_t list)) list -> bool -> Symbol.entry
 
 val sq_rout_call : string -> semv_expr list -> semv_expr
 

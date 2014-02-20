@@ -180,19 +180,19 @@ matrix_var_init2 : T_lbrack const_expr T_rbrack                     { [$2.e_plac
 
 routine_header : T_PROC T_id T_lparen T_rparen {
                       (* i.e PROC foo() *)
-                      sq_rout_head $2 TYPE_proc []
+                      sq_rout_head $2 TYPE_proc [] false
                     }
                | T_PROC T_id T_lparen routine_header2 T_rparen {
                       (* i.e PROC foo( int a, char b, REAL c, bool d ) *)
-                      sq_rout_head $2 TYPE_proc $4
+                      sq_rout_head $2 TYPE_proc $4 false
                     }
                | T_FUNC paztype T_id T_lparen T_rparen {
                       (* i.e FUNC int foo() *)
-                      sq_rout_head $3 $2 []
+                      sq_rout_head $3 $2 [] false
                     }
                | T_FUNC paztype T_id T_lparen routine_header2 T_rparen {
                       (* i.e FUNC int foo( int a, char b, REAL c, bool d ) *)
-                      sq_rout_head $3 $2 $5
+                      sq_rout_head $3 $2 $5 false
                     }
                ;
 
@@ -250,9 +250,9 @@ routine : routine_header T_sem_col {
             }
         ;
 
-program_header : T_PROGRAM T_id T_lparen T_rparen   { sq_rout_head $2 TYPE_proc [] }
+program_header : T_PROGRAM T_id T_lparen T_rparen   { sq_rout_head $2 TYPE_proc [] false }
                /*
-               | T_PROGRAM error { fatal "main program header is invalid"; sq_rout_head "" TYPE_none [] }
+               | T_PROGRAM error { fatal "main program header is invalid"; sq_rout_head "" TYPE_none [] false }
                */
                ;
 

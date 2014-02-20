@@ -63,7 +63,9 @@ and function_info = {                         (******* Συνάρτηση ******
   mutable function_pstatus   : param_status;  (* Κατάσταση παραμέτρων  *)
   mutable function_initquad  : int;           (* Αρχική τετράδα        *)
   mutable function_scope     : scope option;  (* Εμβέλεια συνάρτησης   *)
-  mutable function_label     : int option     (* Ετικέτα Τελικού Κώδ.  *)
+  mutable function_label     : int option;    (* Ετικέτα Τελικού Κώδ.  *)
+  mutable function_isMain    : bool;          (* Main Συνάρτηση        *)
+  mutable function_isLibrary : bool           (* Συνάρτηση Βιβλιοθήκης *)
 }
 
 and parameter_info = {                        (****** Παράμετρος *******)
@@ -267,7 +269,7 @@ let newTemporary typ =
  * err should be true
  * if function not exists in ST then call newEntry
  * else if function was forwarded, start parameter checking *)
-let newFunction id err =
+let newFunction id err isLib =
   try
     (* search the current scope for another entry with the same name *)
     let e = lookupEntry id LOOKUP_CURRENT_SCOPE false in
@@ -298,7 +300,9 @@ let newFunction id err =
       function_pstatus = PARDEF_DEFINE;
       function_initquad = 0;
       function_scope = None;
-      function_label = None
+      function_label = None;
+      function_isMain = false;
+      function_isLibrary = isLib
     } in
     (* register a new function entry in the Symbol Table *)
     newEntry id (ENTRY_function inf) false
