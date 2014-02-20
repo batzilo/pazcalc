@@ -1602,7 +1602,7 @@ let register_runtime_library () =
     [ (TYPE_int, ("i", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1611,7 +1611,7 @@ let register_runtime_library () =
     [ (TYPE_char, ("c", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1620,7 +1620,7 @@ let register_runtime_library () =
     [ (TYPE_bool, ("b", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1629,7 +1629,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1638,7 +1638,7 @@ let register_runtime_library () =
     [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   (* Register STD OUT *)
   ignore (
@@ -1648,7 +1648,7 @@ let register_runtime_library () =
     [ (TYPE_char, ("c", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1657,7 +1657,7 @@ let register_runtime_library () =
     [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1666,7 +1666,7 @@ let register_runtime_library () =
     [ (TYPE_int, ("n", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1675,7 +1675,7 @@ let register_runtime_library () =
     [ (TYPE_bool, ("b", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1684,7 +1684,7 @@ let register_runtime_library () =
     [ (TYPE_char, ("c", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1693,7 +1693,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, [])); (TYPE_int, ("w", PASS_BY_VALUE, [])); (TYPE_int, ("d", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1702,7 +1702,7 @@ let register_runtime_library () =
     [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_int, ("w", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   (* Register STD IN *)
   ignore (
@@ -1712,7 +1712,7 @@ let register_runtime_library () =
     [ ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1721,7 +1721,7 @@ let register_runtime_library () =
     [ ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1730,7 +1730,7 @@ let register_runtime_library () =
     [ ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1739,7 +1739,7 @@ let register_runtime_library () =
     [ ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1748,7 +1748,7 @@ let register_runtime_library () =
     [ (TYPE_int, ("size", PASS_BY_VALUE, [])); TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   (* Register STD LIB *)
   (* math *)
@@ -1759,7 +1759,7 @@ let register_runtime_library () =
     [ (TYPE_int, ("n", PASS_BY_VALUE, [])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1768,7 +1768,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1777,7 +1777,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1786,7 +1786,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1795,7 +1795,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1804,7 +1804,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1813,7 +1813,7 @@ let register_runtime_library () =
     [ ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1822,7 +1822,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1831,7 +1831,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1840,7 +1840,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1849,7 +1849,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1858,7 +1858,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1867,7 +1867,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1876,7 +1876,7 @@ let register_runtime_library () =
     [ (TYPE_REAL, ("r", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1885,7 +1885,7 @@ let register_runtime_library () =
     [ (TYPE_char, ("s", PASS_BY_REFERENCE, [Q_int 0])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1894,7 +1894,7 @@ let register_runtime_library () =
     [ (TYPE_char, ("s1", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_char, ("s2", PASS_BY_REFERENCE, [Q_int 0])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1903,7 +1903,7 @@ let register_runtime_library () =
     [ (TYPE_char, ("trg", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_char, ("src", PASS_BY_REFERENCE, [Q_int 0])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1912,7 +1912,7 @@ let register_runtime_library () =
     [ (TYPE_char, ("trg", PASS_BY_REFERENCE, [Q_int 0])); (TYPE_char, ("src", PASS_BY_REFERENCE, [Q_int 0])) ]
     true
     );
-  rmLastQuad ();
+  rmLastQuad (); closeScope();
 
   ignore (
     sq_rout_head
@@ -1921,5 +1921,5 @@ let register_runtime_library () =
     [ (TYPE_int, ("size", PASS_BY_VALUE, []))]
     true
     );
-  rmLastQuad ()
+  rmLastQuad (); closeScope()
 

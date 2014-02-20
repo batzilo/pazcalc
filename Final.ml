@@ -65,7 +65,7 @@ let rec load r a =
     | Q_deref e ->  load "di" (Q_entry e) ^ "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [di]\n"
     | Q_entry e ->
         begin
-            if e.entry_scope.sco_nesting = 1 then
+            if e.entry_scope.sco_nesting = 2 then
                 (* local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
@@ -108,7 +108,7 @@ let loadAddr r a =
     | Q_deref x -> load r (Q_entry x)
     | Q_entry e ->
         begin
-            if e.entry_scope.sco_nesting = 1 then
+            if e.entry_scope.sco_nesting = 2 then
                 (* local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
@@ -137,6 +137,7 @@ let loadAddr r a =
                         "\tmov " ^ r ^ ", word ptr [si " ^ fix_offset inf.parameter_offset ^ "]\n"
                 | ENTRY_temporary inf ->
                     getAR () ^
+                    "n " ^ string_of_int e.entry_scope.sco_nesting ^
                     "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.temporary_offset ^ "]\n"
                 | _ ->
                     "<error>\n"
@@ -145,15 +146,15 @@ let loadAddr r a =
 
 let store r a =
     match a with
-    | Q_funct_res -> "\tmov word ptr [bp + 6], " ^ r ^ "\n"
+    | Q_funct_res -> "\tmov si, word ptr [bp + 6]\n\tmov word ptr [si], " ^ r ^ "\n"
     | Q_deref e ->  load "di" (Q_entry e) ^ "\tmov " ^ operand_size e ^ " ptr [di], " ^ r ^ "\n" 
     | Q_entry e ->
         begin
-            if e.entry_scope.sco_nesting = 1 then
+            if e.entry_scope.sco_nesting = 2 then
                 (* local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
-                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.variable_offset ^ "]\n"
+                    "\tmov " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.variable_offset ^ "], " ^ r ^ "\n"
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
                         "\tmov " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.parameter_offset ^ "], " ^ r ^ "\n"
@@ -449,7 +450,8 @@ let transform (i,quad) =
                 then (load "al" x) ^ (store "al" z)
                 else (load "ax" x) ^ (store "ax" z)
         | Q_funct_res ->
-            load "ax" x ^ store "ax" z
+            load "ax" x ^
+            store "ax" z
         | _ -> "<error>\n"
         end
     | Q_array (x,y,z) ->
@@ -594,7 +596,9 @@ let transform (i,quad) =
                 else
                     load "ax" x ^
                     "\tpush ax\n"
-            | R
+            | R ->
+                loadAddr "si" x ^
+                "\tpush si\n"
             | RET ->
                 loadAddr "si" x ^
                 "\tpush si\n"
