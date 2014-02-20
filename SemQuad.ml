@@ -1284,6 +1284,10 @@ let st_if_then cond stmt =
   if (debug) then printf "if-then->stmt is %d quad long\n" stmt.s_len;
   (* if condition is true, jump to the statement *)
   backpatch c.c_true (Q_int (!quadNext - stmt.s_len));
+  (* FIXME start *)
+  (* if condition is false, jump to the end *)
+  backpatch c.c_false (Q_int (!quadNext));
+  (* FIXME end *)
   (* merge cond.false and stmt.next as if_then.next *)
   let l1 = c.c_false in
   let l = List.merge compare l1 stmt.s_next in
@@ -1305,6 +1309,10 @@ let st_if_then_else cond stmt1 fly stmt2 =
   backpatch c.c_true (Q_int (!quadNext -stmt2.s_len -1 -stmt1.s_len));
   (* if condition is false, jump to the second statement *)
   backpatch c.c_false (Q_int (!quadNext - stmt2.s_len));
+  (* FIXME start *)
+  (* if condition is false, jump to the end *)
+  backpatch fly_back (Q_int (!quadNext));
+  (* FIXME end *)
   (* merge stmt1.next, fly and stmt2.next as if_then_else.next *)
   let l2 = List.merge compare fly_back stmt1.s_next in
   let l = List.merge compare l2 stmt2.s_next in
@@ -1327,6 +1335,10 @@ let st_while cond stmt =
   (* FIXME maybe -> backpatch $5.s_next (Q_int !quadNext); *)
   let q = Q_jump (Q_int (stmt_start - qs)) in
   addNewQuad q;
+  (* FIXME start *)
+  (* if condition is false, jump to the end *)
+  backpatch c.c_false (Q_int (!quadNext));
+  (* FIXME end *)
   (* find and fix any breaks associated with this while loop *)
   collectMyBreaks (stmt_start - qs) (!quadNext);
   (* find and fix any continues associated with this while loop *)
@@ -1416,9 +1428,19 @@ let st_return e =
   let q2 = Q_ret in
   addNewQuad q1;
   addNewQuad q2;
+  let l1 = !lvalQuadLen in
+  (* collect quads generated due to lvalue *)
+  resetLvalQuadLen ();
+  let l2 = !exprQuadLen in
+  (* collect quads generated due to expression *)
+  resetExprQuadLen ();
+  let l3 = !routQuadLen in
+  (* collect quads generated due to routine *)
+  resetRoutQuadLen ();
+  let len = l1 + l2 + l3 + 2 in
   let ssv = {
     s_next = [];
-    s_len = 2
+    s_len = len
   } in ssv
 
 let st_write w l =
