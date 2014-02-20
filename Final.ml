@@ -7,8 +7,10 @@ open Types
 
 let lib = ref "\n";;
 
+let main = ref "";;
+
 (* beggining *)
-let header prog_name = 
+let header () = 
     sprintf "xseg\tsegment\tpublic 'code'\n\
     \tassume\tcs:xseg, ds:xseg, ss:xseg\n\
     \torg\t100h\n\
@@ -17,7 +19,7 @@ let header prog_name =
     \tmov\tax,4C00h\n\
     \tint\t21h\n\
     main\tendp\n"
-    prog_name
+    !main
 
 (* end *)
 let footer () = !lib ^ "\nxseg\tends\n\tend\tmain";;
@@ -41,7 +43,7 @@ let curr = ref "";;
 let getAR () = "\tmov si, word ptr [bp + 4]\n"
 
 (* update Access Links *)
-let updateAL () = "\tpush word ptr [bp + 4]\n"
+let updateAL () = "\tmov si, word ptr [bp + 4]\n\tpush word ptr [si + 4]\n"
 
 let operand_size e =
     match e.entry_info with
@@ -200,9 +202,12 @@ let name e =
         then
             begin
             !lib <- !lib ^ "extrn _" ^ id_name e.entry_id ^ " : proc\n";
+            inf.function_isLibrary <- false;
             "_" ^ id_name e.entry_id
             end
         else
+            begin
+            let lbl = 
             match inf.function_label with
             | Some c ->
                 "_" ^ id_name e.entry_id ^ "_" ^ string_of_int c
@@ -210,6 +215,10 @@ let name e =
                 incnat ();
                 inf.function_label <- Some !nat;
                 "_" ^ id_name e.entry_id ^ "_" ^ string_of_int !nat
+            in
+            if inf.function_isMain then !main <- lbl;
+            lbl
+            end
         end
     | _ -> "entry info not a function!"
 
@@ -554,12 +563,12 @@ let transform (i,quad) =
         | Q_bool x1, Q_pass_mode mode ->
             load "al" x ^
             "\tsub sp, 1\n" ^
-            "\tmov si, bp\n" ^
+            "\tmov si, sp\n" ^
             "\tmov byte ptr [si], al\n"
         | Q_char x1, Q_pass_mode mode ->
             load "al" x ^
             "\tsub sp, 1\n" ^
-            "\tmov si, bp\n" ^
+            "\tmov si, sp\n" ^
             "\tmov byte ptr [si], al\n"
         | Q_string s, Q_pass_mode mode ->
             loadAddr "si" x ^
@@ -580,7 +589,7 @@ let transform (i,quad) =
                 then
                     load "al" x ^
                     "\tsub sp, 1\n" ^
-                    "\tmov si, bp\n" ^
+                    "\tmov si, sp\n" ^
                     "\tmov byte ptr [si], al\n"
                 else
                     load "ax" x ^
@@ -598,5 +607,6 @@ let transform (i,quad) =
 
 let generate name icode =
     let middle = List.fold_left (^) "" (List.map transform icode) in
+    let top = header () in
     let bottom = footer () in
-    header name ^ middle ^ bottom
+    top ^ middle ^ bottom

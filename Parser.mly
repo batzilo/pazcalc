@@ -250,7 +250,7 @@ routine : routine_header T_sem_col {
             }
         ;
 
-program_header : T_PROGRAM T_id T_lparen T_rparen   { sq_rout_head $2 TYPE_proc [] false }
+program_header : T_PROGRAM T_id T_lparen T_rparen   { let e = sq_rout_head $2 TYPE_proc [] false in set_main e }
                /*
                | T_PROGRAM error { fatal "main program header is invalid"; sq_rout_head "" TYPE_none [] false }
                */

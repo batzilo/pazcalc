@@ -1,5 +1,5 @@
 
-val header : string -> string
+val header : unit -> string
 
 val footer : unit -> string
 

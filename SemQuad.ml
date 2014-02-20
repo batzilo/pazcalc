@@ -823,6 +823,13 @@ let sq_assign a op b =
     error "type mismatch when assigning a value to '%s'" (string_of_quad_op a.e_place);
     ()
 
+let set_main e =
+    match e.entry_info with
+    | ENTRY_function inf ->
+        inf.function_isMain <- true;
+        e
+    | _ -> e
+
 (* Semantic-Quads actions for routine header *)
 let sq_rout_head name typ pars isLib =
   (* register a new function or find the forwarded function header *)

@@ -1,4 +1,0 @@
-PROGRAM bar () {
-    WRITELN(0);
-    return;
-}
