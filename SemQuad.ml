@@ -1450,140 +1450,147 @@ let st_return e =
     s_len = len
   } in ssv
 
-let st_write w l =
-(*
-    | "WRITE" -> 0 (* do nothing *)
-    | "WRITESP" -> 1 (* add spaces *)
-    | "WRITELN" -> 2 (* add a new line @ the end *)
-    | "WRITESPLN" -> 3 (* add both spaces and a new line @ the end *)
-*)
-  let gen_quads a b c =
-    match a.e_place with
-    | Q_int i ->
-      (* integer constant *)
+(* generate quads for printing a space character *)
+let gen_sp w =
+  if (w = 1 || w = 3) then
+    begin
+    let space = {
+      e_place = Q_char ' ';
+      e_typ = TYPE_char
+    } in
+    ignore (sq_rout_call "writeChar" [space]);
+    let l1 = !routQuadLen in
+    resetRoutQuadLen ();
+    l1
+    end
+  else
+    0
+
+(* generate quads for printing a new line character *)
+let gen_nl w =
+  if (w = 2 || w = 3) then
+    begin
+    let newline = {
+      e_place = Q_char '\n';
+      e_typ = TYPE_char
+    } in
+    ignore (sq_rout_call "writeChar" [newline]);
+    let l1 = !routQuadLen in
+    resetRoutQuadLen ();
+    l1
+    end
+  else
+    0
+
+(* remove quads for printing a new line or a space character *)
+let rm_last_sp w =
+  if (w = 1 || w = 3) then
+    begin
+    rmLastQuad ();
+    rmLastQuad ();
+    2
+    end
+  else
+    0
+
+(* generate quads for calling apropriate printing function *)
+let gen_quads a b c =
+  match a.e_place with
+  | Q_int i ->
+    (* integer constant *)
+    ignore (sq_rout_call "writeInteger" [a]);
+    let l1 = !routQuadLen in
+    resetRoutQuadLen ();
+    l1
+  | Q_char c ->
+    (* character constant *)
+    ignore (sq_rout_call "writeChar" [a]);
+    let l1 = !routQuadLen in
+    resetRoutQuadLen ();
+    l1
+  | Q_bool b ->
+    (* boolean constant *)
+    ignore (sq_rout_call "writeBoolean" [a]);
+    let l1 = !routQuadLen in
+    resetRoutQuadLen ();
+    l1
+  | Q_real r ->
+    (* REAL constant *)
+    ignore (sq_rout_call "writeReal" [a]);
+    let l1 = !routQuadLen in
+    resetRoutQuadLen ();
+    l1
+  | Q_string s ->
+    (* string constant *)
+    ignore (sq_rout_call "writeString" [a]);
+    let l1 = !routQuadLen in
+    resetRoutQuadLen ();
+    l1
+  | Q_entry e ->
+    begin
+    let typ = match e.entry_info with
+    | ENTRY_variable inf -> inf.variable_type
+    | ENTRY_parameter inf -> inf.parameter_type
+    | ENTRY_constant inf -> inf.constant_type
+    | _ -> TYPE_none
+    in
+    match typ with
+    | TYPE_int ->
+      (* integer *)
       ignore (sq_rout_call "writeInteger" [a]);
       let l1 = !routQuadLen in
       resetRoutQuadLen ();
       l1
-    | Q_char c ->
-      (* character constant *)
+    | TYPE_char ->
+      (* character *)
       ignore (sq_rout_call "writeChar" [a]);
       let l1 = !routQuadLen in
       resetRoutQuadLen ();
       l1
-    | Q_bool b ->
-      (* boolean constant *)
+    | TYPE_bool ->
+      (* boolean *)
       ignore (sq_rout_call "writeBoolean" [a]);
       let l1 = !routQuadLen in
       resetRoutQuadLen ();
       l1
-    | Q_real r ->
-      (* REAL constant *)
+    | TYPE_REAL ->
+      (* REAL *)
       ignore (sq_rout_call "writeReal" [a]);
       let l1 = !routQuadLen in
       resetRoutQuadLen ();
       l1
-    | Q_string s ->
-      (* string constant *)
+    | TYPE_array(TYPE_char, _) ->
+      (* string *)
       ignore (sq_rout_call "writeString" [a]);
       let l1 = !routQuadLen in
       resetRoutQuadLen ();
       l1
-    | Q_entry e ->
-      begin
-      let typ = match e.entry_info with
-      | ENTRY_variable inf -> inf.variable_type
-      | ENTRY_parameter inf -> inf.parameter_type
-      | ENTRY_constant inf -> inf.constant_type
-      | _ -> TYPE_none
-      in
-      match typ with
-      | TYPE_int ->
-        (* integer *)
-        ignore (sq_rout_call "writeInteger" [a]);
-        let l1 = !routQuadLen in
-        resetRoutQuadLen ();
-        l1
-      | TYPE_char ->
-        (* character constant *)
-        ignore (sq_rout_call "writeChar" [a]);
-        let l1 = !routQuadLen in
-        resetRoutQuadLen ();
-        l1
-      | TYPE_bool ->
-        (* boolean constant *)
-        ignore (sq_rout_call "writeBoolean" [a]);
-        let l1 = !routQuadLen in
-        resetRoutQuadLen ();
-        l1
-      | TYPE_REAL ->
-        (* REAL constant *)
-        ignore (sq_rout_call "writeReal" [a]);
-        let l1 = !routQuadLen in
-        resetRoutQuadLen ();
-        l1
-      | TYPE_array(TYPE_char, _) ->
-        (* string constant *)
-        ignore (sq_rout_call "writeString" [a]);
-        let l1 = !routQuadLen in
-        resetRoutQuadLen ();
-        l1
-      | _ -> 0
-      end
-    | _ ->
-      0
-  in
-  let gen_sp () =
-    if (w = 1 || w = 3) then
-      begin
-      let space = {
-        e_place = Q_char ' ';
-        e_typ = TYPE_char
-      } in
-      ignore (sq_rout_call "writeChar" [space]);
-      let l1 = !routQuadLen in
-      resetRoutQuadLen ();
-      l1
-      end
-    else
-      0
-  in
-  let rm_last_sp () =
-    if (w = 1 || w = 3) then
-      begin
-      rmLastQuad ();
-      rmLastQuad ();
-      end
-  in
-  let gen_nl () =
-    if (w = 2 || w = 3) then
-      begin
-      let space = {
-        e_place = Q_char '\n';
-        e_typ = TYPE_char
-      } in
-      ignore (sq_rout_call "writeChar" [space]);
-      let l1 = !routQuadLen in
-      resetRoutQuadLen ();
-      l1
-      end
-    else
-      0
-  in
+    | _ -> 0
+    end
+  | _ ->
+    0
+
+let st_write w l =
+(*
+    | "WRITE" -> 0      (* do nothing *)
+    | "WRITESP" -> 1    (* add spaces *)
+    | "WRITELN" -> 2    (* add a new line @ the end *)
+    | "WRITESPLN" -> 3  (* add both spaces and a new line @ the end *)
+*)
+  (* map WRITE params to quads *)
   let rec gen_code = function
   | (a,b,c)::t ->
     let l1 = gen_quads a b c in
-    let l2 = gen_sp () in
-    l1 + l2 + gen_code t
+    let l2 = gen_sp w in
+    l1 + l2 + (gen_code t)
   | [] ->
-    rm_last_sp ();
-    let l1 = gen_nl () in
-    l1
+    let l1 = rm_last_sp w in
+    let l2 = gen_nl w in
+    l2 - l1
   in
-  let count =
-    gen_code l
-    (* List.fold_left (+) 0 (List.map gen_code l) *)
-  in
+  (* count how many quads have been added *)
+  let count = gen_code l in
+  (* return a statement semantic value. no next quads *)
   let ssv = {
     s_next = [];
     s_len = count
