@@ -94,7 +94,7 @@ val rmLastQuad : unit -> unit
 
 val rmQuad : int list ref -> int -> unit
 
-val printIntermediateCode : unit -> unit
+val printIntermediateCode : unit -> string
 
 val backpatch : int list -> quad_op_t -> unit
 

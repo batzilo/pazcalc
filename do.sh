@@ -18,13 +18,14 @@ do
         echo "========================================" 
         echo "Working with file $f"
         echo
-        #cat $f
-        #echo
+        cat $f
+        echo
         ./pazcalc < $f > temp.out
         cat temp.out | grep "<error>"
-        #echo
-        #echo
-        #echo
+        echo
+        echo
+        cat temp.out
+        echo
     fi
 done
 

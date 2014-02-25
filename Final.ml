@@ -5,7 +5,42 @@ open SemQuad
 open Symbol
 open Types
 
-let lib = ref "\n";;
+let reg_lib = "\n\n \
+    extrn __new : proc\n \
+    extrn __dispose : proc\n \
+    extrn _formatInteger : proc\n \
+    extrn _formatReal : proc\n \
+    extrn _parseInteger : proc\n \
+    extrn _parseReal : proc\n \
+    \n \
+    extrn _abs : proc\n \
+    extrn _arctan : proc\n \
+    extrn _cos : proc\n \
+    extrn _exp : proc\n \
+    extrn _fabs : proc\n \
+    extrn _ln : proc\n \
+    extrn _pi : proc\n \
+    extrn _sin : proc\n \
+    extrn _sqrt : proc\n \
+    extrn _tan : proc\n \
+    \n \
+    extrn _writeBoolean : proc\n \
+    extrn _writeChar : proc\n \
+    extrn _writeInteger : proc\n \
+    extrn _writeReal : proc\n \
+    extrn _writeString : proc\n \
+    extrn _readBoolean : proc\n \
+    extrn _readChar : proc\n \
+    extrn _readInteger : proc\n \
+    extrn _readReal : proc\n \
+    extrn _readString : proc\n \
+    \n \
+    extrn _chr : proc\n \
+    extrn _exit : proc\n \
+    extrn _ord : proc\n \
+    extrn _round : proc\n \
+    extrn _trunc : proc\n \
+    ";;
 
 let main = ref "";;
 
@@ -22,7 +57,7 @@ let header () =
     !main
 
 (* end *)
-let footer () = !lib ^ "\nxseg\tends\n\tend\tmain";;
+let footer () = reg_lib ^ "\nxseg\tends\n\tend\tmain";;
 
 
 
@@ -201,11 +236,7 @@ let name e =
         *)
         if inf.function_isLibrary
         then
-            begin
-            !lib <- !lib ^ "extrn _" ^ id_name e.entry_id ^ " : proc\n";
-            inf.function_isLibrary <- false;
             "_" ^ id_name e.entry_id
-            end
         else
             begin
             let lbl = 
@@ -609,7 +640,7 @@ let transform (i,quad) =
     | Q_ret ->
         "\tjmp " ^ !curr ^ "\n"
 
-let generate name icode =
+let generate icode =
     let middle = List.fold_left (^) "" (List.map transform icode) in
     let top = header () in
     let bottom = footer () in

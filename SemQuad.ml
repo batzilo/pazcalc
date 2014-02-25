@@ -195,11 +195,10 @@ let rmQuad lis n =
 (* print every quad in intermediate code quad list *)
 let printIntermediateCode () =
   let pr (n,quad) =
-    printf "%3d: %s\n" n (string_of_quad quad)
+    sprintf "%3d: %s\n" n (string_of_quad quad)
   in
-    printf "Intermediate code:\n";
-    List.iter pr !icode;
-    printf "\n"
+    sprintf "Intermediate code:\n" ^
+    List.fold_left (^) "" (List.map pr !icode)
 
 (* backpatch *)
 let backpatch l nz =

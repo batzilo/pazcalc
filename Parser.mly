@@ -43,7 +43,6 @@ let epilogue () =
   closeScope();
   let code = !icode in
   !icode <- List.rev code;
-  printIntermediateCode ();
   !icode
 
 %}

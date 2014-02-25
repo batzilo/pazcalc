@@ -5,4 +5,4 @@ val footer : unit -> string
 
 val transform : int * SemQuad.quad_t -> string
 
-val generate : string -> (int * SemQuad.quad_t) list -> string
+val generate : (int * SemQuad.quad_t) list -> string
