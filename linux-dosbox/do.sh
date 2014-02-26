@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MYLANG=pazcal
+MYLANG=paz
 MYCOMP=pazcalc
 
 function die () {

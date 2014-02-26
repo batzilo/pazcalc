@@ -1530,6 +1530,7 @@ let gen_quads a b c =
     let typ = match e.entry_info with
     | ENTRY_variable inf -> inf.variable_type
     | ENTRY_parameter inf -> inf.parameter_type
+    | ENTRY_temporary inf -> inf.temporary_type
     | ENTRY_constant inf -> inf.constant_type
     | _ -> TYPE_none
     in
@@ -1569,13 +1570,13 @@ let gen_quads a b c =
   | _ ->
     0
 
-let st_write w l =
 (*
     | "WRITE" -> 0      (* do nothing *)
     | "WRITESP" -> 1    (* add spaces *)
     | "WRITELN" -> 2    (* add a new line @ the end *)
     | "WRITESPLN" -> 3  (* add both spaces and a new line @ the end *)
 *)
+let st_write w l =
   (* map WRITE params to quads *)
   let rec gen_code = function
   | (a,b,c)::t ->

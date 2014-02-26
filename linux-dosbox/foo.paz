@@ -1,0 +1,12 @@
+PROGRAM bar ( ) {
+    if (1 > 0) WRITELN('p');
+    else WRITELN('n');
+    if (-1 < 0) WRITELN('n');
+    else WRITELN('p');
+    int x;
+    x = -1;
+    WRITELN(x);
+    if (x < 0) WRITELN('n');
+    else WRITELN('p');
+    return;
+}

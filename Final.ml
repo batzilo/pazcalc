@@ -44,9 +44,21 @@ let reg_lib = "\n\n \
 
 let main = ref "";;
 
+let mapPredefToLib s =
+    match s with
+    | "putchar" -> "writeChar"
+    | "puts" -> "writeString"
+    | "READ_INT" -> "readInteger"
+    | "READ_BOOL" -> "readBoolean"
+    | "getchar" -> "readCharacter"
+    | "READ_REAL" -> "readReal"
+    | _ -> s
+
 (* beggining *)
 let header () = 
-    sprintf "xseg\tsegment\tpublic 'code'\n\
+    sprintf "\
+    ; x86 assembly - intel syntax\n\
+    xseg\tsegment\tpublic 'code'\n\
     \tassume\tcs:xseg, ds:xseg, ss:xseg\n\
     \torg\t100h\n\
     main\tproc\tnear\n\
@@ -57,7 +69,7 @@ let header () =
     !main
 
 (* end *)
-let footer () = reg_lib ^ "\nxseg\tends\n\tend\tmain";;
+let footer () = reg_lib ^ "\nxseg\tends\n\tend\tmain\n";;
 
 
 
@@ -236,7 +248,8 @@ let name e =
         *)
         if inf.function_isLibrary
         then
-            "_" ^ id_name e.entry_id
+            let name = mapPredefToLib (id_name e.entry_id) in
+            "_" ^ name
         else
             begin
             let lbl = 
@@ -348,31 +361,19 @@ let transform (i,quad) =
             "\tadd ax, dx\n" ^
             store "ax" z
         | "-" ->
-            (*
             begin
-            match x, y, z with
-            | Q_entry x1, Q_entry y1, Q_entry z1 ->
+            match y with
+            | Q_dash ->
+                load "ax" (Q_int 0) ^
+                load "dx" x ^
+                "\tsub ax, dx\n" ^
+                store "ax" z
+            | _ ->
                 load "ax" x ^
                 load "dx" y ^
                 "\tsub ax, dx\n" ^
                 store "ax" z
-            | Q_entry x1, Q_int y1, Q_entry z1 ->
-                load "ax" x ^
-                load "dx" y ^
-                "\tsub ax, dx\n" ^
-                store "ax" z
-            | Q_int x1, Q_entry y1, Q_entry z1 ->
-                load "ax" x ^
-                load "dx" y ^
-                "\tsub ax, dx\n" ^
-                store "ax" z
-            | _ -> "<error>\n"
             end
-            *)
-            load "ax" x ^
-            load "dx" y ^
-            "\tsub ax, dx\n" ^
-            store "ax" z
         | "*" ->
             begin
             match x, y, z with
@@ -526,38 +527,35 @@ let transform (i,quad) =
         in
         begin
         match x, y, z with
-        | Q_entry x1, Q_entry y1, Q_int z1 ->
-            load "ax" x ^
-            load "dx" y ^
-            "\tcmp ax, dx\n" ^
-            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
-        | Q_entry x1, Q_int y1, Q_int z1 ->
-            load "ax" x ^
-            load "dx" y ^
-            "\tcmp ax, dx\n" ^
-            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
-        | Q_deref x1, Q_entry y1, Q_int z1 ->
-            load "ax" (Q_entry x1) ^
-            load "dx" y ^
-            "\t cmp ax, dx\n" ^
-            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
-        | Q_deref x1, Q_int y1, Q_int z1 ->
-            load "ax" x ^
-            load "dx" y ^
-            "\tcmp ax, dx\n" ^
-            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
         | Q_deref x1, Q_deref y1, Q_int z1 ->
             load "ax" x ^
             load "dx" y ^
             "\tcmp ax, dx\n" ^
             "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
-        | _ -> "<error>\n"
+        | Q_deref x1, _, Q_int z1 ->
+            load "ax" (Q_entry x1) ^
+            load "dx" y ^
+            "\t cmp ax, dx\n" ^
+            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
+        | _, Q_deref y1, Q_int z1 ->
+            load "ax" x ^
+            load "dx" (Q_entry y1) ^
+            "\tcmp ax, dx\n" ^
+            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
+        | _, _, Q_int z1 ->
+            load "ax" x ^
+            load "dx" y ^
+            "\tcmp ax, dx\n" ^
+            "\t" ^ instr ^ " @" ^ string_of_int z1 ^ "\n"
+        | _, _, _ ->
+            "<error>\n"
         end
         end
     | Q_ifb (x,z) ->
         begin
         match x, z with
-        | Q_entry x1, Q_int z1 ->
+        | _, Q_int z1 ->
+        (* | Q_entry x1, Q_int z1 -> *)
             load "al" x ^
             "\tor al, al\n" ^
             "\tjnz @" ^ string_of_int z1 ^ "\n"
