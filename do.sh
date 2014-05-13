@@ -20,7 +20,7 @@ do
         echo
         cat $f
         echo
-        ./pazcalc < $f > temp.out
+        ./pazcalc $f > temp.out
         cat temp.out | grep "<error>"
         echo
         echo

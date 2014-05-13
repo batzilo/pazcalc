@@ -1,0 +1,11 @@
+*.cmi
+*.cmo
+*.cmx
+.depend
+*.output
+Lexer.ml
+Parser.ml
+Parser.mli
+pazcalc
+*.asm
+*.imm
