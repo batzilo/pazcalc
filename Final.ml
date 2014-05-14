@@ -519,10 +519,10 @@ let transform (i,quad) =
             match op with
             | "==" -> "je"
             | "!=" -> "jne"
-            | "<" -> "jg"
-            | ">" -> "jl"
-            | "<=" -> "jge"
-            | ">=" -> "jle"
+            | "<" -> "jl"
+            | ">" -> "jg"
+            | "<=" -> "jle"
+            | ">=" -> "jge"
             | _ -> "<error>"
         in
         begin

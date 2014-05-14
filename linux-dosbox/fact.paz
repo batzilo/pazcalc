@@ -5,7 +5,10 @@ FUNC int fact(int x) {
 }
 
 PROGRAM bar ( ) {
-    WRITELN(fact(-42));
-    WRITELN(fact(10));
+    int x;
+    x = fact(-42);
+    WRITELN(x);
+    x = fact(7);
+    WRITELN(x);
     return;
 }
