@@ -4,11 +4,17 @@
 
 if ! test -f pazcalc
 then
+    echo "No pazcalc found, making..."
     make
     make clean
+    echo "Done"
 fi
 
+
+echo "Copying pazcalc to testcases directory"
 cp pazcalc testcases
+
+
 cd testcases
 
 for f in *.paz
@@ -17,14 +23,14 @@ do
     then
         echo "========================================" 
         echo "Working with file $f"
-        echo
-        cat $f
-        echo
+        #echo
+        #cat $f
+        #echo
         ./pazcalc $f > temp.out
         cat temp.out | grep "<error>"
         echo
         echo
-        cat temp.out
+        #cat temp.out
         echo
     fi
 done
