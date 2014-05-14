@@ -35,6 +35,8 @@ do
     fi
 done
 
+rm *.imm
+rm *.asm
 rm temp.out
 rm pazcalc
 cd ..
