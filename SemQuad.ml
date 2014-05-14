@@ -1210,7 +1210,10 @@ let st_cond_of_expr e =
   let l2 = !lvalQuadLen in
   resetLvalQuadLen ();
   (* compute total length *)
-  let len = qs + l1 + l2 in
+  let l3 = !routQuadLen in
+  (* collect quads generated due to routine *)
+  resetRoutQuadLen ();
+  let len = qs + l1 + l2 + l3 in
   if (debug) then printf "conversion of expression to condition is %d quads long\n" len;
   (c,len)
 
@@ -1295,12 +1298,15 @@ let st_if_then cond stmt =
   backpatch c.c_false (Q_int (!quadNext));
   (* FIXME end *)
   (* merge cond.false and stmt.next as if_then.next *)
+  (* FIXME new edit *)
+  (*
   let l1 = c.c_false in
   let l = List.merge compare l1 stmt.s_next in
+  *)
   let len = qs + stmt.s_len in
   if (debug) then printf "if-then is %d quad long\n" len;
   let ssv = {
-    s_next = l;
+    s_next = []; (* FIXME new edit *)
     s_len = len
   } in ssv
 
