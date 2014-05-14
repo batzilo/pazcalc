@@ -7,6 +7,6 @@ Lexer.ml
 Parser.ml
 Parser.mli
 pazcalc
-./linux-dosbox/pazcalc
+linux-dosbox/pazcalc
 *.asm
 *.imm
