@@ -18,7 +18,7 @@ while [ "$1" != "" ]; do
   rm -f *.asm a.*
   cp -f "$f".$MYLANG a.$MYLANG
   ./$MYCOMP a.$MYLANG || die
-  printf "success\n"
+  printf "compilation succeeded\n"
 
   dosbox run.bat -exit >& /dev/null
 
