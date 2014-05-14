@@ -10,3 +10,5 @@ pazcalc
 linux-dosbox/pazcalc
 *.asm
 *.imm
+*.COM
+*.OBJ
