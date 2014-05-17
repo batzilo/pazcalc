@@ -21,6 +21,7 @@ while [ "$1" != "" ]; do
   printf "compilation succeeded\n"
 
   dosbox run.bat -exit >& /dev/null
+  #dosemu -dumb -input ran.bat -exit
 
   shift
 done

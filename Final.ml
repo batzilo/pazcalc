@@ -382,6 +382,11 @@ let transform (i,quad) =
                 load "cx" y ^
                 "\timul cx\n" ^
                 store "ax" z
+            | Q_deref x1, Q_deref y1, Q_entry z1 ->
+                load "ax" x ^
+                load "cx" y ^
+                "\timul cx\n" ^
+                store "ax" z
             | Q_entry x1, Q_int y1, Q_entry z1 ->
                 load "ax" x ^
                 load "cx" y ^
@@ -503,11 +508,18 @@ let transform (i,quad) =
             loadAddr "cx" x ^
             "\tadd ax, cx\n" ^
             store "ax" z
+        | Q_deref x1, Q_entry y1, Q_entry z1 ->
+            load "ax" y ^
+            "\tmov cx, " ^ operand_size x1 ^ "\n" ^
+            "\timul cx\n" ^
+            load "cx" (Q_entry x1) ^
+            "\tadd ax, cx\n" ^
+            store "ax" z
         | Q_deref x1, Q_int y1, Q_entry z1 ->
             load "ax" y ^
             "\tmov cx, " ^ operand_size x1 ^ "\n" ^
             "\timul cx\n" ^
-            loadAddr "cx" (Q_entry x1) ^
+            load "cx" (Q_entry x1) ^
             "\tadd ax, cx\n" ^
             store "ax" z
         | _ ->

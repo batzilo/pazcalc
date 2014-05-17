@@ -1102,7 +1102,7 @@ let sq_for_control i a b c =
   let len0 = !exprQuadLen in
   resetExprQuadLen ();
   if (debug) then printf "\tafter init, quads = %d\n" len0;
-  let cmp = if ( a <= b ) then "<" else ">" in
+  let cmp = if ( a <= b ) then "<=" else ">=" in
   let tr = [!quadNext] in
   let q2 = Q_relop (cmp, ie.e_place, b, Q_backpatch) in
   addNewQuad q2;
@@ -1122,8 +1122,10 @@ let sq_for_control i a b c =
   resetExprQuadLen ();
   let l2 = !lvalQuadLen in
   resetLvalQuadLen ();
-  if (debug) then printf "\tafter check, quads = %d\n" (cqs+l1+l2);
-  let len = len0 + cqs + l1 + l2 in
+  let l3 = !routQuadLen in
+  resetRoutQuadLen ();
+  if (debug) then printf "\tafter check, quads = %d\n" (cqs+l1+l2+l3);
+  let len = len0 + cqs + l1 + l2 + l3 in
   let e = newTemporary TYPE_int in
   let q4 = Q_op ("+", ie.e_place, c, Q_entry e) in
   let q5 = Q_assign (Q_entry e, ie.e_place) in
@@ -1280,7 +1282,7 @@ let st_call () =
   (* collect quads generated due to routine *)
   resetRoutQuadLen ();
   let len = l1 + l2 + l3 in
-  if (debug) then printf "Call is %d long\n" len;
+  if (debug) then printf "Call is %d long\n" len else printf "skata";
   let ssv = {
     s_next = [];
     s_len = len
@@ -1364,6 +1366,7 @@ let st_for control stmt =
   (* handle for loop *)
   (* FIXME what about messing with the iterator? *)
   let (init, c, qs, stepqs) = control in
+  if (debug) then printf "for->stmt is %d quads long\n" stmt.s_len;
   let stmt_start = !quadNext - stmt.s_len in
   (* if condition is true, jump to the statement *)
   backpatch c.c_true (Q_int stmt_start);
@@ -1499,38 +1502,59 @@ let rm_last_sp w =
     0
 
 (* generate quads for calling apropriate printing function *)
-let gen_quads a b c =
+let rec gen_quads a b c =
   match a.e_place with
   | Q_int i ->
     (* integer constant *)
     ignore (sq_rout_call "writeInteger" [a]);
-    let l1 = !routQuadLen in
+    let l1 = !exprQuadLen in
+    resetExprQuadLen ();
+    let l2 = !lvalQuadLen in
+    resetLvalQuadLen ();
+    let l3 = !routQuadLen in
     resetRoutQuadLen ();
-    l1
+    l1+l2+l3
   | Q_char c ->
     (* character constant *)
     ignore (sq_rout_call "writeChar" [a]);
-    let l1 = !routQuadLen in
+    let l1 = !exprQuadLen in
+    resetExprQuadLen ();
+    let l2 = !lvalQuadLen in
+    resetLvalQuadLen ();
+    let l3 = !routQuadLen in
     resetRoutQuadLen ();
-    l1
+    l1+l2+l3
   | Q_bool b ->
     (* boolean constant *)
     ignore (sq_rout_call "writeBoolean" [a]);
-    let l1 = !routQuadLen in
+    let l1 = !exprQuadLen in
+    resetExprQuadLen ();
+    let l2 = !lvalQuadLen in
+    resetLvalQuadLen ();
+    let l3 = !routQuadLen in
     resetRoutQuadLen ();
-    l1
+    l1+l2+l3
   | Q_real r ->
     (* REAL constant *)
     ignore (sq_rout_call "writeReal" [a]);
-    let l1 = !routQuadLen in
+    let l1 = !exprQuadLen in
+    resetExprQuadLen ();
+    let l2 = !lvalQuadLen in
+    resetLvalQuadLen ();
+    let l3 = !routQuadLen in
     resetRoutQuadLen ();
-    l1
+    l1+l2+l3
   | Q_string s ->
     (* string constant *)
     ignore (sq_rout_call "writeString" [a]);
-    let l1 = !routQuadLen in
+    let l1 = !exprQuadLen in
+    resetExprQuadLen ();
+    let l2 = !lvalQuadLen in
+    resetLvalQuadLen ();
+    let l3 = !routQuadLen in
     resetRoutQuadLen ();
-    l1
+    l1+l2+l3
+  | Q_deref e 
   | Q_entry e ->
     begin
     let typ = match e.entry_info with
@@ -1544,36 +1568,60 @@ let gen_quads a b c =
     | TYPE_int ->
       (* integer *)
       ignore (sq_rout_call "writeInteger" [a]);
-      let l1 = !routQuadLen in
+      let l1 = !exprQuadLen in
+      resetExprQuadLen ();
+      let l2 = !lvalQuadLen in
+      resetLvalQuadLen ();
+      let l3 = !routQuadLen in
       resetRoutQuadLen ();
-      l1
+      l1+l2+l3
     | TYPE_char ->
       (* character *)
       ignore (sq_rout_call "writeChar" [a]);
-      let l1 = !routQuadLen in
+      let l1 = !exprQuadLen in
+      resetExprQuadLen ();
+      let l2 = !lvalQuadLen in
+      resetLvalQuadLen ();
+      let l3 = !routQuadLen in
       resetRoutQuadLen ();
-      l1
+      l1+l2+l3
     | TYPE_bool ->
       (* boolean *)
       ignore (sq_rout_call "writeBoolean" [a]);
-      let l1 = !routQuadLen in
+      let l1 = !exprQuadLen in
+      resetExprQuadLen ();
+      let l2 = !lvalQuadLen in
+      resetLvalQuadLen ();
+      let l3 = !routQuadLen in
       resetRoutQuadLen ();
-      l1
+      l1+l2+l3
     | TYPE_REAL ->
       (* REAL *)
       ignore (sq_rout_call "writeReal" [a]);
-      let l1 = !routQuadLen in
+      let l1 = !exprQuadLen in
+      resetExprQuadLen ();
+      let l2 = !lvalQuadLen in
+      resetLvalQuadLen ();
+      let l3 = !routQuadLen in
       resetRoutQuadLen ();
-      l1
+      l1+l2+l3
     | TYPE_array(TYPE_char, _) ->
       (* string *)
+      if (debug) then printf "WRITE, TYPE_array, STRING\n";
       ignore (sq_rout_call "writeString" [a]);
-      let l1 = !routQuadLen in
+      let l1 = !exprQuadLen in
+      resetExprQuadLen ();
+      let l2 = !lvalQuadLen in
+      resetLvalQuadLen ();
+      let l3 = !routQuadLen in
       resetRoutQuadLen ();
-      l1
-    | _ -> 0
+      l1+l2+l3
+    | _ ->
+      if (debug) then printf "oupsi!\n";
+      0
     end
   | _ ->
+    if (debug) then printf "Hell no!\n\n";
     0
 
 (*
@@ -1590,13 +1638,18 @@ let st_write w l =
     let l2 = gen_sp w in
     l1 + l2 + (gen_code t)
   | [] ->
+    (* FIXME
     let l1 = rm_last_sp w in
     let l2 = gen_nl w in
     l2 - l1
+    *)
+    let l1 = gen_nl w in
+    l1
   in
   (* count how many quads have been added *)
   let count = gen_code l in
   (* return a statement semantic value. no next quads *)
+  if (debug) then printf "Write call is %d quad len\n" count;
   let ssv = {
     s_next = [];
     s_len = count

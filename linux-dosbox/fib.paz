@@ -1,0 +1,17 @@
+FUNC int fib(int x) {
+    WRITELN(x);
+    if ( x == 1 ) {
+        return 1;
+    }
+    if ( x == 2 ) {
+        return 1;
+    }
+    int y = fib(x-1) + fib(x-2);
+    return y;
+}
+
+PROGRAM bar() {
+    int x = fib(3);
+    WRITELN(x);
+    return;
+}
