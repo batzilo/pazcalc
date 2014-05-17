@@ -1,0 +1,15 @@
+PROC hanoi (char source, char target, char auxiliary, int rings)
+{
+  if (rings > 0) {
+    hanoi(source, auxiliary, target, rings-1);
+    WRITESPLN('f', source, 't', target);
+    hanoi(auxiliary, target, source, rings-1);
+  }
+}
+
+PROGRAM solve ()
+{
+  int numberOfRings = 3;
+  WRITELN();
+  hanoi('l', 'r', 'm', numberOfRings);
+}

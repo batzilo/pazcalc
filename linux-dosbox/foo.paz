@@ -1,0 +1,12 @@
+FUNC int rec( int n ) {
+    WRITELN(n);
+    if (n == 1) return 1;
+    return rec(n/2);
+}
+
+PROGRAM bar() {
+    int x;
+    x = 255;
+    rec(x);
+    return;
+}

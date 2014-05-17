@@ -90,7 +90,8 @@ let curr = ref "";;
 let getAR () = "\tmov si, word ptr [bp + 4]\n"
 
 (* update Access Links *)
-let updateAL () = "\tmov si, word ptr [bp + 4]\n\tpush word ptr [si + 4]\n"
+(* let updateAL () = "\tmov si, word ptr [bp + 4]\n\tpush word ptr [si + 4]\n" *)
+let updateAL () = "\tpush word ptr [bp + 4]\n"
 
 let operand_size e =
     match e.entry_info with
@@ -329,7 +330,7 @@ let transform (i,quad) =
         begin
         match u with
         | Q_entry e ->
-            endof e ^ ":\
+            endof e ^ ":\n\
             \tmov sp, bp\n\
             \tpop bp\n\
             \tret\n" ^

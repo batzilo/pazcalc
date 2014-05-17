@@ -1,0 +1,17 @@
+FUNC int rec(int n) {
+    int res;
+    WRITELN(n);
+    if ( n == 0 ) {
+        res = 1;
+    }
+    else {
+        res = rec(n-1);
+    }
+    return res;
+}
+
+PROGRAM bar() {
+    WRITELN(rec(10));
+    return;
+}
+

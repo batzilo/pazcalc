@@ -1341,7 +1341,7 @@ let st_if_then_else cond stmt1 fly stmt2 =
   (* merge stmt1.next, fly and stmt2.next as if_then_else.next *)
   let l2 = List.merge compare fly_back stmt1.s_next in
   let l = List.merge compare l2 stmt2.s_next in
-  let len = qs + stmt2.s_len + fly_q + stmt2.s_len in
+  let len = qs + stmt1.s_len + fly_q + stmt2.s_len in
   if (debug) then printf "if-then-else is %d quad long\n" len;
   let ssv = {
     s_next = l;

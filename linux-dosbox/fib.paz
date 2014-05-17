@@ -1,13 +1,17 @@
-FUNC int fib(int x) {
-    WRITELN(x);
-    if ( x == 1 ) {
-        return 1;
-    }
-    if ( x == 2 ) {
-        return 1;
-    }
-    int y = fib(x-1) + fib(x-2);
-    return y;
+FUNC int fib(int n) {
+    WRITELN(n);
+    if ( n == 1 ) return 1;
+    if ( n == 2 ) return 1;
+    /*
+    int y;
+    y = fib(x-1);
+    WRITELN(y);
+    int z;
+    z = fib(x-2);
+    WRITELN(z);
+    return y+z;
+    */
+    return fib(n-1) + fib(n-2);
 }
 
 PROGRAM bar() {
