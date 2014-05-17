@@ -1,23 +1,21 @@
-const int N = 3;
+const int N = 5;
 
 PROGRAM bar() {
     int i,j;
     int a[N][N];
     FOR (i, 0 TO N-1) {
-        FOR(j, 0 TO N-1) {
+        FOR (j, 0 TO N-1) {
             a[i][j] = i*N+j;
             WRITESP(a[i][j]);
         }
         WRITELN();
     }
     WRITELN();
-    int k = N*N-1;
-    FOR (i, 0 TO k) {
-        WRITESP(i);
-        WRITESP(':');
-        WRITESP(a[0][i]);
+    FOR (i, 0 TO N-1) {
+        FOR (j, 0 TO N-1) {
+            WRITESP(a[i][j]);
+        }
         WRITELN();
-        //if ( i % N == 0 ) WRITELN();
     }
     return;
 }

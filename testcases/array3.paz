@@ -4,15 +4,17 @@ PROGRAM bar() {
     int i,j;
     int a[N][N];
     FOR(i, 0 TO N*N-1) {
-        a[i][0] = i;
+        a[0][i] = i;
+        WRITESP(a[0][i]);
     }
+    WRITELN();
     FOR(i, 0 TO N*N-1) {
-        WRITESP(a[i][0]);
+        WRITESP(a[0][i]);
     }
     WRITELN();
     FOR(i, 0 TO N-1) {
         FOR(j, 0 TO N-1) {
-            WRITESP(a[i*N][j]);
+            WRITESP(a[i][j]);
         }
     }
     WRITELN();

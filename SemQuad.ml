@@ -747,7 +747,18 @@ let sq_lvalue name idxs =
        begin
        (* FIXME is temporary type TYPE_array OK ? *)
        let newt = newTemporary et in
-       let q = Q_array (id, h.e_place, Q_entry newt) in
+       let foo = 
+           match h.e_place with
+           | Q_int i -> Q_int (i * Types.sizeOfType et)
+           | Q_entry e ->
+                   let ne = newTemporary TYPE_int in
+                   let q = Q_op ("*", h.e_place, Q_int (Types.sizeOfType et), Q_entry ne) in
+                   addNewQuad q;
+                   incLvalQuadLen();
+                   Q_entry ne
+           | _ -> Q_none
+       in
+       let q = Q_array (id, foo, Q_entry newt) in
        addNewQuad q;
        (* a quad has been added to icode, due to lvalue *)
        incLvalQuadLen ();
