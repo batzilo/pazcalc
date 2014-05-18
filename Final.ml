@@ -82,6 +82,24 @@ let incnat () =
 (* current unit label *)
 let curr = ref "";;
 
+let strings_cnt = ref 0;;
+let strings_list = ref [];;
+let incStrCnt () =
+    !strings_cnt <- !strings_cnt + 1
+
+let dbify s =
+    (* FIXME should escape some shit *)
+    "db " ^ s ^ "\n\tdb 0\n"
+
+let string_label s =
+    incStrCnt ();
+    let lbl = "@str" ^ string_of_int !strings_cnt in
+    let dbs = lbl ^ " " ^ (dbify s) in
+    !strings_list <- !strings_list @ [dbs];
+    lbl
+
+let strings () =
+    List.fold_left (^) "" !strings_list
 
 
 (* helper functions *)
@@ -152,7 +170,9 @@ let rec load r a =
 
 let loadAddr r a =
     match a with
-    | Q_string s -> "\tlea " ^ r ^ " byte ptr " ^ s ^ "\n"
+    | Q_string s ->
+        let s_label = string_label s in
+        "\tlea " ^ r ^ ", byte ptr " ^ s_label ^ "\n"
     | Q_deref x -> load r (Q_entry x)
     | Q_entry e ->
         begin
@@ -615,6 +635,11 @@ let transform (i,quad) =
             "\tmov si, sp\n" ^
             "\tmov byte ptr [si], al\n"
         | Q_string s, Q_pass_mode mode ->
+            (*
+            let str_lbl = string_literal x in
+                loadAddr "si" str_lbl ^
+                "\tpush si\n"
+            *)
             loadAddr "si" x ^
             "\tpush si\n"
         | Q_deref x1, Q_pass_mode mode
@@ -654,5 +679,6 @@ let transform (i,quad) =
 let generate icode =
     let middle = List.fold_left (^) "" (List.map transform icode) in
     let top = header () in
+    let str_defs = strings () in
     let bottom = footer () in
-    top ^ middle ^ bottom
+    top ^ str_defs ^ middle ^ bottom
