@@ -1,0 +1,33 @@
+/*
+FUNC int collatz(int n) {
+    int f[10];
+    WRITELN(n);
+    if ( n == 1 ) return 1;
+    if ( n % 2 == 0 ) return collatz(n/2);
+    else return collatz(3*n+1);
+}
+
+PROGRAM bar() {
+    int a = 5;
+    int b = collatz(a);
+    WRITELN(b);
+    return;
+}
+*/
+
+PROC collatz(int n) {
+    WRITELN(n);
+    if ( n == 1 ) return;
+    if ( n % 2 == 0 ) {
+        collatz(n/2);
+    }
+    else {
+        collatz(3*n+1);
+    }
+    return;
+}
+
+PROGRAM bar() {
+    collatz(5);
+    return;
+}

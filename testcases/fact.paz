@@ -10,6 +10,6 @@ PROGRAM bar ( ) {
     WRITELN(x);
     x = fact(7);
     WRITELN(x);
-    WRITELN( x - fact(7));
+    WRITELN(x-fact(7));
     return;
 }

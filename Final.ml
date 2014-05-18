@@ -291,9 +291,9 @@ let size x =
         | Some sco ->
             let sz = sco.sco_negofs in
             string_of_int (-sz)
-        | _ -> "-1"
+        | _ -> "-4"
         end
-    | _ -> "-1"
+    | _ -> "-4"
 
 (* increase stack pointer by two if callee is a procedure *)
 let sub_if_proc e =
