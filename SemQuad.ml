@@ -1393,8 +1393,11 @@ let st_for control stmt =
   collectMyBreaks (stmt_start - qs) (!quadNext);
   (* find and fix any continues associated with this for loop *)
   collectMyConts (stmt_start - qs + init) (!quadNext);
+  (* FIXME added for stars.paz *)
+  backpatch c.c_false (Q_int !quadNext);
   let ssv = {
-    s_next = c.c_false;
+    s_next = []; (* FIXME added for stars.paz *)
+    (* s_next = c.c_false; *)
     s_len = qs + stmt.s_len + steplen + 1
   } in ssv
 
