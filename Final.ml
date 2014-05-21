@@ -303,15 +303,25 @@ let endof e =
     | _ -> "entry info not a function!"
 
 (* size of local and temporary variables of unit x *)
+(* FIXME size of parameters only *)
 let size x =
     match x.entry_info with
     | ENTRY_function inf ->
         begin
+        let ret_size = Types.sizeOfType inf.function_result in
+        let getType e =
+            match e.entry_info with
+            | ENTRY_parameter inf -> Types.sizeOfType inf.parameter_type
+            | _ -> 0
+        in
+        string_of_int (List.fold_left (+) 0 (List.map getType inf.function_paramlist) + ret_size)
+        (*
         match inf.function_scope with
         | Some sco ->
             let sz = sco.sco_negofs in
             string_of_int (-sz)
         | _ -> "-4"
+        *)
         end
     | _ -> "-4"
 
