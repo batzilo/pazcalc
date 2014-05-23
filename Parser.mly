@@ -227,15 +227,15 @@ routine : routine_header T_sem_col {
                * so set function to be forwarded *)
               forwardFunction $1;
               if (debug) then printf "This is a forwarded function\n\n";
-              closeScope ();
-              rmLastQuad ()
+              closeScope (); (* opened by routine_header *)
+              rmLastQuad () (* remove 'unit' quad *)
             }
         | routine_header block {
               (* we've seen the header and the block *)
               begin
               match $1.entry_info with
-              | ENTRY_function inf -> inf.function_scope <- Some !currentScope
-              | _ -> internal "kiss my ass"
+              | ENTRY_function inf -> inf.function_scope <- Some !currentScope (* FIXME why? *)
+              | _ -> internal "kiss my ass" (* should never reach *)
               end;
               if (debug) then printSymbolTable ();
               closeScope ();
@@ -244,18 +244,23 @@ routine : routine_header T_sem_col {
             }
         ;
 
-program_header : T_PROGRAM T_id T_lparen T_rparen   { let e = sq_rout_head $2 TYPE_proc [] false in set_main e }
-               /*
-               | T_PROGRAM error { fatal "main program header is invalid"; sq_rout_head "" TYPE_none [] false }
-               */
+program_header : T_PROGRAM T_id T_lparen T_rparen {
+                    let e = sq_rout_head $2 TYPE_proc [] false in
+                    set_main e
+                  }
+               | T_PROGRAM error {
+                    fatal "main program header is invalid";
+                    (* parsing should fail *)
+                    sq_rout_head "" TYPE_none [] false
+                  }
                ;
 
 program : program_header block {
               (* we've seen the header and the block *)
-              backpatch $2.s_next (Q_int !quadNext);
+              backpatch $2.s_next (Q_int !quadNext); (* FIXME why? *)
               begin
               match $1.entry_info with
-              | ENTRY_function inf -> inf.function_scope <- Some !currentScope
+              | ENTRY_function inf -> inf.function_scope <- Some !currentScope (* FIXME why ? *)
               | _ -> internal "kiss my ass"
               end;
               if (debug) then printSymbolTable ();
@@ -265,7 +270,7 @@ program : program_header block {
             }
         ;
 
-paztype : T_int     { TYPE_int }
+paztype : T_int     { TYPE_int  }
         | T_bool    { TYPE_bool }
         | T_char    { TYPE_char }
         | T_REAL    { TYPE_REAL }
@@ -279,6 +284,7 @@ const_expr : expr {
                     error "This constant expression isn't really a constant!";
                     esv_err
                 | _ ->
+                    (* ok *)
                     $1
               }
            ;
