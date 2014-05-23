@@ -7,20 +7,20 @@
 
 (* header section *)
 {
-  open Printf
+
   open Lexing
-  (* open Parser for tokens type *)
-  open Parser
+  open Parser (* open Parser for tokens type *)
+  open Printf
 
   (* Lexer debugging *)
   let debug = false;;
 
   let create_hashtable size init =
     let tbl = Hashtbl.create size in
-      List.iter (fun (key, data) -> Hashtbl.add tbl key data) init;
-      tbl
+    List.iter (fun (key, data) -> Hashtbl.add tbl key data) init;
+    tbl
 
-(* 
+(* DEPRECATED!
   type token =
     | T_and | T_bool | T_break | T_case | T_char | T_const
     | T_continue | T_default | T_do | T_DOWNTO | T_else | T_false
@@ -92,13 +92,13 @@
 
   (* common characters are every printable character except for single and double quotes and backslash *)
   (* FIXME should I add '\n' since negated sets will match even a new line? *)
-  let common = [^ ''' '"' '\\' (* '\n' *) ]
+  let common = [^ ''' '"' '\\' '\n' ]
 
   (* escape sequences are made of a backslash '\' and one character from 'n', 't', 'r', '0', '\', ''', '"' *)
   let escape = '\\'['n' 't' 'r' '0' '\\' ''' '"']
 
   (* whitespaces *)
-  let white = [' ' '\t' '\r' '\n']
+  let white = [' ' '\t' '\r']
 
 
 (* rules section *)
@@ -107,76 +107,75 @@
 
     (* identifiers / keywords *)
     | id as word {
-      try
-        (* check if it's a keyword *)
-        let token = Hashtbl.find keyword_table word in
-          (* if yes, print it and return it as token *)
-          if (debug) then printf "[Lexer.ml]keyword: %s\n" word;
-          token
-      with Not_found ->
-        (* if not, it's an identifier *)
-        if (debug) then printf "[Lexer.ml]identifier: %s\n" word;
-        T_id word
-      }
+        try
+            (* check if it's a keyword *)
+            let token = Hashtbl.find keyword_table word in
+            (* if yes, return it as token *)
+            if (debug) then printf "[Lexer.ml]keyword: %s\n" word;
+            token
+        with Not_found ->
+            (* if not, it's an identifier *)
+            if (debug) then printf "[Lexer.ml]identifier: %s\n" word;
+            T_id word
+    }
 
     (* non-zero integer constants can not begin with '0' *)
-    | '0'digit+ {
-      if (debug) then printf "[Lexer.ml]Lexical error in line %d: Non-zero integer constants cannot begin with a '0'\n" lexbuf.lex_curr_p.pos_lnum;
-      pazcal lexbuf
-      } 
+    | '0' digit+ {
+        if (debug) then printf "[Lexer.ml]Lexical error in line %d: Non-zero integer constants cannot begin with a '0'\n" lexbuf.lex_curr_p.pos_lnum;
+        pazcal lexbuf
+    } 
 
     (* integer constants - one or more decimal digits *)
     | digit+ as inum {
-      let num = int_of_string inum in
-        if (debug) then printf "[Lexer.ml]integer constant: %d\n" num;
+        let num = int_of_string inum in
+        if (debug) then printf "[Lexer.ml]int constant: %d\n" num;
         T_int_const num
-     }
+    }
 
     (* float constants - one or more digits in integer part, a dot, 
        one or more decimal digit in fractional part, and an optional exponential 
        part with an 'e' or 'E', an optional sign and one or more decimal digits *)
     | (digit+)'.'(digit+)(['E''e']['+''-']? digit+)? as fnum {
-      let num = float_of_string fnum in
-        if (debug) then printf "[Lexer.ml]float constant: %f\n" num;
+        let num = float_of_string fnum in
+        if (debug) then printf "[Lexer.ml]real constant: %f\n" num;
         T_float_const num
-      }
+    }
 
     (* new line *)
     | '\n' {
-      new_line lexbuf;
-      pazcal lexbuf
-      }
+        Lexing.new_line lexbuf;
+        pazcal lexbuf
+    }
 
     (* char constants except for '\n' *)
-    (* TODO: why not common # '\n' ? *)
     | '''(common|escape)''' as cc {
-      if (debug) then printf "[Lexer.ml]char constant: %s\n" cc;
-      match String.length cc with
-      | 3 ->
-        (* a simple character, return it *)
-        T_char_const (lexeme_char lexbuf 1)
-      | 4 ->
-        begin
-        (* an escaped character, "find" which is and return it *)
-        let c = cc.[2] in
-        match c with
-        | 'n' -> T_char_const '\n'
-        | 't' -> T_char_const '\t'
-        | 'r' -> T_char_const '\r'
-        | '0' -> T_char_const '\000'
-        | '\\' -> T_char_const '\\'
-        | '\'' -> T_char_const '\''
-        | '"' -> T_char_const '"'
-        | _ -> T_char_const (lexeme_char lexbuf 1)
-        end
-      | _ -> T_EOF (* shouldn't ever reach *)
-      }
+        if (debug) then printf "[Lexer.ml]char constant: %s\n" cc;
+        match String.length cc with
+        | 3 ->
+            (* a simple character, return it *)
+            T_char_const (lexeme_char lexbuf 1)
+        | 4 ->
+            begin
+            (* an escaped character, "find" which is and return it *)
+            let c = cc.[2] in
+            match c with
+            | 'n' -> T_char_const '\n'
+            | 't' -> T_char_const '\t'
+            | 'r' -> T_char_const '\r'
+            | '0' -> T_char_const '\000'
+            | '\\' -> T_char_const '\\'
+            | '\'' -> T_char_const '\''
+            | '"' -> T_char_const '"'
+            | _ -> T_char_const (lexeme_char lexbuf 1)
+            end
+        | _ -> T_EOF (* shouldn't ever reach *)
+    }
 
     (* string constants - can't exceed one line of code *)
-    | '"'((common # '\n') | escape)*'"' as sc {
-      if (debug) then printf "[Lexer.ml]string literal: %s\n" sc;
-      T_string_literal sc
-      }
+    | '"'(common|escape)*'"' as sc {
+        if (debug) then printf "[Lexer.ml]string literal: %s\n" sc;
+        T_string_literal sc
+    }
 
     (* operators  *)
     | "==" as op { if (debug) then printf "[Lexer.ml]operator: %s\n" op; T_eq }
@@ -215,56 +214,56 @@
     | '{' as sep { if (debug) then printf "[Lexer.ml]separator: %c\n" sep; T_lbrace }
     | '}' as sep { if (debug) then printf "[Lexer.ml]separator: %c\n" sep; T_rbrace }
 
-    (* eat up white space characters *)
+    (* eat up whitespaces *)
     | white+ {
-      pazcal lexbuf
-      }
+        pazcal lexbuf
+    }
 
-    (* eat up one-line comments except for trailing '\n' *)
+    (* eat up one-line comments, which is anything up to trailing '\n' *)
     | "//"[^'\n']* {
-      pazcal lexbuf
-      }
-
-    (* activate "comment" rule *)
-    | "/*" {
-      comment lexbuf
-      }
+        pazcal lexbuf
+    }
 
     (* eof *)
     | eof {
-      (* raise End_of_file; *)
-      T_EOF
-      }
+        (* raise End_of_file; *)
+        T_EOF
+    }
+
+    (* activate "comment" rule *)
+    | "/*" {
+        comment lexbuf
+    }
 
     (* dangling comment ending *)
     | "*/" {
-      if (debug) then printf "[Lexer.ml]Lexical error in line %d: Shouldn't have reached here. Check 'comment' entrypoint.\n" lexbuf.lex_curr_p.pos_lnum;
-      pazcal lexbuf
-      }
+        if (debug) then printf "[Lexer.ml]Lexical error in line %d: Unmatched comment ending\n" lexbuf.lex_curr_p.pos_lnum;
+        pazcal lexbuf
+    }
 
     (* anything else *)
     | _ as chr {
-      if (debug) then printf "[Lexer.ml]Lexical error in line %d: Unrecognized character: %c \n" lexbuf.lex_curr_p.pos_lnum chr;
-      pazcal lexbuf
-      }
+        if (debug) then printf "[Lexer.ml]Lexical error in line %d: Unrecognized character: %c \n" lexbuf.lex_curr_p.pos_lnum chr;
+        pazcal lexbuf
+    }
 
   and comment = parse
 
-    (* go back to "pazcal" rule *)
+    (* comment end. go back to "pazcal" rule *)
     | "*/" {
-      pazcal lexbuf
-      }
+        pazcal lexbuf
+    }
 
-    (* or keep on parsing comments *)
+    (* keep on parsing comments *)
     | '\n' {
-      new_line lexbuf; 
-      comment lexbuf
-      }
+        Lexing.new_line lexbuf; 
+        comment lexbuf
+    }
 
-    (* keep parsing *)
+    (* nothing important, keep parsing *)
     | _ {
-      comment lexbuf
-      }
+        comment lexbuf
+    }
 
 
 (* trailer section *)
