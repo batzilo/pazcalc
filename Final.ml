@@ -490,6 +490,12 @@ let transform (i,quad) =
                 "\tor al, dl\n" ^
                 store "al" z
             end
+        | "!" ->
+            begin
+                load "al" x ^
+                "\tnot al\n" ^
+                store "al" z
+            end
         | _ -> "<error>\n"
         end
     | Q_assign (x,z) ->
