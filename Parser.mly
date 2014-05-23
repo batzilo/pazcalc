@@ -196,6 +196,7 @@ routine_header2 : paztype formal                            { [ ($1, $2) ] }
 
 /*(* return a triplet (name, pass_mode, dims list) *)*/
 /*(* FIXME when parameter is array, it's always passed by reference, right ? *)*/
+/*(* FIXME what about that shity Q_int 0 over there? *)*/
 formal : T_id                                       { ($1, PASS_BY_VALUE, []) }
        | T_amp T_id                                 { ($2, PASS_BY_REFERENCE, []) }
        | T_id T_lbrack T_rbrack                     { ($1, PASS_BY_REFERENCE, [Q_int 0]) } 
