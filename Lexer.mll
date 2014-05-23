@@ -20,7 +20,7 @@
     List.iter (fun (key, data) -> Hashtbl.add tbl key data) init;
     tbl
 
-(* DEPRECATED!
+(*
   type token =
     | T_and | T_bool | T_break | T_case | T_char | T_const
     | T_continue | T_default | T_do | T_DOWNTO | T_else | T_false
@@ -30,7 +30,7 @@
     | T_WRITE | T_WRITELN | T_WRITESP | T_WRITESPLN
    
     | T_id of string | T_int_const of int | T_float_const of float
-    | T_char_const of char | T_string_const of string
+    | T_char_const of char | T_string_literal of string
    
     | T_eq | T_gr | T_ls | T_neq | T_greq | T_lseq | T_plus | T_minus 
     | T_mul | T_div | T_mod | T_lg_not | T_lg_and | T_lg_or | T_plus_plus 
@@ -39,6 +39,8 @@
 
     | T_amp | T_sem_col | T_dot | T_lparen | T_rparen | T_col
     | T_comma | T_lbrack | T_rbrack | T_lbrace | T_rbrace
+
+    | T_EOF
 *)
 
   let keyword_table =
@@ -91,7 +93,6 @@
   let digit = ['0'-'9']
 
   (* common characters are every printable character except for single and double quotes and backslash *)
-  (* FIXME should I add '\n' since negated sets will match even a new line? *)
   let common = [^ ''' '"' '\\' '\n' ]
 
   (* escape sequences are made of a backslash '\' and one character from 'n', 't', 'r', '0', '\', ''', '"' *)
@@ -168,7 +169,7 @@
             | '"' -> T_char_const '"'
             | _ -> T_char_const (lexeme_char lexbuf 1)
             end
-        | _ -> T_EOF (* shouldn't ever reach *)
+        | _ -> T_EOF (* should never reach *)
     }
 
     (* string constants - can't exceed one line of code *)
@@ -226,7 +227,7 @@
 
     (* eof *)
     | eof {
-        (* raise End_of_file; *)
+        if (debug) then printf "[Lexer.ml]End-Of-File!\n";
         T_EOF
     }
 
@@ -266,9 +267,7 @@
     }
 
 
-(* trailer section *)
-(* SHOULD BE COMMENTED OUT if parser exists *)
-(*
+(* trailer section - no need for it if parser exists
 {
   let rec parse lexbuf = 
     let token = pazcal lexbuf in
