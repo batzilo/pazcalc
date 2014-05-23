@@ -485,6 +485,7 @@ let sq_cdef name typ value =
       ignore(e)
   with Not_found ->
     (* if not found, check types *)
+    (* FIXME what about type compatibility ? *)
     if equalType typ value.e_typ then
       (* if match, find the constant value which must be known at compile-time *)
       match const_of_quad value.e_place with
@@ -796,10 +797,12 @@ let sq_lvalue name idxs =
         error "lvalue '%s' is not a variable or a parameter or a constant in the current scope!" name;
         esv_err
   with Not_found ->
-    (* if not found in current scope, check if it's a constant in the global scope *)
+    (* if not found in current scope, check if it's in the global scope *)
     (* Lookup the Symbol Table, and handle the not_found case *)
     let e = lookupEntry (id_make name) LOOKUP_ALL_SCOPES true in
     match e.entry_info with
+    | ENTRY_variable inf ->
+        mkArrTemp (Q_entry e) inf.variable_type idxs
     | ENTRY_constant inf -> 
         begin
         let qv = quad_of_const inf.constant_value in
@@ -811,12 +814,12 @@ let sq_lvalue name idxs =
            mkArrTemp qv inf.constant_type idxs
         end
     | _ ->
-        error "lvalue '%s' isn't a constant!" name;
+        error "lvalue '%s' not found in the current scope nor in the global scope" name;
         esv_err
 
 let sq_assign a op b =
-  (* FIXME check for type compatibility instead of type equality ? *)
-  if a.e_typ = b.e_typ then
+  (* FIXME should check for type compatibility instead of type equality *)
+  if equalType a.e_typ b.e_typ then
     match op with
     | "=" ->
       let q = Q_assign (b.e_place, a.e_place) in
@@ -830,8 +833,7 @@ let sq_assign a op b =
       (* a quad has been added to icode, due to expression *)
       incExprQuadLen ()
   else
-    error "type mismatch when assigning a value to '%s'" (string_of_quad_op a.e_place);
-    ()
+    error "type mismatch when assigning a value to '%s'" (string_of_quad_op a.e_place)
 
 let set_main e =
     match e.entry_info with
@@ -957,7 +959,7 @@ let sq_vardef typ (name, dims, init) =
     (* Lookup the Symbol Table, do not handle the not_found case *)
     let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
       (* if found in Current Scope, name is already taken *)
-      error "Var name '%s' is already taken" name;
+      error "Variable name '%s' is already taken" name;
       ignore e
   with Not_found ->
     (* if not found, name is available *)
@@ -970,18 +972,18 @@ let sq_vardef typ (name, dims, init) =
         ignore ( newVariable (id_make name) typ false )
       | _ ->
         begin
-        (* FIXME temporary disabled call to "new" *)
+        (* FIXME should arrays live in heap or stack ? *)
 
-        (* AFTER *)
+        (* stack *)
         (* ft is a function that produces the full type of an array *)
         let rec ft = function
-        | (Q_int h)::t -> TYPE_array ( (ft t), h )
-        | [] -> typ
-        | _ -> error "Array dimension isn't int const"; TYPE_none
+          | (Q_int h)::t -> TYPE_array ( (ft t), h )
+          | [] -> typ
+          | _ -> error "Array dimension isn't int const"; TYPE_none
         in
         ignore ( newVariable (id_make name) (ft dims) false )
 
-        (* BEFORE *)
+        (* heap *)
         (*
         (* matrix var def *)
         let n = newVariable (id_make name) TYPE_int false in
@@ -1016,6 +1018,7 @@ let sq_vardef typ (name, dims, init) =
         e_place = Q_entry n;
         e_typ = typ
       } in
+      (* produce assigning quads *)
       sq_assign var "=" init
 
 let sq_plus_plus id =

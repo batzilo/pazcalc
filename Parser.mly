@@ -104,24 +104,22 @@ let epilogue () =
 
 %%
 
-pazprog : /*(* empty *)*/                           { [] }
-        | dummy_non_terminal declaration_list T_EOF { epilogue ()  }
+pazprog : /*(* empty *)*/               { [] }
+        | dummy1 declaration_list T_EOF { epilogue ()  }
         ;
 
-dummy_non_terminal : /*(* empty, used only for semantic actions *)*/ { prologue () }
-                   ;
+dummy1 : /*(* empty, used only for semantic actions *)*/ { prologue () }
+       ;
 
 declaration_list : declaration                  { }
                  | declaration_list declaration { }
-                 /*
-                 | error                        { fatal "Global scope declaration error" }
-                 */
                  ;
 
 declaration : const_def { }
             | var_def   { }
             | routine   { }
             | program   { }
+            | error     { error "A declaration error occured" }
             ;
 
 const_def : T_const paztype T_id T_assign const_expr T_sem_col {
@@ -130,15 +128,11 @@ const_def : T_const paztype T_id T_assign const_expr T_sem_col {
                 }
           | T_const paztype T_id T_assign const_expr const_def2 T_sem_col {
                 (* For every tuple in list, register a new constant *)
-                let
-                  cdef a (b,c) = sq_cdef b a c 
-                in
-                  begin
-                  (* register the first *)
-                  sq_cdef $3 $2 $5;
-                  (* register the rest *)
-                  List.iter (cdef $2) $6
-                  end
+                let cdef a (b,c) = sq_cdef b a c in
+                begin
+                    sq_cdef $3 $2 $5;       (* register the first *)
+                    List.iter (cdef $2) $6  (* register the rest *)
+                end
                 }
           ;
 
@@ -277,15 +271,15 @@ paztype : T_int     { TYPE_int }
         ;
 
 const_expr : expr {
-              (* make sure it's really a const *)
-              let cv = const_of_quad $1.e_place in
-              match cv with
-              | CONST_none ->
-                error "const expr isn't really a constant!";
-                esv_err
-              | _ ->
-                $1
-            }
+                (* make sure it's really a const *)
+                let cv = const_of_quad $1.e_place in
+                match cv with
+                | CONST_none ->
+                    error "This constant expression isn't really a constant!";
+                    esv_err
+                | _ ->
+                    $1
+              }
            ;
 
 expr : T_int_const {
