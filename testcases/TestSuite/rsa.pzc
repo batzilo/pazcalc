@@ -1,0 +1,26 @@
+FUNC int gauss(int a, int n, int m)
+{
+	int x = a MOD m;
+	int y = 1;
+	while (n > 0) {
+		if (n MOD 2 != 0) y = (y * x) MOD m;
+		x = (x*x) MOD m;
+		n = n / 2;
+	}
+	return y;
+}
+
+PROGRAM sq_exp ()
+{
+	int p, m, e, d, c;
+	
+	p = 11;
+	m = 8;
+	e = 7; 
+	d = 3;
+	
+	WRITELN("plaintext", m);
+	c = gauss(m, e, p);
+	WRITELN("ciphertext", c);
+	if (gauss(c, d, p) == m) WRITELN("RSA works!");
+}

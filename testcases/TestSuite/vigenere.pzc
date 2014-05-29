@@ -1,0 +1,50 @@
+FUNC bool isalpha (char ch)
+{
+        if ch >= 'A' AND ch <= 'Z' OR ch >= 'a' AND ch <= 'z' return true;
+        else return false;
+}
+
+FUNC bool islower (char ch)
+{
+        if ch >= 'a' AND ch <= 'z' return true;
+        else return false;
+}
+
+FUNC char tolower (char ch)
+{
+        if (ch >= 'A' AND ch <= 'z' ) return ch - 'A' + 'a';
+        else return ch;
+}
+
+PROC encode (char p[])
+{
+        int n = strlen(p);
+        int i = 0;
+        int c;
+
+        c = getchar();
+        while (c != EOF) {
+                if (isalpha(c)) {
+                        int codec = tolower(c) - 'a' + 1;
+                        int codep = tolower(p[i%n]) - 'a' + 1;
+                        int codenew = (codec + codep) % 26;
+
+                if (islower(c))
+                        c = codenew - 1 + 'a';
+                else
+                        c = codenew - 1 + 'A';
+                i++;
+                putchar(c);
+        }
+}
+
+PROGRAM vigenere ()
+{
+        char p[6];
+
+        p[0] = 'G'; p[1] = 'H'; p[2] = 'A';
+        p[3] = 'N'; p[4] = 'D'; p[5] = 'I';
+	
+	encode(p);
+}
+

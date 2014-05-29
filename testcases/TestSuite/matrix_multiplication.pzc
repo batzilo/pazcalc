@@ -1,0 +1,39 @@
+PROC read_matrix(int a[][], int m, int n)
+{
+	int i, j;
+	FOR (i, 0 TO m-1)
+		FOR (j, 0 TO n-1)
+			a[i][j] = READ_INT();
+}
+
+PROC print_matrix(int a[][], int m, int n)
+{
+	int i, j;
+	FOR (i, 0 TO m-1) {
+		FOR (j, 0 TO n-1)
+			WRITESP(a[i][j]);
+		WRITELN();
+	}
+}
+
+PROC mult_matrices(int a[][], int b[][], int c[][],  int m, int n, int q)
+{
+	int i, j, k;
+	FOR (i, 0 TO m-1)
+		FOR (j, 0 TO q-1) {
+			c[i][j] = 0;
+			FOR (k, 0 TO n-1)
+				c[i][j] = c[i][j] + a[i][k]*b[k][j];
+		}
+}
+
+PROGRAM matrix_multiplication ()
+{
+	int m = 5, n = 3, q = 4;
+	int a[5][3], b[3][4], c[5][4];
+
+	read_matrix(a, 5, 3);
+	read_matrix(b, 3, 4);
+	mult_matrices(a, b, c, m, n, q);
+	print_matrix(c, m, q);
+}	

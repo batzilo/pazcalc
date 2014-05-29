@@ -1,0 +1,34 @@
+const int N = 10;
+
+FUNC bool isSymmetric (int a[N][N])
+{
+	int i, j;
+	
+	FOR (i, 0 TO N-2)
+		FOR (j, i+1 TO N-1)
+			if (a[i][j] != a[j][i]) return false;
+	return true;
+}
+
+PROC makeTable(int r[N][N])
+{
+	int i, j, seed = 65;
+	
+	FOR (i, 0 TO N-1)
+		FOR (j, 0 TO N-1) {
+			seed = (seed * 137 + 221 + i + j) % (M+1);
+			r[i][j] = seed;
+		}
+}
+
+PROGRAM symmetric_matrix ()
+{
+	int b[N][N];
+	
+	makeTable(b);
+	
+	bool result = isSymmetric(b);
+	
+	if (result == true) WRITELN("b is symmetric");
+	else WRITELN("b is not symmetric");
+}	

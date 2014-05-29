@@ -33,6 +33,7 @@ let prologue () =
   (* initialize the Symbol Table *)
   initSymbolTable 256;
   (* open the global scope *)
+  if (debug) then printf "Opening the global scope...\n";
   openScope ();
   register_runtime_library ()
 
@@ -40,6 +41,7 @@ let prologue () =
 let epilogue () =
   if (debug) then printf "End parsing!\n";
   (* close the global scope *)
+  if (debug) then printf "Close the global scope...\n";
   closeScope();
   let code = !icode in
   !icode <- List.rev code;
@@ -226,8 +228,8 @@ routine : routine_header T_sem_col {
               (* we've seen the header, and no block exists
                * so set function to be forwarded *)
               forwardFunction $1;
-              if (debug) then printf "This is a forwarded function\n\n";
-              closeScope (); (* opened by routine_header *)
+              if (debug) then printf "This is a forwarded function!\n";
+              closeScope ();
               rmLastQuad () (* remove 'unit' quad *)
             }
         | routine_header block {
@@ -237,7 +239,7 @@ routine : routine_header T_sem_col {
               | ENTRY_function inf -> inf.function_scope <- Some !currentScope (* FIXME why? *)
               | _ -> internal "kiss my ass" (* should never reach *)
               end;
-              if (debug) then printSymbolTable ();
+              if (debug) then begin printf "Will close Scope so this is ST:\n"; printSymbolTable () end;
               closeScope ();
               let q = Q_endu (Q_entry $1) in
               addNewQuad q
@@ -263,7 +265,7 @@ program : program_header block {
               | ENTRY_function inf -> inf.function_scope <- Some !currentScope (* FIXME why ? *)
               | _ -> internal "kiss my ass"
               end;
-              if (debug) then printSymbolTable ();
+              if (debug) then begin printf "Will close Scope so this is ST:\n"; printSymbolTable () end;
               closeScope ();
               let q = Q_endu (Q_entry $1) in
               addNewQuad q
@@ -367,11 +369,29 @@ call2 : expr                { [$1] }
       | call2 T_comma expr  { $1 @ [$3] }
       ;
 
+block : block0 T_rbrace           { closeScope (); ssv_empty }
+      | block0 block2 T_rbrace    { if (debug) then begin printf "Will close Scope so this is ST:\n"; printSymbolTable () end; closeScope (); $2 }
+      /* error recovery */
+      | block0 error T_rbrace     { closeScope (); printf "A syntax error occured inside the block\n"; ssv_empty }
+      ;
+
+block0 : T_lbrace /* opn_sco */  { openScope () }
+       ;
+
+/*
+opn_sco : (* empty *)   { }
+        ;
+*/
+
+/*
+(*
 block : T_lbrace T_rbrace           { ssv_empty }
       | T_lbrace block2 T_rbrace    { $2 }
-      /* error recovery */
+      / error recovery /
       | T_lbrace error T_rbrace     { printf "A syntax error occured inside the block\n"; ssv_empty }
       ;
+*)
+*/
 
 block2 : local_def          { $1 }
        | stmt               { $1 }

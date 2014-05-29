@@ -1,0 +1,34 @@
+FUNC char toupper (char ch)
+{
+	if (ch >= 'a' AND ch <= 'z')
+		return ch - 'a' + 'A';
+	else
+		return ch;
+}
+
+PROC printBoxed (char word[])
+{
+	int len = strlen(word);
+	int i;
+
+	FOR (i, 0 TO len) WRITE("****");
+	WRITELN();
+	FOR (i, 0 TO len) WRITE("* ", toupper(word[i]));
+	WRITELN();
+	FOR (i, 0 TO len) WRITE("****");
+	WRITELN();
+	WRITELN();
+}
+
+const int MAX = 80;
+
+PROGRAM print ()
+{
+	char word[MAX];
+
+	word[0]= 'd'; word[1] = 'i'; word[2] = 'm'; word[3] = 'i'; word[4] = 't'; word[5] = 'r'; word[6] = 'i'; word[7]= 's' word[8] = '\0';
+	printBoxed(word);
+
+	word[0] = 'v'; word[1] = 'a'; word[2] = 's'; word[3] = 'i'; word[4] = 'l'; word[5] = 'i'; word[6] = 's'; word[7] = '\0';
+	printBoxed(word);
+} 

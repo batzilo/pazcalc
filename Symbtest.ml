@@ -4,7 +4,118 @@ open Identifier
 open Types
 open Symbol
 
-let show_offsets = true
+let show_offsets = true;;
+
+let rec string_of_type typ =
+    match typ with
+    | TYPE_none -> "<undefined>"
+    | TYPE_int -> "int"
+    | TYPE_bool -> "bool"
+    | TYPE_char -> "char"
+    | TYPE_REAL -> "REAL"
+    | TYPE_array (et,sz) ->
+        string_of_type et ^
+        if sz > 0 then
+            "[" ^ string_of_int sz ^ "]"
+        else
+            "[]"
+    | TYPE_proc -> "PROC"
+
+let string_of_const inf =
+    " CONST " ^ string_of_type inf.constant_type ^ " = " ^
+    match inf.constant_value with
+    | CONST_none ->
+        "NONE"
+    | CONST_int a ->
+        string_of_int a 
+    | CONST_bool a ->
+        if a then "true" else "false"
+    | CONST_REAL a ->
+        string_of_float a
+    | CONST_char a ->
+        String.make 1 a
+    (*
+    | CONST_string a ->
+          a
+    *)
+
+let string_of_mode mode =
+    match mode with
+    | PASS_BY_REFERENCE -> "reference "
+    | _ -> ""
+
+let string_of_parameter e =
+    match e.entry_info with
+    | ENTRY_parameter inf ->
+        (* print pass_mode name and type *)
+        string_of_mode inf.parameter_mode
+        ^ id_name e.entry_id
+        ^ " : "
+        ^ string_of_type inf.parameter_type
+        ^ ", "
+    | _ ->
+        "<invalid>"
+
+let string_of_function inf =
+    (* print every parameter *)
+    let params = List.fold_left (^) "" (List.map string_of_parameter inf.function_paramlist) in
+    (* print every parameter *)
+    let typ = string_of_type inf.function_result in
+    let size = 
+        match inf.function_scope with
+        | Some sco -> " with size : " ^ string_of_int (-sco.sco_negofs)
+        | _ -> " with size : -1"
+    in
+    "(" ^ params ^ "[eop]) : " ^ typ ^ size
+
+let print_entry e =
+    let name = id_name e.entry_id in
+    let info =
+        match e.entry_info with
+        | ENTRY_none ->
+            string_of_type TYPE_none
+        | ENTRY_variable inf ->
+            string_of_type inf.variable_type
+            ^
+            if show_offsets
+                then "[" ^ string_of_int inf.variable_offset ^ "]"
+                else ""
+        | ENTRY_constant inf ->
+            string_of_const inf
+        | ENTRY_function inf ->
+            if inf.function_isLibrary then "" else string_of_function inf
+        | ENTRY_parameter inf ->
+            string_of_type inf.parameter_type
+            ^
+            if show_offsets
+                then "[" ^ string_of_int inf.parameter_offset ^ "]" 
+                else ""
+        | ENTRY_temporary inf ->
+            string_of_type inf.temporary_type
+            ^
+            if show_offsets
+                then "[" ^ string_of_int inf.temporary_offset ^ "]" 
+                else ""
+    in
+    name ^ " " ^ info ^ ", "
+
+let print_scope sco =
+    List.fold_left (^) "" (List.map print_entry sco.sco_entries)
+
+let rec walk sco =
+    let par = match sco.sco_parent with
+        | Some scopar -> walk scopar
+        | None -> "GlobalScope of the House Compilers\n"
+    in
+    print_scope sco ^ "[eos]\n\tson of:\n" ^ par
+
+let printSymbolTable () =
+    printf "\n----------------------------------------\n";
+    printf "%s" (walk !currentScope);
+    printf "----------------------------------------\n\n"
+
+
+(* OLD 
 
 (* convert type to string *)
 let rec pretty_typ ppf typ =
@@ -156,6 +267,8 @@ let printSymbolTable () =
   (* do the actual shit! walk the currentScope, then its parent etc... *)
   printf "%a----------------------------------------\n"
     scope !currentScope
+
+*)
 
 (*
 

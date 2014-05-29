@@ -1,0 +1,17 @@
+PROGRAM bigsum ()
+{
+	int sum, number;
+	char symbol;
+
+	do {
+		sum = 0;
+		do {
+			number = READ_INT();
+			sum += number;
+			do symbol = getchar();
+			while (symbol != '+' && symbol != '=');
+		} while (symbol == '+');
+		WRITELN(sum);
+	} while(true);
+}
+

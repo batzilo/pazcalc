@@ -1,0 +1,11 @@
+PROC foo(int a, int b, int c);
+
+PROC foo(int a, int b, int c) {
+int x;     
+int y;
+int z,w;
+char kk;
+return;
+}
+
+PROGRAM bar () { }

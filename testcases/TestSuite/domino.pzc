@@ -1,0 +1,35 @@
+PROC domino0(int n)
+{
+	int count = (n+1)*(n+2)/2; 
+	WRITESPLN("Total", count, "pieces.");
+}
+
+PROC domino1(int n)
+{
+	int i, count = 0;
+	FOR (i, 1 TO n) {
+		WRITESPLN("In", i+1, "piece(s) the largest number is", i);
+		count += i+1;
+	}
+	WRITESPLN("Total", count, "pieces.");
+}
+
+
+PROC domino2(int n)
+{
+	int i, j, count = 0;
+	FOR (i, 1 TO n)
+		FOR (j, i TO n) {
+			WRITESPLN(i, j);
+			count +=1;
+		}
+	WRITESPLN("Total", count, "pieces.");
+}
+
+PROGRAM domino()
+{
+	domino0(42);
+	domino1(42);
+	domino2(42);
+	//domino0();
+}

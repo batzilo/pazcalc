@@ -1,0 +1,12 @@
+const int a = 5;
+int b = a + 1;
+char c = 'c';
+int d = b + c;
+
+PROC foo(int x, int y, char z, int w) {
+}
+
+PROGRAM bar ( ) {
+    foo(a, b, c, d);
+    return;
+}

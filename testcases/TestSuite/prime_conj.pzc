@@ -1,0 +1,13 @@
+PROGRAM prime_conj ()
+{
+	int p, t;
+	
+	FOR (p, 3 TO 1000000 STEP 2) {
+		t = 3;
+		while (p % t != 0) t = t+2;
+		if (p != t) continue;
+		if ((17 * p) % 4217 == 42) {
+			WRITESPLN("Counterexample:", p); break;
+		}
+	}
+}

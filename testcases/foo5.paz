@@ -1,0 +1,5 @@
+PROC foo ( int a, int b );
+
+PROC foo ( int a, bool b ) { }
+
+PROGRAM bar ( ) { }

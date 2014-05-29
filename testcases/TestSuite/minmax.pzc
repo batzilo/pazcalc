@@ -1,0 +1,46 @@
+FUNC int min (int n, int a[])
+{
+	int min, i;
+	
+	min = a[0];
+	FOR (i, 0 TO n-1) if (a[i] < min) min = a[i];	
+	return min;
+}
+
+FUNC int max (int n, int a[])
+{
+	int max, i;
+	
+	max = a[0];
+	FOR (i, 0 TO n-1) if (a[i] > max) max = a[i];
+	return max;
+}
+
+PROC print (char msg[], int n, int x[])
+{
+	WRITE(msg);
+	int i;
+	FOR (i, 0 TO n-1) {
+		if (i > 0) WRITE(", ");
+		WRITE(x[i]);
+	}
+	WRITELN();
+}
+
+PROGRAM minmax ()
+{
+	int seed = 65;
+	int i, x[16];
+	FOR (i, 0 to 15) {
+		seed = (seed * 137 + 221 + i) MOD 101;
+		x[i] = seed;
+	}
+	print("array: ", 16, x);
+	
+	int min = min(16, x);
+	int max = max(16, x);
+
+	WRITESPLN("min is ", min, " max is ", max);
+} 
+	
+	WRITES

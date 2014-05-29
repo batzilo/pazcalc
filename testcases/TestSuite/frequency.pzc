@@ -1,0 +1,28 @@
+FUNC char tolower (char ch)
+{
+	if (ch >= 'A' AND ch <= 'Z')
+		return ch - 'A' + 'a';
+	else
+		return ch;
+}
+
+FUNC bool isalpha (char ch)
+{
+	if ch >= 'A' AND ch <= 'Z' OR ch >= 'a' AND ch <= 'z' return true;
+	else return false;
+}
+
+PROGRAM frequency ()
+{
+	int freq[26];
+	int c, i;
+	
+	FOR (i, 0 TO 26) freq[i] = 0;
+	
+	c = getchar();
+	while (c != EOF) { 
+		if (isalpha(c)) freq[tolower(c) - 'a']++;
+	}
+	
+	FOR (i, 0 TO 26) WRITELN('a'+i, freq[i]);
+}

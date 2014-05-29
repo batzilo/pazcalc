@@ -1,0 +1,8 @@
+PROG pythagorian ()
+{
+	int x, y, z;
+	FOR (x, 1 TO 100)
+		FOR(y, 1 TO 100)
+			FOR(z, 1 TO 100)
+				if (x*x + y*y = z*z) { WRITESPLN("Found a Pythagorian triple:", x, y, z); }
+}

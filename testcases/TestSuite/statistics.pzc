@@ -1,0 +1,41 @@
+const int M = 10, N = 100;
+
+PROC makeTable(int r[N][N])
+{
+	int i, j, seed = 65;
+	
+	FOR (i, 0 TO N-1)
+		FOR (j, 0 TO N-1) {
+			seed = (seed * 137 + 221 + i + j) % (M+1);
+			r[i][j] = seed;
+		}
+}
+
+PROGRAM statistics ()
+{
+	int r[N][N];
+	int freq[M+1];
+	int sumx, sumx2;
+	int i, j;
+	//double sumx, sumx2, m, sigma;
+
+	makeTable(r);
+	
+	sumx = 0; sumx2 = 0;
+	FOR (i, 0 TO M) freq[i] = 0;
+	
+	FOR (i, 0 TO N) 
+		FOR (j, 0 TO N) {
+			int x = r[i][j];
+			freq[x]++;
+			sum += x;
+			sumx2 += x*x;
+		}
+	//m = sumx / (N * N);
+	// sigma = sqrt(sumx2 / (N*N) - m*m);
+	
+	FOR (i, 0 TO M) WRITE("freq(", i, ")=", freq[i]);
+
+	//WRITELN("mean=", m);
+	//WRITELN("stdev=", sigma);
+}

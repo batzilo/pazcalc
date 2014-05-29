@@ -1,0 +1,20 @@
+FUNC int fib(int n)
+{
+	int p=1, q=1;
+	while (n-- > 1) {
+		int t = p + q;
+		q = p;
+		p = t;
+	}
+}
+
+
+PROGRAM fibonacci ()
+{
+	int i = 0;
+	while (i < 10) {
+		WRITELN("fib", "(", i, ")=", fib(i));
+		i++;
+	}
+}
+

@@ -1,0 +1,15 @@
+PROGRAM bar ( ) {
+    int a; 
+    int b;
+    a = 1;
+    b = a + 2;
+
+    if ( b > a ) { 
+        int c;
+        c = a + b;
+    }
+
+    a = b;
+    a = c;
+    return;
+}

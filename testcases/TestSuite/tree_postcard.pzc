@@ -1,0 +1,22 @@
+PROC line (char border, int n, char inside, int m, char outside)
+{
+	int i;
+	
+	WRITE(border);
+	FOR (i, 1 TO m) WRITE(outside);
+	FOR (i, 1 TO n) WRITE(inside);
+	FOR (i, 1 TO m) WRITE(outside);
+	WRITELN(border);
+}
+
+PROGRAM tree_postcard()
+{
+	int i;
+
+	line('+', 15, '-', 0, ' ');
+	line('|', 15, ' ', 0, ' ');
+	FOR (i, 1 TO 13 STEP 2) line('|', i, '@', (15-i)/2, ' ');
+	FOR (i, 1 TO 3) line('|', 3, '#', 6, ' ');
+	line('|', 15, ' ', 0, ' ');
+	line('+', 15, '-', 0, ' ');
+}

@@ -1,0 +1,7 @@
+PROGRAM bar (  ) {
+    if ( 1 < 2 AND 2 < 3 ) {
+        WRITELN(1);
+    }
+    return;
+}
+

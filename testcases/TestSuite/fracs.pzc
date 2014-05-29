@@ -1,0 +1,29 @@
+FUNC int gcd(int x, int y)
+{
+	while(x > 0 AND y > 0)
+		if (a > b) a = a%b; else b = b%a;
+	return (a+b);
+}
+
+PROGRAM fracs ()
+{
+	int a1, b1, a2, b2, c1, c2;
+	int lcm, gcd;
+
+	WRITELN("Enter num of 1st fraction: ");
+	a1 = READ_INT();
+	WRITELN("Enter denum of 1st fraction: ");
+	b1 = READ_INT();
+	WRITELN("Enter num of 2nd fraction: ");
+	a2 = READ_INT();
+	WRITELN("Enter denum of 2nd fraction: ");
+	b2 = READ_INT();
+
+	gcd = gcd(b1, b2);
+	lcm = (b1 * b2) / gcd;
+
+	c1 = a1 * (lcm / b1) + a2 * (lcm / b2);
+	c2 = b1 * b2;
+
+	WRITESPLN("Sum is", c1, "/", c2);
+}

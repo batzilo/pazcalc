@@ -1,0 +1,54 @@
+const int N = 10;
+const int NON_TRIANGULAR = 0;
+const int LOWER_TRIANGULAR = 1;
+const int UPPER_TRIANGULAR = 2;
+const int DIAGONAL = 3;
+
+FUNC int isTriangular (int a[N][N])
+{
+	int lower, upper;
+	int i, j;
+	
+	lower = LOWER_TRIANGULAR;
+	FOR (i, 0 TO N-2)
+		FOR (j, i+1 TO N-1)
+			if (a[i][j] != 0) {
+				lower = 0;
+				break;
+			}
+
+	upper = UPPER_TRIANGULAR;
+	FOR (i, 1 TO N-1)
+		FOR (j, 0 TO i-1)
+			if (a[i][j] != 0) {
+				upper = 0;
+				break;
+			}
+
+	return (lower + upper);
+}
+
+PROC makeTable(int r[N][N])
+{
+	int i, j, seed = 65;
+	
+	FOR (i, 0 TO N-1)
+		FOR (j, 0 TO N-1) {
+			seed = (seed * 137 + 221 + i + j) % (M+1);
+			r[i][j] = seed;
+		}
+}
+
+PROGRAM triangular_matrix ()
+{
+	int b[N][N];
+	
+	makeTable(b);
+	
+	int result = isTriangular(b);
+	
+	if (result == NON_TRIANGULAR) WRITELN("b is not triangular");
+	else if (result == LOWER_TRIANGULAR) WRITELN("b is lower triangular");
+	else if (result == UPPER_TRIANGULAR) WRITELN("b is upper triangular");
+	else if (result == DIAGONAL) WRITELN("b is diagonal");
+}	

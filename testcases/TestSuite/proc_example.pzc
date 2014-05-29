@@ -1,0 +1,25 @@
+int a, b, c;
+
+PROC p42 (int y, int b)
+{
+	int c = 42;
+	
+	WRITESPLN(a, b, c, y);
+	a = a + b; c = c + 1; b = c + b; y = y - 1;
+	WRITESPLN(a, b, c, y);
+}
+
+PROC p17 (int a, int x)
+{
+	int b = 17;
+
+	WRITESPLN(a, b, c, x);
+	p42(b, x);
+	WRITESPLN(a, b, c, x);
+}
+
+PROGRAM proc_example ()
+{
+	a = 1; b = 2; c = 3;
+	p17(b, c); p42(c, a);
+}

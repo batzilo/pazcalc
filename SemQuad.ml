@@ -846,8 +846,27 @@ let set_main e =
 let sq_rout_head name typ pars isLib =
   (* register a new function or find the forwarded function header *)
   let e = newFunction (id_make name) true isLib in
+  (* open the function scope *)
   openScope ();
-  (* add parameters *)
+  (*
+  begin
+  match e.entry_info with
+  | ENTRY_function inf ->
+    begin
+    match inf.function_scope with
+    | Some sco ->
+        (* already declared function *)
+        if not isLib then Printf.printf "this function '%s' has already be defined\n" name;
+        ()
+    | None ->
+        (* new function *)
+        if not isLib then Printf.printf "this function '%s' is a new one\n" name;
+        ()
+    end
+  | _ -> internal "really?"; ()
+  end;
+  *)
+  (* add new parameters or validate forwarded parameters *)
   let parameterAdd (param_type, (param_name, param_pass_mode, param_dimensions)) =
     let rec fullType = function
       | (Q_int d)::ds -> TYPE_array (fullType ds, d)

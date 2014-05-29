@@ -1,0 +1,29 @@
+FUNC int knapsack_aux(int C[][], B, int s[], int p[])
+{
+	int i, b, t;
+
+	FOR(i, 0 TO n) C[i][0] = 0;
+	FOR(b, 0 TO B) C[0][b] = 0;
+	FOR(i, 1 TO n) 
+		FOR(b, 1 TO B) {
+			if (b-s[i]) >= 0) 
+				t = C[i-1][b-s[i]] + p[i];
+			else 
+				t = 0;	
+			if (C[i-1][b] >= t) 
+				C[i][b] = C[i-1][b];
+			else 
+				C[i][b] = t;
+		}
+	return C[n][B];
+}
+
+PROGRAM knapsack ()
+{
+	int s[5], p[5], C[5][10];
+	
+	s[0] = 0; s[1] = 3; s[2] = 2; s[3] = 4; s[4] = 6; s[5] = 5;
+	p[0] = 0; p[1] = 5; p[2] = 7; p[3] = 4; p[4] = 8; p[5] = 4;
+	
+	WRITELN(knapsack_aux(C, s, p));
+}	

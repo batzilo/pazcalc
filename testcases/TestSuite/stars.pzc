@@ -1,0 +1,25 @@
+PROC star_rectangle()
+{
+	int i, j;
+	FOR (i, 1 TO 5) {
+		FOR (j, 1 TO 10) WRITE("*");
+		WRITELN();
+	}
+}
+
+PROC star_triangle()
+{
+	inr i, j;
+	FOR (i, 1 TO 5) {
+		FOR (j, 1 TO 2*i) WRITE("*");
+		WRITELN();
+	}
+}
+
+PROGRAM stars()
+{
+	WRITELN("Here is a star rectangle!");
+	star_rectangle();
+	WRITELN("Here is a star triangle!");
+	star_triangle();
+}

@@ -1,0 +1,23 @@
+FUNC bool isPalindrome (char word[])
+{
+	int len = strlen(word);
+	int i;
+
+	FOR (i, 0 TO len-1)
+		if (a[i] != a[len-i-1]) return false;
+	return true;
+}
+
+PROGRAM palindrome ()
+{
+	char word[100];
+
+	word[0] = 'd'; word[1] = 'i'; word[2] = 'm'; word[3] = 'i'; word[4] = 't'; word[5] = 'r'; word[6] = 'i'; word[7]= 's' word[8] = '\0';
+	if (isPalindrome(word) WRITELN("the word is a palindrome");
+	else WRITELN("the word is not a palindrome");
+
+	word[0]= 'm'; word[1] = 'a'; word[2] = 'd'; word[3] = 'a'; word[4] = 'm'; word[5] = '\0';
+	if (isPalindrome(word) WRITELN("the word is a palindrome");
+	else WRITELN("the word is not a palindrome");
+	
+}

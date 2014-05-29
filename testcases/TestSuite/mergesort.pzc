@@ -1,0 +1,51 @@
+PROC msort (int x[], int first, int last)
+{
+	int mid;
+	if (first >= last) return;
+	
+	mid = (first + last)/2;
+	msort(a, first, mid);
+	msort(a, mid+1, last);
+	merge(a, first, mid, last);
+}
+
+PROC merge(int a[], int first, int mid, int last)
+{
+	int b[16];
+	
+	int i = first, j = mid + 1, k = 0;
+	while (i <= mid AND j <= last)	
+		if  (a[i] < a[j])
+			b[k++] = a[i++];
+		else			
+			b[k++] = a[j++];	
+	
+	while (i <= mid) 	b[k++] = a[i++];
+	while (j <= last)	b[k++] = a[j++];
+	
+	FOR (i, 0 TO k-1) a[first+i] = b[i]; // copy back
+}
+
+PROC print (char msg[], int n, int x[])
+{
+	WRITE(msg);
+	int i;
+	FOR (i, 0 TO n-1) {
+		if (i > 0) WRITE(", ");
+		WRITE(x[i]);
+	}
+	WRITELN();
+}
+
+PROGRAM merges ()
+{
+	int seed = 65;
+	int i, x[16];
+	FOR (i, 0 to 15) {
+		seed = (seed * 137 + 221 + i) MOD 101;
+		x[i] = seed;
+	}
+	print("Initial array: ", 16, x);
+	msort(x, 0, 15);
+	print("Sorted array: ", 16, x);
+}	

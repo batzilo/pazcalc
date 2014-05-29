@@ -138,6 +138,7 @@ let initSymbolTable size =
 (* Add a new scope with an empty list of entries and
  * increased nesting level and set it as current scope *)
 let openScope () =
+  Printf.printf " ---> A scope has been opened\n";
   let sco = {
     sco_parent = Some !currentScope;
     sco_nesting = !currentScope.sco_nesting + 1;
@@ -149,6 +150,7 @@ let openScope () =
 (* Close the current scope, remove from HashTable
  * all scope entries, and set scope father as current scope *)
 let closeScope () =
+  Printf.printf " <--- A scope has been closed\n";
   let sco = !currentScope in
   let manyentry e = H.remove !tab e.entry_id in
   (* apply manyentry to every item in sco_entries list *)
@@ -277,12 +279,17 @@ let newFunction id err isLib =
     (* if found and is a forward function definiton
      * it means we're about to see the function body *)
     | ENTRY_function inf when inf.function_isForward ->
+        if not isLib then Printf.printf "this function '%s' has already be defined\n" (id_name id);
         (* function is no more forwarded *)
+        (* FIXME is it really? *)
         inf.function_isForward <- false;
-        (* parameters will now be checked *)
+        (* parameters have been defined and now should be checked *)
         inf.function_pstatus <- PARDEF_CHECK;
         (* copy all parameter entries to redeflist *)
+        (* FIXME deep copy? *)
         inf.function_redeflist <- inf.function_paramlist;
+        (* empty the function paramlist *)
+        inf.function_paramlist <- [];
         (* return the function entry *)
         e
     | _ ->
@@ -304,6 +311,7 @@ let newFunction id err isLib =
       function_isMain = false;
       function_isLibrary = isLib
     } in
+    if not isLib then Printf.printf "this function '%s' is a new one\n" (id_name id);
     (* register a new function entry in the Symbol Table *)
     newEntry id (ENTRY_function inf) false
 
@@ -319,7 +327,7 @@ let newParameter id typ mode f err =
   | ENTRY_function inf -> begin
       (* match function parameter status with ... *)
       match inf.function_pstatus with
-      (* while defining a function *)
+      (* while defining a new function *)
       | PARDEF_DEFINE ->
           (* new parameter_info *)
           let inf_p = {
@@ -335,31 +343,51 @@ let newParameter id typ mode f err =
           e
       (* while checking the function parameters *)
       | PARDEF_CHECK -> begin
-          (* check that par id is "same" as in function forward definition *)
+          (* check that par is same as in function forward definition *)
           match inf.function_redeflist with
           | p :: ps -> begin
+              Printf.printf "will now check function parameter '%s'...\n" (id_name p.entry_id);
               (* ps is the list of rest par entries *)
               inf.function_redeflist <- ps;
               (* p is the first parameter, to be matched with par id *)
               match p.entry_info with
-              | ENTRY_parameter inf ->
+              | ENTRY_parameter pinf ->
                   (* type matching *)
-                  if not (equalType inf.parameter_type typ) then
-                    error "Parameter type mismatch in redeclaration \
-                           of function %a" pretty_id f.entry_id
+                  if not (equalType pinf.parameter_type typ) then
+                      begin
+                      error "Parameter type mismatch in redeclaration of function %a" pretty_id f.entry_id;
+                      p
+                      end
                   (* passing mode matching *)
-                  else if inf.parameter_mode != mode then
-                    error "Parameter passing mode mismatch in redeclaration \
-                           of function %a" pretty_id f.entry_id
+                  else if pinf.parameter_mode != mode then
+                      begin
+                      error "Parameter passing mode mismatch in redeclaration of function %a" pretty_id f.entry_id;
+                      p
+                      end
                   (* name matching *)
                   else if p.entry_id != id then
-                    error "Parameter name mismatch in redeclaration \
-                           of function %a" pretty_id f.entry_id
-                  (* if all ok, add the paramter entry to the Hashtable *)
+                      begin
+                      error "Parameter name mismatch in redeclaration of function %a" pretty_id f.entry_id;
+                      p
+                      end
+                  (* if all ok, add the parameter entry to the Hashtable *)
                   else
-                    H.add !tab id p;
-                  (* return the parameter entry *)
-                  p
+                      (*
+                      (* FIXME why? *)
+                      H.add !tab id p;
+                      (* return the parameter entry *)
+                      p
+                      *)
+                      begin
+                      (* remove the old entry *)
+                      ignore (H.remove !tab id);
+                      (* register a new entry for the parameter *)
+                      let e = newEntry id (ENTRY_parameter pinf) err in
+                      (* append the entry to the functions parameter entry list *)
+                      inf.function_paramlist <- inf.function_paramlist @ [e];
+                      (* return the entry *)
+                      e
+                      end
               (* should never reach *)
               | _ ->
                   internal "I found a parameter that is not a parameter!";
