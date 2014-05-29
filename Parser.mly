@@ -39,10 +39,10 @@ let prologue () =
 
 (* last steps *)
 let epilogue () =
-  if (debug) then printf "End parsing!\n";
   (* close the global scope *)
   if (debug) then printf "Close the global scope...\n";
   closeScope();
+  if (debug) then printf "End parsing!\n";
   let code = !icode in
   !icode <- List.rev code;
   !icode
