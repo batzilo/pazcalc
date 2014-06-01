@@ -479,8 +479,8 @@ let const_binop = function
 let sq_cdef name typ value =
   try
     (* Lookup the Symbol Table. not_found is not handled *)
-    (* let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in *)
-    let e = myEntryLookup (id_make name) in
+    let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
+    (* let e = myEntryLookup (id_make name) in *)
       (* if found, name is already taken *)
       error "Const name %s is already taken" name;
       ignore(e)
