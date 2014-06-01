@@ -197,8 +197,6 @@ routine_header2 : paztype formal                            { [ ($1, $2) ] }
                 ;
 
 /*(* return a triplet (name, pass_mode, dims list) *)*/
-/*(* FIXME when parameter is array, it's always passed by reference, right ? *)*/
-/*(* FIXME what about that shity Q_int 0 over there? *)*/
 formal : T_id                                       { ($1, PASS_BY_VALUE, []) }
        | T_amp T_id                                 { ($2, PASS_BY_REFERENCE, []) }
        | T_id T_lbrack T_rbrack                     { ($1, PASS_BY_REFERENCE, [Q_int 0]) } 
@@ -370,28 +368,18 @@ call2 : expr                { [$1] }
       ;
 
 block : block0 T_rbrace           { closeScope (); ssv_empty }
-      | block0 block2 T_rbrace    { if (debug) then begin printf "Will close Scope so this is ST:\n"; printSymbolTable () end; closeScope (); $2 }
+      | block0 block2 T_rbrace    {
+          if (debug) then begin printf "Will close Scope so this is ST:\n";
+          printSymbolTable () end;
+          closeScope ();
+          $2
+        }
       /* error recovery */
       | block0 error T_rbrace     { closeScope (); printf "A syntax error occured inside the block\n"; ssv_empty }
       ;
 
-block0 : T_lbrace /* opn_sco */  { openScope () }
+block0 : T_lbrace   { openScope () }
        ;
-
-/*
-opn_sco : (* empty *)   { }
-        ;
-*/
-
-/*
-(*
-block : T_lbrace T_rbrace           { ssv_empty }
-      | T_lbrace block2 T_rbrace    { $2 }
-      / error recovery /
-      | T_lbrace error T_rbrace     { printf "A syntax error occured inside the block\n"; ssv_empty }
-      ;
-*)
-*/
 
 block2 : local_def          { $1 }
        | stmt               { $1 }

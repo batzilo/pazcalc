@@ -232,6 +232,29 @@ let lookupEntry id how err =
   else
     lookup ()
 
+let myEntryLookup id =
+    let lookup scope =
+        let e = H.find !tab id in
+        if e.entry_scope.sco_nesting = scope.sco_nesting then
+            e
+        else
+            raise Not_found
+    in
+    let rec lookupAll sco =
+        try
+            lookup sco
+        with Not_found ->
+            match sco.sco_parent with
+            | None ->
+                error "unknown identifier %a (first occurrence)" pretty_id id;
+                (* put it in, so we don't see more errors *)
+                H.add !tab id (no_entry id);
+                raise Exit
+            | Some scope ->
+                lookupAll scope
+    in
+    lookupAll !currentScope
+
 (* Add a new variable to the Symbol Table
  * name is id (after id_make), type is typ 
  * err = true means search the ST for possible duplicate

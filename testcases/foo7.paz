@@ -1,0 +1,18 @@
+const int a = 17;
+
+PROGRAM bar ( ) {
+    int a = 42;
+    if (true) {
+        int b;
+        b = a;
+        while ( b > 0 ) {
+            int a;
+            a = b*b;
+            WRITELN(a);
+            b--;
+        }
+        b = a;
+        WRITELN(b);
+    }
+    return;
+}

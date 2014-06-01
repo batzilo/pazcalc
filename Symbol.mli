@@ -108,6 +108,8 @@ val closeScope       : unit -> unit
  * err = false does nothing (used for function forward definitions) *)
 val lookupEntry      : Identifier.id -> lookup_type -> bool -> entry
 
+val myEntryLookup : Identifier.id -> entry
+
 (* Add a new variable to the Symbol Table
  * name is id (after id_make), type is typ 
  * err = true means search the ST for possible duplicate

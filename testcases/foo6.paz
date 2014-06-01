@@ -1,0 +1,11 @@
+PROC foo( char a[], char b[] );
+
+PROGRAM bar ( ) {
+    foo("asdf", "hjkl");
+    return;
+}
+
+PROC foo( char a[], char b[] ) {
+    WRITESPLN(a, b);
+    return;
+}

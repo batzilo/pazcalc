@@ -776,7 +776,8 @@ let sq_lvalue name idxs =
   in
   try
     (* Lookup the Symbol Table, do not handle the not_found case *)
-    let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
+    (* let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in *)
+    let e = myEntryLookup (id_make name) in
     (* check if entry is variable or parameter or constant *)
     match e.entry_info with
     | ENTRY_variable inf ->
