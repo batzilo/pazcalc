@@ -1,0 +1,9 @@
+PROC foo (char a) {
+    WRITELN(a);
+    return;
+}
+
+PROGRAM bar ( ) {
+    foo(1000);
+    return;
+}

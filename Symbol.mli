@@ -96,7 +96,7 @@ val initSymbolTable  : int -> unit
 
 (* Add a new scope with an empty list of entries and
  * increased nesting level and set it as current scope *)
-val openScope        : unit -> unit
+val openScope        : bool -> unit
 
 (* Close the current scope, remove from HashTable
  * all scope entries, and set scope father as current scope *)

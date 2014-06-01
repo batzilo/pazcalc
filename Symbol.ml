@@ -137,13 +137,13 @@ let initSymbolTable size =
 
 (* Add a new scope with an empty list of entries and
  * increased nesting level and set it as current scope *)
-let openScope () =
+let openScope isNewFunction =
   Printf.printf " ---> A scope has been opened\n";
   let sco = {
     sco_parent = Some !currentScope;
     sco_nesting = !currentScope.sco_nesting + 1;
     sco_entries = [];
-    sco_negofs = start_negative_offset
+    sco_negofs = if isNewFunction then start_negative_offset else !currentScope.sco_negofs
   } in
   currentScope := sco
 
@@ -157,7 +157,9 @@ let closeScope () =
   List.iter manyentry sco.sco_entries;
   match sco.sco_parent with
   | Some scp ->
-      currentScope := scp
+      let newnegofs = sco.sco_negofs in
+      currentScope := scp;
+      !currentScope.sco_negofs <- newnegofs
   | None ->
       internal "cannot close the outer scope!"
 

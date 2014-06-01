@@ -34,7 +34,7 @@ let prologue () =
   initSymbolTable 256;
   (* open the global scope *)
   if (debug) then printf "Opening the global scope...\n";
-  openScope ();
+  openScope true;
   register_runtime_library ()
 
 (* last steps *)
@@ -230,7 +230,7 @@ routine : routine_header T_sem_col {
               closeScope ();
               rmLastQuad () (* remove 'unit' quad *)
             }
-        | routine_header block {
+        | routine_header T_lbrace block2 T_rbrace {
               (* we've seen the header and the block *)
               begin
               match $1.entry_info with
@@ -255,9 +255,9 @@ program_header : T_PROGRAM T_id T_lparen T_rparen {
                   }
                ;
 
-program : program_header block {
+program : program_header T_lbrace block2 T_rbrace {
               (* we've seen the header and the block *)
-              backpatch $2.s_next (Q_int !quadNext); (* FIXME why? *)
+              backpatch $3.s_next (Q_int !quadNext); (* FIXME why? *)
               begin
               match $1.entry_info with
               | ENTRY_function inf -> inf.function_scope <- Some !currentScope (* FIXME why ? *)
@@ -366,7 +366,7 @@ call : T_id T_lparen T_rparen           { sq_rout_call $1 [] }
 call2 : expr                { [$1] }
       | call2 T_comma expr  { $1 @ [$3] }
       ;
-
+/*
 block : block0 T_rbrace           { closeScope (); ssv_empty }
       | block0 block2 T_rbrace    {
           if (debug) then begin printf "Will close Scope so this is ST:\n";
@@ -374,15 +374,19 @@ block : block0 T_rbrace           { closeScope (); ssv_empty }
           closeScope ();
           $2
         }
-      /* error recovery */
+      / error recovery /
       | block0 error T_rbrace     { closeScope (); printf "A syntax error occured inside the block\n"; ssv_empty }
       ;
 
 block0 : T_lbrace   { openScope () }
        ;
+*/
 
-block2 : local_def          { $1 }
+block2 : /*(* empty *)*/    { ssv_empty }
+        /*
+       | local_def          { $1 }
        | stmt               { $1 }
+        */
        | block2 local_def   { st_block $1 $2 }
        | block2 stmt        { st_block $1 $2 }
        ;
@@ -405,7 +409,7 @@ for_control : T_id T_comma range {
             ;
 
 stmt : T_sem_col                                            { ssv_empty }
-     | block                                                { $1 }
+     | T_lbrace block2 T_rbrace                             { $2 }
      | l_value assign expr T_sem_col                        { st_assign $1 $2 $3 }
      | l_value T_plus_plus T_sem_col                        { st_plusplus $1 }
      | l_value T_minus_minus T_sem_col                      { st_minusminus $1 }

@@ -820,6 +820,7 @@ let sq_lvalue name idxs =
 
 let sq_assign a op b =
   (* FIXME should check for type compatibility instead of type equality *)
+  (* FIXME assignment lvalue should be basic type *)
   if equalType a.e_typ b.e_typ then
     match op with
     | "=" ->
@@ -848,7 +849,7 @@ let sq_rout_head name typ pars isLib =
   (* register a new function or find the forwarded function header *)
   let e = newFunction (id_make name) true isLib in
   (* open the function scope *)
-  openScope ();
+  openScope true;
   (*
   begin
   match e.entry_info with
