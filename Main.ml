@@ -40,17 +40,15 @@ let main () =
         printf "Usage : $ ./pazcalc source_code.paz\n"
 
 (*
+
 let main () =
     let cin = if Array.length Sys.argv > 1 then open_in Sys.argv.(1) else stdin in
     let lexbuf = Lexing.from_channel cin in
     try
         let intermediate_code = Parser.pazprog Lexer.pazcal lexbuf in
-        ignore (intermediate_code);
-        printf "%s\n" (printIntermediateCode ())
-        (*
+        printf "%s\n" (printIntermediateCode ());
         let final_code = Final.generate intermediate_code in
         printf "%s\n" final_code
-        *)
     with Parsing.Parse_error ->
         printf "\n\tA Syntax Error Occured!\n\n";
         exit 0

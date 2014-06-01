@@ -1,0 +1,6 @@
+PROGRAM bar ( ) {
+    int a;
+    a = READ_INT();
+    WRITELN(a);
+    return;
+}

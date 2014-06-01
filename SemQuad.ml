@@ -479,7 +479,8 @@ let const_binop = function
 let sq_cdef name typ value =
   try
     (* Lookup the Symbol Table. not_found is not handled *)
-    let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in
+    (* let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in *)
+    let e = myEntryLookup (id_make name) in
       (* if found, name is already taken *)
       error "Const name %s is already taken" name;
       ignore(e)
@@ -738,6 +739,14 @@ let sq_relop a op b x y =
       (* return an expression *)
       e
 
+let sq_lvalue_debug e =
+    let pos = match e.entry_info with
+    | ENTRY_variable inf -> inf.variable_offset
+    | ENTRY_parameter inf -> inf.parameter_offset
+    | ENTRY_temporary inf -> inf.temporary_offset
+    | _ -> 0
+    in
+    printf "I just looked up lvalue '%s' and found it @ %d\n" (id_name e.entry_id) pos
 
 (* Semantic-Quad actions for lvalue *)
 let sq_lvalue name idxs =
@@ -774,6 +783,28 @@ let sq_lvalue name idxs =
        error "lvalue '%s' error!" name;
        esv_err
   in
+  let e = myEntryLookup (id_make name) in
+  sq_lvalue_debug e;
+  match e.entry_info with
+  | ENTRY_variable inf ->
+      mkArrTemp (Q_entry e) inf.variable_type idxs
+  | ENTRY_parameter inf ->
+      mkArrTemp (Q_entry e) inf.parameter_type idxs
+  | ENTRY_constant inf ->
+      begin
+      let qv = quad_of_const inf.constant_value in
+      match qv with
+      | Q_none ->
+         error "lvalue '%s' is not really a const while it should be" name;
+         esv_err
+      | _ ->
+         mkArrTemp qv inf.constant_type idxs
+      end
+  | _ ->
+      error "lvalue '%s' is not a variable nor a parameter nor a constant!" name;
+      esv_err
+
+  (* OLD STUFF
   try
     (* Lookup the Symbol Table, do not handle the not_found case *)
     (* let e = lookupEntry (id_make name) LOOKUP_CURRENT_SCOPE false in *)
@@ -817,11 +848,46 @@ let sq_lvalue name idxs =
     | _ ->
         error "lvalue '%s' not found in the current scope nor in the global scope" name;
         esv_err
+  *)
+
+
+let check_assign_types op l_typ r_typ =
+    match op with
+    | "=" ->
+        begin
+        match (l_typ, r_typ) with
+        | (TYPE_int, TYPE_int)
+        | (TYPE_int, TYPE_char)
+        | (TYPE_REAL, TYPE_REAL)
+        | (TYPE_REAL, TYPE_int)
+        | (TYPE_char, TYPE_char)
+        | (TYPE_char, TYPE_int) 
+        | (TYPE_bool, TYPE_bool) -> true
+        | _ -> false
+        end
+    | "+="
+    | "-="
+    | "*="
+    | "/=" ->
+        begin
+        match (l_typ, r_typ) with
+        | (TYPE_int, TYPE_int)
+        | (TYPE_REAL, TYPE_int)
+        | (TYPE_REAL, TYPE_REAL) -> true
+        | _ -> false
+        end
+    | "%=" ->
+        begin
+        match (l_typ, r_typ) with
+        | (TYPE_int, TYPE_int) -> true
+        | _ -> false
+        end
+    | _ -> false
 
 let sq_assign a op b =
   (* FIXME should check for type compatibility instead of type equality *)
   (* FIXME assignment lvalue should be basic type *)
-  if equalType a.e_typ b.e_typ then
+  if check_assign_types op a.e_typ b.e_typ then
     match op with
     | "=" ->
       let q = Q_assign (b.e_place, a.e_place) in

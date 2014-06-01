@@ -41,7 +41,7 @@ let prologue () =
 let epilogue () =
   (* close the global scope *)
   if (debug) then printf "Close the global scope...\n";
-  closeScope();
+  closeScope ();
   if (debug) then printf "End parsing!\n";
   let code = !icode in
   !icode <- List.rev code;
@@ -230,7 +230,7 @@ routine : routine_header T_sem_col {
               closeScope ();
               rmLastQuad () (* remove 'unit' quad *)
             }
-        | routine_header T_lbrace block2 T_rbrace {
+        | routine_header block0 block2 T_rbrace {
               (* we've seen the header and the block *)
               begin
               match $1.entry_info with
@@ -238,7 +238,8 @@ routine : routine_header T_sem_col {
               | _ -> internal "kiss my ass" (* should never reach *)
               end;
               if (debug) then begin printf "Will close Scope so this is ST:\n"; printSymbolTable () end;
-              closeScope ();
+              closeScope (); (* block scope *)
+              closeScope (); (* function scope *)
               let q = Q_endu (Q_entry $1) in
               addNewQuad q
             }
@@ -264,7 +265,7 @@ program : program_header T_lbrace block2 T_rbrace {
               | _ -> internal "kiss my ass"
               end;
               if (debug) then begin printf "Will close Scope so this is ST:\n"; printSymbolTable () end;
-              closeScope ();
+              closeScope (); (* block scope *)
               let q = Q_endu (Q_entry $1) in
               addNewQuad q
             }
@@ -377,10 +378,13 @@ block : block0 T_rbrace           { closeScope (); ssv_empty }
       / error recovery /
       | block0 error T_rbrace     { closeScope (); printf "A syntax error occured inside the block\n"; ssv_empty }
       ;
-
-block0 : T_lbrace   { openScope () }
-       ;
 */
+
+block0 : T_lbrace   { openScope true }
+       ;
+
+block1 : T_lbrace   { openScope false }
+       ;
 
 block2 : /*(* empty *)*/    { ssv_empty }
         /*
@@ -409,7 +413,7 @@ for_control : T_id T_comma range {
             ;
 
 stmt : T_sem_col                                            { ssv_empty }
-     | T_lbrace block2 T_rbrace                             { $2 }
+     | block1 block2 T_rbrace                               { closeScope (); $2 }
      | l_value assign expr T_sem_col                        { st_assign $1 $2 $3 }
      | l_value T_plus_plus T_sem_col                        { st_plusplus $1 }
      | l_value T_minus_minus T_sem_col                      { st_minusminus $1 }

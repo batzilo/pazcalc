@@ -1,0 +1,21 @@
+PROC foo (int c) {
+    WRITELN(c);
+    return;
+}
+
+PROGRAM bar ( ) {
+    int a, c;
+    a = READ_INT();
+    c = 1;
+    if ( a < 0 ) {
+        int c;
+        c = a*a;
+        WRITELN(c);
+    }
+    else if ( a < 255 ) foo(a);
+    else {
+        WRITELN(false);
+    }
+    WRITELN(c);
+    return;
+}

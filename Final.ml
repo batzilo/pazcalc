@@ -131,7 +131,7 @@ let rec load r a =
     | Q_deref e ->  load "di" (Q_entry e) ^ "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [di]\n"
     | Q_entry e ->
         begin
-            if e.entry_scope.sco_nesting = 2 then
+            if e.entry_scope.sco_nesting >= 2 then
                 (* local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
@@ -176,7 +176,7 @@ let loadAddr r a =
     | Q_deref x -> load r (Q_entry x)
     | Q_entry e ->
         begin
-            if e.entry_scope.sco_nesting = 2 then
+            if e.entry_scope.sco_nesting >= 2 then
                 (* local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
@@ -218,7 +218,7 @@ let store r a =
     | Q_deref e ->  load "di" (Q_entry e) ^ "\tmov " ^ operand_size e ^ " ptr [di], " ^ r ^ "\n" 
     | Q_entry e ->
         begin
-            if e.entry_scope.sco_nesting = 2 then
+            if e.entry_scope.sco_nesting >= 2 then
                 (* local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
@@ -302,9 +302,29 @@ let endof e =
         end
     | _ -> "entry info not a function!"
 
+
 (* size of local and temporary variables of unit x *)
-(* FIXME size of parameters only *)
-let size x =
+let size_lt x =
+    match x.entry_info with
+    | ENTRY_function inf ->
+        begin
+        match inf.function_scope with
+        | Some sco -> string_of_int (-sco.sco_negofs)
+        | None -> "0"
+        end
+        (*
+        let getType e =
+            match e.entry_info with
+            | ENTRY_variable inf -> Types.sizeOfType inf.variable_type
+            | ENTRY_temporary inf -> Types.sizeOfType inf.temporary_type
+            | _ -> 0
+        in
+        string_of_int (List.fold_left (+) 0 (List.map getType inf.function_scope)
+        *)
+    | _ -> "0"
+
+(* size of parameters of unit x *)
+let size_p x =
     match x.entry_info with
     | ENTRY_function inf ->
         begin
@@ -352,7 +372,7 @@ let transform (i,quad) =
             \tproc near\n\
             \tpush bp\n\
             \tmov bp, sp\n\
-            \tsub sp, " ^ size e ^ "\n"
+            \tsub sp, " ^ size_lt e ^ "\n"
         | _ ->
             "<error>\n"
         end
@@ -630,7 +650,7 @@ let transform (i,quad) =
             sub_if_proc e ^
             updateAL () ^
             "\tcall near ptr " ^ name e ^
-            "\n\tadd sp, " ^ string_of_int (int_of_string (size e) + 4) ^ "\n"
+            "\n\tadd sp, " ^ string_of_int (int_of_string (size_p e) + 4) ^ "\n"
         | _ ->
             "<error>\n"
         end
