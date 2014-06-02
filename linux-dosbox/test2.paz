@@ -1,0 +1,22 @@
+PROGRAM bar ( ) {
+    int a;
+    a = 1;
+    WRITELN(a);
+    {
+    int a = 5;
+    WRITELN(a);
+    }
+    a = 2;
+    WRITELN(a);
+
+    int i;
+    FOR (i, 0 TO 4) {
+        WRITESP(i);
+        if ( i >= 0 ) {
+            WRITELN(true);
+        }
+        WRITELN("true");
+    }
+
+    return;
+}

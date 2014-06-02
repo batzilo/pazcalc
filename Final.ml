@@ -331,7 +331,12 @@ let size_p x =
         let ret_size = Types.sizeOfType inf.function_result in
         let getType e =
             match e.entry_info with
-            | ENTRY_parameter inf -> Types.sizeOfType inf.parameter_type
+            | ENTRY_parameter inf ->
+                begin
+                match inf.parameter_mode with
+                | PASS_BY_VALUE -> Types.sizeOfType inf.parameter_type
+                | PASS_BY_REFERENCE -> 2
+                end
             | _ -> 0
         in
         string_of_int (List.fold_left (+) 0 (List.map getType inf.function_paramlist) + ret_size)
