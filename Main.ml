@@ -8,7 +8,6 @@ open Parser
 open Printf
 open SemQuad
 
-(*
 let main () =
     match Array.length Sys.argv with
     | 2 ->
@@ -39,8 +38,8 @@ let main () =
         end
     | _ ->
         printf "Usage : $ ./pazcalc source_code.paz\n"
-*)
 
+(*
 let main () =
     let cin = if Array.length Sys.argv > 1 then open_in Sys.argv.(1) else stdin in
     let lexbuf = Lexing.from_channel cin in
@@ -52,5 +51,6 @@ let main () =
     with Parsing.Parse_error ->
         printf "\n\tA Syntax Error Occured!\n\n";
         exit 0
+*)
 
 let _ = main ()

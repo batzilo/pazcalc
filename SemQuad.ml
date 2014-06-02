@@ -784,7 +784,7 @@ let sq_lvalue name idxs =
        esv_err
   in
   let e = myEntryLookup (id_make name) in
-  sq_lvalue_debug e;
+  if (debug) then sq_lvalue_debug e;
   match e.entry_info with
   | ENTRY_variable inf ->
       mkArrTemp (Q_entry e) inf.variable_type idxs
@@ -865,10 +865,10 @@ let check_assign_types op l_typ r_typ =
         | (TYPE_bool, TYPE_bool) -> true
         | _ -> false
         end
-    | "+="
-    | "-="
-    | "*="
-    | "/=" ->
+    | "+"
+    | "-"
+    | "*"
+    | "/" ->
         begin
         match (l_typ, r_typ) with
         | (TYPE_int, TYPE_int)
@@ -876,7 +876,7 @@ let check_assign_types op l_typ r_typ =
         | (TYPE_REAL, TYPE_REAL) -> true
         | _ -> false
         end
-    | "%=" ->
+    | "%" ->
         begin
         match (l_typ, r_typ) with
         | (TYPE_int, TYPE_int) -> true
@@ -1383,7 +1383,7 @@ let st_call () =
   (* collect quads generated due to routine *)
   resetRoutQuadLen ();
   let len = l1 + l2 + l3 in
-  if (debug) then printf "Call is %d long\n" len else printf "skata";
+  if (debug) then printf "Call is %d long\n" len;
   let ssv = {
     s_next = [];
     s_len = len
@@ -1503,6 +1503,8 @@ let st_do_while stmt cond =
   collectMyBreaks (stmt_start - qs) (!quadNext);
   (* find and fix any continues associated with this do-while loop *)
   collectMyConts (stmt_start) (!quadNext);
+  (* FIXME added for fun3.paz *)
+  backpatch c.c_false (Q_int !quadNext);
   let ssv = {
     s_next = c.c_false;
     s_len = stmt.s_len + qs

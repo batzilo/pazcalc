@@ -1,0 +1,25 @@
+PROGRAM bar ( ) {
+    int a, b, c;
+    a = b + c;
+    c = b + a*b;
+    a = b + a*c;
+    b = c + b*b*b*c;
+    c = a * b + a;
+    c = a;
+    do {
+        int a,b,c;
+        a = b + c;
+        c = b + a*b;
+        a = b + a*c;
+        b = c + b*b*b*c;
+        c = a * b + a;
+        c = a;
+    } while (false);
+    a = b + c;
+    c = b + a*b;
+    a = b + a*c;
+    b = c + b*b*b*c;
+    c = a * b + a;
+    c = a;
+    return;
+}

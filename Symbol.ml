@@ -138,7 +138,7 @@ let initSymbolTable size =
 (* Add a new scope with an empty list of entries and
  * increased nesting level and set it as current scope *)
 let openScope isNewFunction =
-  Printf.printf " ---> A scope has been opened\n";
+  if (debug) then Printf.printf " ---> A scope has been opened\n";
   let sco = {
     sco_parent = Some !currentScope;
     sco_nesting = !currentScope.sco_nesting + 1;
@@ -150,7 +150,7 @@ let openScope isNewFunction =
 (* Close the current scope, remove from HashTable
  * all scope entries, and set scope father as current scope *)
 let closeScope () =
-  Printf.printf " <--- A scope has been closed\n";
+  if (debug) then Printf.printf " <--- A scope has been closed\n";
   let sco = !currentScope in
   let manyentry e = H.remove !tab e.entry_id in
   (* apply manyentry to every item in sco_entries list *)
@@ -304,7 +304,7 @@ let newFunction id err isLib =
     (* if found and is a forward function definiton
      * it means we're about to see the function body *)
     | ENTRY_function inf when inf.function_isForward ->
-        if not isLib then Printf.printf "this function '%s' has already be defined\n" (id_name id);
+        if not isLib && debug then Printf.printf "this function '%s' has already be defined\n" (id_name id);
         (* function is no more forwarded *)
         (* FIXME is it really? *)
         inf.function_isForward <- false;
@@ -336,7 +336,7 @@ let newFunction id err isLib =
       function_isMain = false;
       function_isLibrary = isLib
     } in
-    if not isLib then Printf.printf "this function '%s' is a new one\n" (id_name id);
+    if (not isLib) && debug then Printf.printf "this function '%s' is a new one\n" (id_name id);
     (* register a new function entry in the Symbol Table *)
     newEntry id (ENTRY_function inf) false
 
@@ -371,7 +371,7 @@ let newParameter id typ mode f err =
           (* check that par is same as in function forward definition *)
           match inf.function_redeflist with
           | p :: ps -> begin
-              Printf.printf "will now check function parameter '%s'...\n" (id_name p.entry_id);
+              if (debug) then Printf.printf "will now check function parameter '%s'...\n" (id_name p.entry_id);
               (* ps is the list of rest par entries *)
               inf.function_redeflist <- ps;
               (* p is the first parameter, to be matched with par id *)

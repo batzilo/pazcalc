@@ -9,6 +9,7 @@ PROGRAM bar ( ) {
         c = a + b;
     }
 
+    int c = 5;
     a = b;
     a = c;
     return;

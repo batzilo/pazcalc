@@ -1,5 +1,4 @@
-PROC bfs_aux (int s, int n, int g[][10], bool visited[])
-{
+PROC bfs_aux (int s, int n, int g[][10], bool visited[]) {
 	int i, v, front, rear;
 	int queue[20];
 
@@ -24,10 +23,10 @@ PROC bfs_aux (int s, int n, int g[][10], bool visited[])
 			}
 		}
 	}
+    return;
 }
 
-PROGRAM bfs ()
-{
+PROGRAM bfs () {
 	int g[10][10]; bool visited[10];
 
 	g[0][0] = 0; g[0][1] = 1; g[0][2] = 1; g[0][3] = 0; g[0][4] = 0; g[0][5] = 0; g[0][6] = 0; g[0][7] = 0; g[0][8] = 0; g[0][9] = 0;

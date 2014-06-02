@@ -413,7 +413,12 @@ for_control : T_id T_comma range {
             ;
 
 stmt : T_sem_col                                            { ssv_empty }
-     | block1 block2 T_rbrace                               { closeScope (); $2 }
+     | block1 block2 T_rbrace                               {
+          if (debug) then begin printf "Will close Scope so this is ST:\n";
+          printSymbolTable () end;
+          closeScope ();
+          $2
+        }
      | l_value assign expr T_sem_col                        { st_assign $1 $2 $3 }
      | l_value T_plus_plus T_sem_col                        { st_plusplus $1 }
      | l_value T_minus_minus T_sem_col                      { st_minusminus $1 }
