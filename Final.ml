@@ -569,39 +569,34 @@ let transform (i,quad) =
         | _ -> "<error>\n"
         end
     | Q_array (x,y,z) ->
-        begin
-        match x, y, z with
-        | Q_entry x1, Q_entry y1, Q_entry z1 ->
-            load "ax" y ^
-            "\tmov cx, " ^ string_of_int (size_array x1) ^ "\n" ^
-            "\timul cx\n" ^
-            loadAddr "cx" x ^
-            "\tadd ax, cx\n" ^
-            store "ax" z
-        | Q_entry x1, Q_int y1, Q_entry z1 ->
-            load "ax" y ^
-            "\tmov cx, " ^ string_of_int (size_array x1) ^ "\n" ^
-            "\timul cx\n" ^
-            loadAddr "cx" x ^
-            "\tadd ax, cx\n" ^
-            store "ax" z
-        | Q_deref x1, Q_entry y1, Q_entry z1 ->
-            load "ax" y ^
-            "\tmov cx, " ^ string_of_int (size_array x1) ^ "\n" ^
-            "\timul cx\n" ^
-            load "cx" (Q_entry x1) ^
-            "\tadd ax, cx\n" ^
-            store "ax" z
-        | Q_deref x1, Q_int y1, Q_entry z1 ->
-            load "ax" y ^
-            "\tmov cx, " ^ string_of_int (size_array x1) ^ "\n" ^
-            "\timul cx\n" ^
-            load "cx" (Q_entry x1) ^
-            "\tadd ax, cx\n" ^
-            store "ax" z
-        | _ ->
-            "<error>\n"
-        end
+        let s1 = load "ax" y in
+        let s2 =
+            match x with
+            | Q_entry x1
+            | Q_deref x1 ->
+                "\tmov cx, " ^ string_of_int (size_array x1) ^ "\n" ^
+            "\timul cx\n"
+            | _ ->
+                "<error>"
+        in
+        let s3 =
+            match x with
+            | Q_entry x1 ->
+                loadAddr "cx" x
+            | Q_deref x1 ->
+                load "cx" (Q_entry x1)
+            | _ ->
+                "<error>"
+        in
+        let s4 = "\tadd ax, cx\n" in
+        let s5 =
+            match z with
+            | Q_entry z1 ->
+                store "ax" z
+            | _ ->
+                "error"
+        in
+        s1 ^ s2 ^ s3 ^ s4 ^ s5
     | Q_relop (op,x,y,z) ->
         begin
         let instr = 
