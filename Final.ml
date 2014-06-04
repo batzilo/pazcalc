@@ -350,6 +350,21 @@ let size_p x =
         end
     | _ -> "-4"
 
+let size_array e =
+    let array_type = 
+        match e.entry_info with
+        | ENTRY_variable inf -> inf.variable_type
+        | ENTRY_parameter inf -> inf.parameter_type
+        | ENTRY_temporary inf -> inf.temporary_type
+        | _ -> TYPE_none
+    in
+    let element_type =
+        match array_type with
+        | TYPE_array (et, sz) -> et
+        | _ -> TYPE_none
+    in
+    Types.sizeOfType element_type
+
 (* increase stack pointer by two if callee is a procedure *)
 let sub_if_proc e =
     match e.entry_info with
@@ -558,28 +573,28 @@ let transform (i,quad) =
         match x, y, z with
         | Q_entry x1, Q_entry y1, Q_entry z1 ->
             load "ax" y ^
-            "\tmov cx, " ^ operand_size x1 ^ "\n" ^
+            "\tmov cx, " ^ string_of_int (size_array x1) ^ "\n" ^
             "\timul cx\n" ^
             loadAddr "cx" x ^
             "\tadd ax, cx\n" ^
             store "ax" z
         | Q_entry x1, Q_int y1, Q_entry z1 ->
             load "ax" y ^
-            "\tmov cx, " ^ operand_size x1 ^ "\n" ^
+            "\tmov cx, " ^ string_of_int (size_array x1) ^ "\n" ^
             "\timul cx\n" ^
             loadAddr "cx" x ^
             "\tadd ax, cx\n" ^
             store "ax" z
         | Q_deref x1, Q_entry y1, Q_entry z1 ->
             load "ax" y ^
-            "\tmov cx, " ^ operand_size x1 ^ "\n" ^
+            "\tmov cx, " ^ string_of_int (size_array x1) ^ "\n" ^
             "\timul cx\n" ^
             load "cx" (Q_entry x1) ^
             "\tadd ax, cx\n" ^
             store "ax" z
         | Q_deref x1, Q_int y1, Q_entry z1 ->
             load "ax" y ^
-            "\tmov cx, " ^ operand_size x1 ^ "\n" ^
+            "\tmov cx, " ^ string_of_int (size_array x1) ^ "\n" ^
             "\timul cx\n" ^
             load "cx" (Q_entry x1) ^
             "\tadd ax, cx\n" ^
