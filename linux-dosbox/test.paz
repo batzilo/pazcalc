@@ -1,17 +1,15 @@
-PROGRAM bar ( ) {
-    int i, a = 42;
-    int x[16];
+const int m = 6;
+const int n = 5;
+const int q = 7;
 
-    FOR (i, 0 TO 15) {
-        WRITE("opa! ");
-        if ( i >= 7 ) WRITE("- ");
-        else WRITE("  ");
-        WRITESP(i);
-        x[i] = i;
-        if ( i >= 5 ) WRITESP(i);
-        if ( i > 10 ) {
-            WRITESP(i);
-            WRITE("ntei!");
+PROGRAM foo() {
+    int a[m][n]; //, b[n][q]; //, c[m][q];
+    int i,j,k;
+
+    FOR (i, 0 TO m-1) {
+        FOR (j, 0 TO n-1) {
+            a[i][j] = i+j;
+            //WRITESP(a[i][j]);
         }
         WRITELN();
     }

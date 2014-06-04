@@ -64,7 +64,7 @@ let string_of_function inf =
     let size = 
         match inf.function_scope with
         | Some sco -> " with size : " ^ string_of_int (-sco.sco_negofs)
-        | _ -> " with size : -1"
+        | _ -> (* " with size : -1" *) ""
     in
     "(" ^ params ^ "[eop]) : " ^ typ ^ size
 
@@ -83,7 +83,10 @@ let print_entry e =
         | ENTRY_constant inf ->
             string_of_const inf
         | ENTRY_function inf ->
+            (*
             if inf.function_isLibrary then "" else string_of_function inf
+            *)
+            string_of_function inf
         | ENTRY_parameter inf ->
             string_of_type inf.parameter_type
             ^

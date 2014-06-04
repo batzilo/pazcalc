@@ -180,7 +180,7 @@ let loadAddr r a =
                 (* local operand *)
                 match e.entry_info with
                 | ENTRY_variable inf ->
-                    "\tmov " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.variable_offset ^ "]\n"
+                    "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.variable_offset ^ "]\n"
                 | ENTRY_parameter inf ->
                     if inf.parameter_mode = PASS_BY_VALUE then
                         "\tlea " ^ r ^ ", " ^ operand_size e ^ " ptr [bp " ^ fix_offset inf.parameter_offset ^ "]\n"
